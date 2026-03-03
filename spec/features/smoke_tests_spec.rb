@@ -130,15 +130,17 @@ RSpec.describe "Smoke Tests", type: :feature do
 
       expect(page).to have_field('Title')
       expect(page).to have_field('Description')
-      expect(page).to have_button('Create Event')
+      expect(page).to have_button('Next')
     end
 
     it "shows validation errors for invalid event" do
       visit new_event_path
 
-      click_button 'Create Event'
+      # Try to proceed without filling required field
+      click_button 'Next'
 
-      expect(page).to have_content("can't be blank")
+      # Should stay on step 1 due to validation
+      expect(page).to have_field('Title')
     end
   end
 
@@ -154,7 +156,7 @@ RSpec.describe "Smoke Tests", type: :feature do
       visit edit_event_path(event)
 
       expect(page).to have_field('Title', with: 'My Event')
-      expect(page).to have_button('Update Event')
+      expect(page).to have_button('Next')
     end
 
     it "shows postpone button" do

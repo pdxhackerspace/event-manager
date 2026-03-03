@@ -1,11 +1,6 @@
 <div class="row">
-  <div class="col-lg-8 mx-auto">
+  <div class="col-lg-10 mx-auto">
     <h1 class="mb-4">Create New Event</h1>
-    
-    <div class="card">
-      <div class="card-body">
-        <%= render 'form', event: @event %>
-      </div>
-    </div>
+    <%= render 'wizard_form', event: @event %>
   </div>
 </div>

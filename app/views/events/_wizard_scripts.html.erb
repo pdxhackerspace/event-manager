@@ -1,0 +1,292 @@
+function initRecurrenceOptions() {
+  const recurrenceSelect = document.getElementById('recurrence_type_select');
+  const weeklyOptions = document.getElementById('weekly_options');
+  const monthlyOptions = document.getElementById('monthly_options');
+  const customOptions = document.getElementById('custom_options');
+  const startTimeField = document.querySelector('input[name="event[start_time]"]');
+
+  if (!recurrenceSelect) return;
+
+  function autoSelectWeeklyDay() {
+    if (!startTimeField || !startTimeField.value) return;
+    
+    const date = new Date(startTimeField.value);
+    const dayNum = date.getDay();
+    const checkboxes = document.querySelectorAll('.weekly-day-checkbox');
+    const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+    
+    if (!anyChecked) {
+      const checkbox = document.getElementById(`weekly_day_${dayNum}`);
+      if (checkbox) checkbox.checked = true;
+    }
+  }
+
+  function updateRecurrenceOptions() {
+    const value = recurrenceSelect.value;
+    
+    weeklyOptions.style.display = value === 'weekly' ? 'block' : 'none';
+    monthlyOptions.style.display = value === 'monthly' ? 'block' : 'none';
+    if (customOptions) customOptions.style.display = value === 'custom' ? 'block' : 'none';
+    
+    if (value === 'weekly') {
+      autoSelectWeeklyDay();
+    }
+  }
+
+  recurrenceSelect.addEventListener('change', updateRecurrenceOptions);
+  if (startTimeField) {
+    startTimeField.addEventListener('change', autoSelectWeeklyDay);
+  }
+  updateRecurrenceOptions();
+  initCustomRules();
+}
+
+let customRuleCount = 0;
+
+function initCustomRules() {
+  const addButton = document.getElementById('add_custom_rule');
+  if (!addButton) return;
+  addButton.addEventListener('click', addCustomRule);
+}
+
+function addCustomRule() {
+  const container = document.getElementById('custom_rules_container');
+  if (!container) return;
+
+  const ruleIndex = customRuleCount++;
+  const ruleHtml = `
+    <div class="card mb-2 custom-rule" data-rule-index="${ruleIndex}">
+      <div class="card-body py-2">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <strong>Rule ${ruleIndex + 1}</strong>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeCustomRule(${ruleIndex})">
+            <i class="bi bi-trash"></i>
+          </button>
+        </div>
+        <div class="row">
+          <div class="col-md-3 mb-2">
+            <label class="form-label small">Type:</label>
+            <select name="custom_rules[${ruleIndex}][type]" class="form-select form-select-sm custom-rule-type" data-rule="${ruleIndex}">
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="col-md-9">
+            <div class="custom-rule-weekly-options" data-rule="${ruleIndex}">
+              <div class="row">
+                <div class="col-md-3 mb-2">
+                  <label class="form-label small">Interval:</label>
+                  <select name="custom_rules[${ruleIndex}][interval]" class="form-select form-select-sm custom-rule-interval" data-rule="${ruleIndex}">
+                    <option value="1">Every week</option>
+                    <option value="2">Every 2 weeks</option>
+                    <option value="3">Every 3 weeks</option>
+                    <option value="4">Every 4 weeks</option>
+                  </select>
+                </div>
+                <div class="col-md-3 mb-2 week-offset-container" data-rule="${ruleIndex}" style="display: none;">
+                  <label class="form-label small">Start on:</label>
+                  <select name="custom_rules[${ruleIndex}][week_offset]" class="form-select form-select-sm">
+                    <option value="0">This week</option>
+                    <option value="1">Next week</option>
+                  </select>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small">Days:</label>
+                  <div class="d-flex flex-wrap gap-2">
+                    ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => `
+                      <div class="form-check form-check-inline">
+                        <input type="checkbox" name="custom_rules[${ruleIndex}][days][]" value="${i}" 
+                               id="custom_rule_${ruleIndex}_day_${i}" class="form-check-input">
+                        <label for="custom_rule_${ruleIndex}_day_${i}" class="form-check-label small">${day}</label>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="custom-rule-monthly-options" data-rule="${ruleIndex}" style="display: none;">
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small">Week(s):</label>
+                  <div class="d-flex flex-wrap gap-2">
+                    ${['first', 'second', 'third', 'fourth', 'last'].map(occ => `
+                      <div class="form-check form-check-inline">
+                        <input type="checkbox" name="custom_rules[${ruleIndex}][occurrences][]" value="${occ}" 
+                               id="custom_rule_${ruleIndex}_occ_${occ}" class="form-check-input">
+                        <label for="custom_rule_${ruleIndex}_occ_${occ}" class="form-check-label small">${occ.charAt(0).toUpperCase() + occ.slice(1)}</label>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small">Day:</label>
+                  <select name="custom_rules[${ruleIndex}][day]" class="form-select form-select-sm">
+                    ${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => `
+                      <option value="${day}">${day.charAt(0).toUpperCase() + day.slice(1)}</option>
+                    `).join('')}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.insertAdjacentHTML('beforeend', ruleHtml);
+
+  const typeSelect = container.querySelector(`select.custom-rule-type[data-rule="${ruleIndex}"]`);
+  if (typeSelect) {
+    typeSelect.addEventListener('change', function() {
+      updateCustomRuleOptions(ruleIndex, this.value);
+    });
+  }
+
+  const intervalSelect = container.querySelector(`select.custom-rule-interval[data-rule="${ruleIndex}"]`);
+  if (intervalSelect) {
+    intervalSelect.addEventListener('change', function() {
+      updateWeekOffsetVisibility(ruleIndex, this.value);
+    });
+  }
+}
+
+function updateWeekOffsetVisibility(ruleIndex, interval) {
+  const offsetContainer = document.querySelector(`.week-offset-container[data-rule="${ruleIndex}"]`);
+  if (offsetContainer) {
+    offsetContainer.style.display = parseInt(interval) > 1 ? 'block' : 'none';
+  }
+}
+
+function updateCustomRuleOptions(ruleIndex, type) {
+  const weeklyOptions = document.querySelector(`.custom-rule-weekly-options[data-rule="${ruleIndex}"]`);
+  const monthlyOptions = document.querySelector(`.custom-rule-monthly-options[data-rule="${ruleIndex}"]`);
+  
+  if (weeklyOptions) weeklyOptions.style.display = type === 'weekly' ? 'block' : 'none';
+  if (monthlyOptions) monthlyOptions.style.display = type === 'monthly' ? 'block' : 'none';
+}
+
+function removeCustomRule(ruleIndex) {
+  const rule = document.querySelector(`.custom-rule[data-rule-index="${ruleIndex}"]`);
+  if (rule) rule.remove();
+}
+
+function initReminderButtons() {
+  const reminderSection = document.getElementById('reminder-messages-section');
+  if (!reminderSection) return;
+
+  reminderSection.addEventListener("click", function(event) {
+    const button = event.target.closest("[data-action]");
+    if (!button) return;
+    
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const targetId = button.dataset.target;
+    if (!targetId) return;
+    
+    const textarea = document.getElementById(targetId);
+    if (!textarea) return;
+
+    if (button.dataset.action === "set-default") {
+      textarea.value = textarea.dataset.defaultText || "";
+      updateCharCount(textarea);
+    }
+
+    if (button.dataset.action === "regenerate") {
+      generateAiMessageForEvent(button, targetId);
+    }
+  });
+}
+
+async function generateAiMessageForEvent(button, targetId) {
+  const textarea = document.getElementById(targetId);
+  if (!textarea) return;
+
+  const reminderSection = document.getElementById('reminder-messages-section');
+  const url = reminderSection?.dataset.generateAiUrl;
+  
+  if (!url) {
+    alert('AI generation is not available. Save the event first.');
+    return;
+  }
+
+  const days = targetId.includes('_7d') ? 7 : 1;
+  const messageType = button.dataset.type || 'short';
+  const originalHTML = button.innerHTML;
+  
+  const resetButton = () => {
+    button.disabled = false;
+    button.innerHTML = originalHTML;
+  };
+
+  button.disabled = true;
+  button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'X-CSRF-Token': csrfToken
+      },
+      body: JSON.stringify({ days: days, type: messageType })
+    });
+    
+    if (!response.ok) {
+      alert(`AI generation failed (${response.status}).`);
+      resetButton();
+      return;
+    }
+
+    const data = await response.json();
+    
+    if (data.success) {
+      textarea.value = data.message;
+      textarea.classList.add("is-valid");
+      updateCharCount(textarea);
+      setTimeout(() => textarea.classList.remove("is-valid"), 2000);
+    } else {
+      alert(`AI generation failed: ${data.message}`);
+    }
+  } catch (error) {
+    console.error('Error generating AI reminder:', error);
+    alert('An error occurred during AI generation.');
+  }
+  
+  resetButton();
+}
+
+function updateCharCount(textarea) {
+  const countEl = document.querySelector(`.char-count[data-target="${textarea.id}"]`);
+  if (countEl) {
+    const max = textarea.maxLength;
+    const current = textarea.value.length;
+    countEl.textContent = `${current}/${max}`;
+    countEl.classList.toggle('text-danger', current > max * 0.9);
+  }
+}
+
+function initCharCounts() {
+  document.querySelectorAll('textarea[maxlength]').forEach(textarea => {
+    updateCharCount(textarea);
+    textarea.addEventListener('input', () => updateCharCount(textarea));
+  });
+}
+
+function initRelocatedField() {
+  const checkbox = document.getElementById('permanently_relocated_checkbox');
+  const field = document.getElementById('relocated_to_field');
+  if (!checkbox || !field) return;
+
+  checkbox.addEventListener('change', function() {
+    field.style.display = this.checked ? 'block' : 'none';
+    if (!this.checked) {
+      const input = field.querySelector('input');
+      if (input) input.value = '';
+    }
+  });
+}

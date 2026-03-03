@@ -1,0 +1,665 @@
+<%= form_with(model: event, local: true, class: "needs-validation event-wizard-form", id: "event-wizard-form", "aria-label": "Event form") do |f| %>
+  <% if event.errors.any? %>
+    <div class="alert alert-danger" role="alert" aria-live="assertive">
+      <h2 class="h4"><%= pluralize(event.errors.count, "error") %> prohibited this event from being saved:</h2>
+      <ul>
+        <% event.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Wizard Progress Breadcrumbs -->
+  <nav aria-label="Event wizard progress" class="mb-4">
+    <ol class="wizard-steps d-flex justify-content-between list-unstyled mb-0 position-relative">
+      <li class="wizard-step flex-fill text-center" data-step="1">
+        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="1">
+          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">1</span>
+          <span class="wizard-step-label d-block small">Details</span>
+        </button>
+      </li>
+      <li class="wizard-step flex-fill text-center" data-step="2">
+        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="2">
+          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">2</span>
+          <span class="wizard-step-label d-block small">Scheduling</span>
+        </button>
+      </li>
+      <li class="wizard-step flex-fill text-center" data-step="3">
+        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="3">
+          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">3</span>
+          <span class="wizard-step-label d-block small">Visibility</span>
+        </button>
+      </li>
+      <li class="wizard-step flex-fill text-center" data-step="4">
+        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="4">
+          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">4</span>
+          <span class="wizard-step-label d-block small">Promotion</span>
+        </button>
+      </li>
+    </ol>
+  </nav>
+
+  <!-- Step 1: Details -->
+  <div class="wizard-panel" data-step="1">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-info-circle"></i> Event Details</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <%= f.label :title, class: "form-label" %>
+          <%= f.text_field :title, class: "form-control", required: true, placeholder: "Weekly Meetup" %>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :description, class: "form-label" %>
+          <div class="alert alert-info py-2 mb-2" role="note">
+            <small>
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              <strong>What to include:</strong>
+              Who is invited, what the event is about, any signup or RSVP links, what to bring, 
+              skill level requirements, costs (if any), and other important details.
+            </small>
+          </div>
+          <%= f.text_area :description, class: "form-control", rows: 5, placeholder: "Describe your event..." %>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :more_info_url, "More Info URL (Optional)", class: "form-label" %>
+          <%= f.url_field :more_info_url, class: "form-control", placeholder: "https://example.com/event-details" %>
+          <small class="form-text text-muted">
+            <i class="bi bi-link-45deg" aria-hidden="true"></i> Link where attendees can learn more
+          </small>
+        </div>
+
+        <div class="mb-3">
+          <%= f.label :banner_image, "Banner Image (Optional)", class: "form-label" %>
+          <%= f.file_field :banner_image, class: "form-control", accept: "image/*" %>
+          <small class="form-text text-muted">
+            <i class="bi bi-image" aria-hidden="true"></i> Recommended: 1200x400 pixels (3:1 ratio). Max 5MB.
+          </small>
+          <% if event.banner_image.attached? %>
+            <div class="mt-2">
+              <%= image_tag event.banner_image, class: "img-thumbnail", style: "max-width: 300px;", alt: "Current banner" %>
+              <div class="form-check mt-2">
+                <%= f.check_box :remove_banner_image, class: "form-check-input" %>
+                <%= f.label :remove_banner_image, "Remove current banner image", class: "form-check-label" %>
+              </div>
+            </div>
+          <% end %>
+        </div>
+
+        <div class="mb-3">
+          <div class="form-check">
+            <%= f.check_box :requires_mask, class: "form-check-input" %>
+            <%= f.label :requires_mask, "Masks Required", class: "form-check-label" %>
+            <div class="form-text">
+              <i class="bi bi-shield-fill-check"></i> Check if masks are required for safety
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-0">
+          <%= f.label :location_id, "Location", class: "form-label" %>
+          <%= f.collection_select :location_id, Location.alphabetical, :id, :name,
+              { prompt: "No specific location", include_blank: true },
+              class: "form-select" %>
+          <small class="form-text text-muted">
+            <i class="bi bi-geo-alt"></i> Where this event typically happens
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Scheduling -->
+  <div class="wizard-panel" data-step="2" style="display: none;">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Scheduling</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <%= f.label :start_time, "Start Date & Time", class: "form-label" %>
+            <%= f.datetime_local_field :start_time, class: "form-control", required: true %>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <%= f.label :duration, "Duration (minutes)", class: "form-label" %>
+            <%= f.number_field :duration, class: "form-control", value: event.duration || 60, min: 15, step: 15 %>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-8 mb-3">
+            <%= f.label :recurrence_type, "Recurrence Pattern", class: "form-label" %>
+            <%= f.select :recurrence_type, 
+                [['One Time Event', 'once'], 
+                 ['Weekly', 'weekly'], 
+                 ['Monthly', 'monthly'],
+                 ['Custom', 'custom']], 
+                {}, 
+                class: "form-select", 
+                id: "recurrence_type_select" %>
+          </div>
+
+          <div class="col-md-4 mb-3" id="max_occurrences_field">
+            <%= f.label :max_occurrences, "Show Next", class: "form-label" %>
+            <%= f.number_field :max_occurrences, class: "form-control", value: event.max_occurrences || 5, min: 1, max: 20 %>
+            <small class="form-text text-muted">Number of occurrences to display</small>
+          </div>
+        </div>
+
+        <% weekly_schedule = parse_weekly_recurrence(event) %>
+        <div id="weekly_options" class="mb-3" style="display: none;">
+          <div class="alert alert-info py-2 mb-3">
+            <small>
+              <i class="bi bi-info-circle"></i>
+              <strong>Examples:</strong> Select "Every 2 weeks" for biweekly events.
+              Check multiple days for events on different days each week.
+            </small>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Repeat every:</label>
+              <%= select_tag :recurrence_interval,
+                  options_for_select([
+                    ['Every week', 1],
+                    ['Every 2 weeks', 2],
+                    ['Every 3 weeks', 3],
+                    ['Every 4 weeks', 4]
+                  ], weekly_schedule[:interval]),
+                  class: "form-select" %>
+            </div>
+            <div class="col-md-8 mb-3">
+              <label class="form-label">On which day(s):</label>
+              <div class="d-flex flex-wrap gap-3">
+                <% [['Sun', 0], ['Mon', 1], ['Tue', 2], ['Wed', 3], ['Thu', 4], ['Fri', 5], ['Sat', 6]].each do |label, value| %>
+                  <div class="form-check">
+                    <%= check_box_tag "recurrence_days[]", value, weekly_schedule[:days].include?(value), id: "weekly_day_#{value}", class: "form-check-input weekly-day-checkbox" %>
+                    <%= label_tag "weekly_day_#{value}", label, class: "form-check-label" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <% monthly_schedule = parse_monthly_recurrence(event) %>
+        <div id="monthly_options" class="mb-3" style="display: none;">
+          <div class="alert alert-info py-2 mb-3">
+            <small>
+              <i class="bi bi-info-circle"></i>
+              <strong>Examples:</strong> Check "First" and "Third" with "Monday" for 1st and 3rd Monday events.
+            </small>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Which week(s):</label>
+              <div class="d-flex flex-column gap-2">
+                <% [['First', 'first'], ['Second', 'second'], ['Third', 'third'], ['Fourth', 'fourth'], ['Last', 'last']].each do |label, value| %>
+                  <div class="form-check">
+                    <%= check_box_tag "recurrence_occurrences[]", value, monthly_schedule[:occurrences].include?(value), id: "occurrence_#{value}", class: "form-check-input" %>
+                    <%= label_tag "occurrence_#{value}", label, class: "form-check-label" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Except:</label>
+              <div class="d-flex flex-column gap-2">
+                <% [['First', 'first'], ['Second', 'second'], ['Third', 'third'], ['Fourth', 'fourth'], ['Last', 'last']].each do |label, value| %>
+                  <div class="form-check">
+                    <%= check_box_tag "recurrence_except_occurrences[]", value, monthly_schedule[:except_occurrences]&.include?(value), id: "except_occurrence_#{value}", class: "form-check-input" %>
+                    <%= label_tag "except_occurrence_#{value}", label, class: "form-check-label text-muted" %>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">On which day:</label>
+              <%= select_tag :recurrence_day,
+                  options_for_select([
+                    ['Monday', 'monday'], ['Tuesday', 'tuesday'], ['Wednesday', 'wednesday'],
+                    ['Thursday', 'thursday'], ['Friday', 'friday'], ['Saturday', 'saturday'], ['Sunday', 'sunday']
+                  ], monthly_schedule[:day]),
+                  class: "form-select" %>
+            </div>
+          </div>
+        </div>
+
+        <div id="custom_options" class="mb-3" style="display: none;">
+          <div class="alert alert-warning py-2 mb-3">
+            <small>
+              <i class="bi bi-exclamation-triangle"></i>
+              <strong>Advanced:</strong> For alternating patterns, add multiple rules with different "Start on" weeks.
+            </small>
+          </div>
+          <div id="custom_rules_container"></div>
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="add_custom_rule">
+            <i class="bi bi-plus-circle"></i> Add Rule
+          </button>
+        </div>
+
+        <hr class="my-4">
+
+        <h6 class="text-muted mb-3">Event Status Options</h6>
+
+        <div class="mb-3">
+          <div class="form-check">
+            <%= f.check_box :default_to_cancelled, class: "form-check-input" %>
+            <%= f.label :default_to_cancelled, "Default to Cancelled", class: "form-check-label text-warning" %>
+            <div class="form-text text-warning">
+              <i class="bi bi-calendar-x"></i> New occurrences created as cancelled. Useful for "every week except one" patterns.
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="form-check">
+            <%= f.check_box :permanently_cancelled, class: "form-check-input" %>
+            <%= f.label :permanently_cancelled, "Permanently Cancelled", class: "form-check-label text-danger" %>
+            <div class="form-text text-danger">
+              <i class="bi bi-x-circle-fill"></i> Event is no longer running. No new occurrences generated.
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-0">
+          <div class="form-check">
+            <%= f.check_box :permanently_relocated, class: "form-check-input", id: "permanently_relocated_checkbox" %>
+            <%= f.label :permanently_relocated, "Permanently Relocated", class: "form-check-label text-info" %>
+            <div class="form-text text-info">
+              <i class="bi bi-geo-alt-fill"></i> Event has moved to a new location permanently.
+            </div>
+          </div>
+          <div id="relocated_to_field" class="mt-2 ms-4" style="display: <%= event.permanently_relocated? ? 'block' : 'none' %>;">
+            <%= f.label :relocated_to, "New Location", class: "form-label" %>
+            <%= f.text_field :relocated_to, class: "form-control", placeholder: "e.g., New venue name, address, or URL" %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3: Visibility -->
+  <div class="wizard-panel" data-step="3" style="display: none;">
+    <div class="card mb-3">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-eye"></i> Visibility & Publishing</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <%= f.label :visibility, "Event Visibility", class: "form-label" %>
+            <%= f.select :visibility, 
+                [
+                  ['Public - Anyone can view', 'public'],
+                  ['Members Only - Signed in users can view', 'members'],
+                  ['Private - Only you and admins can view', 'private']
+                ], 
+                {}, 
+                class: "form-select" %>
+            <small class="form-text text-muted">Who can see this event</small>
+          </div>
+
+          <div class="col-md-6 mb-3">
+            <%= f.label :open_to, "Open To", class: "form-label" %>
+            <%= f.select :open_to, 
+                [
+                  ['Public - Open to everyone', 'public'],
+                  ['Members Only - Members can attend', 'members'],
+                  ['Private - Invitation only', 'private']
+                ], 
+                {}, 
+                class: "form-select" %>
+            <small class="form-text text-muted">Who can attend this event</small>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="form-check">
+            <%= f.check_box :draft, class: "form-check-input" %>
+            <%= f.label :draft, "Save as Draft", class: "form-check-label" %>
+            <div class="form-text">
+              <i class="bi bi-file-earmark-text"></i> Draft events are only visible to you
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-0">
+          <div class="form-check">
+            <%= f.check_box :sign_feed, class: "form-check-input" %>
+            <%= f.label :sign_feed, "Show on E-Ink Signs", class: "form-check-label" %>
+            <div class="form-text">
+              <i class="bi bi-display"></i> Include in e-ink display sign feed
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 4: Promotion -->
+  <div class="wizard-panel" data-step="4" style="display: none;">
+    <% site_config = SiteConfig.current %>
+    <% if site_config.slack_enabled? || site_config.social_reminders_enabled? %>
+      <% ollama_configured = ENV['OLLAMA_SERVER'].present? %>
+      <% short_max = site_config.short_reminder_max_length %>
+      <% long_max = site_config.long_reminder_max_length %>
+      <div class="card mb-3" id="reminder-messages-section"
+           data-generate-ai-url="<%= event.persisted? ? generate_ai_reminder_event_path(event) : '' %>"
+           data-ai-event-description="<%= h(event.description.to_s) %>">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-megaphone"></i> Promotion & Reminders</h5>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="form-check">
+                <%= f.check_box :slack_announce, class: "form-check-input" %>
+                <%= f.label :slack_announce, "Post to Slack", class: "form-check-label" %>
+                <div class="form-text">
+                  <i class="bi bi-slack"></i> Reminders posted 6 days and 1 day before
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-check">
+                <%= f.check_box :social_reminders, class: "form-check-input" %>
+                <%= f.label :social_reminders, "Post to Social Media", class: "form-check-label" %>
+                <div class="form-text">
+                  <i class="bi bi-share"></i> Instagram and Bluesky reminders
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-3">
+
+          <div class="alert alert-info py-2 mb-3" role="note">
+            <small>
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              <strong>Tip:</strong> Use <code>{{when}}</code> as a placeholder for the date/time.
+            </small>
+          </div>
+
+          <h6 class="text-muted mb-3">6-Day Reminders</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <%= f.label :reminder_7d_short, "Short (#{short_max} chars)", class: "form-label" %>
+              <%= f.text_area :reminder_7d_short, 
+                  class: "form-control", 
+                  rows: 3, 
+                  maxlength: short_max,
+                  id: "event_reminder_7d_short",
+                  placeholder: event.reminder_short_default(7),
+                  data: { default_text: event.reminder_short_default(7) } %>
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                <small class="text-muted char-count" data-target="event_reminder_7d_short">0/<%= short_max %></small>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" data-action="set-default" data-target="event_reminder_7d_short">Default</button>
+                  <% if ollama_configured && event.persisted? %>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-action="regenerate" data-target="event_reminder_7d_short" data-type="short"><i class="bi bi-stars"></i> AI</button>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <%= f.label :reminder_7d_long, "Long (#{long_max} chars)", class: "form-label" %>
+              <%= f.text_area :reminder_7d_long, 
+                  class: "form-control", 
+                  rows: 3, 
+                  maxlength: long_max,
+                  id: "event_reminder_7d_long",
+                  placeholder: event.reminder_long_default(7),
+                  data: { default_text: event.reminder_long_default(7) } %>
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                <small class="text-muted char-count" data-target="event_reminder_7d_long">0/<%= long_max %></small>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" data-action="set-default" data-target="event_reminder_7d_long">Default</button>
+                  <% if ollama_configured && event.persisted? %>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-action="regenerate" data-target="event_reminder_7d_long" data-type="long"><i class="bi bi-stars"></i> AI</button>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <h6 class="text-muted mb-3">1-Day Reminders</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <%= f.label :reminder_1d_short, "Short (#{short_max} chars)", class: "form-label" %>
+              <%= f.text_area :reminder_1d_short, 
+                  class: "form-control", 
+                  rows: 3, 
+                  maxlength: short_max,
+                  id: "event_reminder_1d_short",
+                  placeholder: event.reminder_short_default(1),
+                  data: { default_text: event.reminder_short_default(1) } %>
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                <small class="text-muted char-count" data-target="event_reminder_1d_short">0/<%= short_max %></small>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" data-action="set-default" data-target="event_reminder_1d_short">Default</button>
+                  <% if ollama_configured && event.persisted? %>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-action="regenerate" data-target="event_reminder_1d_short" data-type="short"><i class="bi bi-stars"></i> AI</button>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 mb-3">
+              <%= f.label :reminder_1d_long, "Long (#{long_max} chars)", class: "form-label" %>
+              <%= f.text_area :reminder_1d_long, 
+                  class: "form-control", 
+                  rows: 3, 
+                  maxlength: long_max,
+                  id: "event_reminder_1d_long",
+                  placeholder: event.reminder_long_default(1),
+                  data: { default_text: event.reminder_long_default(1) } %>
+              <div class="d-flex justify-content-between align-items-center mt-1">
+                <small class="text-muted char-count" data-target="event_reminder_1d_long">0/<%= long_max %></small>
+                <div class="btn-group btn-group-sm">
+                  <button type="button" class="btn btn-outline-secondary btn-sm" data-action="set-default" data-target="event_reminder_1d_long">Default</button>
+                  <% if ollama_configured && event.persisted? %>
+                    <button type="button" class="btn btn-outline-primary btn-sm" data-action="regenerate" data-target="event_reminder_1d_long" data-type="long"><i class="bi bi-stars"></i> AI</button>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% else %>
+      <div class="card mb-3">
+        <div class="card-header">
+          <h5 class="mb-0"><i class="bi bi-megaphone"></i> Promotion & Reminders</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-secondary mb-0">
+            <i class="bi bi-info-circle"></i> Slack and social media integrations are not configured.
+          </div>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="d-flex justify-content-between mt-4">
+    <div>
+      <button type="button" class="btn btn-outline-secondary wizard-prev-btn" style="display: none;">
+        <i class="bi bi-arrow-left"></i> Previous
+      </button>
+    </div>
+    <div>
+      <%= link_to "Cancel", events_path, class: "btn btn-secondary me-2" %>
+      <button type="button" class="btn btn-primary wizard-next-btn">
+        Next <i class="bi bi-arrow-right"></i>
+      </button>
+      <%= f.submit event.persisted? ? "Update Event" : "Create Event", class: "btn btn-success wizard-submit-btn", style: "display: none;" %>
+    </div>
+  </div>
+<% end %>
+
+<style>
+  .wizard-steps {
+    counter-reset: step;
+  }
+  
+  .wizard-steps::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 12.5%;
+    right: 12.5%;
+    height: 2px;
+    background: #dee2e6;
+    z-index: 0;
+  }
+  
+  .wizard-step-number {
+    width: 36px;
+    height: 36px;
+    background: #dee2e6;
+    color: #6c757d;
+    font-weight: bold;
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s ease;
+  }
+  
+  .wizard-step-label {
+    color: #6c757d;
+    transition: all 0.3s ease;
+  }
+  
+  .wizard-step.active .wizard-step-number {
+    background: #0d6efd;
+    color: white;
+  }
+  
+  .wizard-step.active .wizard-step-label {
+    color: #0d6efd;
+    font-weight: 500;
+  }
+  
+  .wizard-step.completed .wizard-step-number {
+    background: #198754;
+    color: white;
+  }
+  
+  .wizard-step.completed .wizard-step-label {
+    color: #198754;
+  }
+  
+  .wizard-step-btn:hover .wizard-step-number {
+    transform: scale(1.1);
+  }
+  
+  .wizard-step-btn:focus {
+    outline: none;
+    box-shadow: none;
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', initEventWizard);
+document.addEventListener('turbo:load', initEventWizard);
+
+function initEventWizard() {
+  const form = document.getElementById('event-wizard-form');
+  if (!form) return;
+  
+  let currentStep = 1;
+  const totalSteps = 4;
+  
+  const panels = form.querySelectorAll('.wizard-panel');
+  const steps = form.querySelectorAll('.wizard-step');
+  const prevBtn = form.querySelector('.wizard-prev-btn');
+  const nextBtn = form.querySelector('.wizard-next-btn');
+  const submitBtn = form.querySelector('.wizard-submit-btn');
+  
+  function showStep(step) {
+    currentStep = step;
+    
+    // Show/hide panels
+    panels.forEach(panel => {
+      panel.style.display = parseInt(panel.dataset.step) === step ? 'block' : 'none';
+    });
+    
+    // Update step indicators
+    steps.forEach(s => {
+      const stepNum = parseInt(s.dataset.step);
+      s.classList.remove('active', 'completed');
+      if (stepNum === step) {
+        s.classList.add('active');
+      } else if (stepNum < step) {
+        s.classList.add('completed');
+      }
+    });
+    
+    // Update buttons
+    prevBtn.style.display = step > 1 ? 'inline-block' : 'none';
+    nextBtn.style.display = step < totalSteps ? 'inline-block' : 'none';
+    submitBtn.style.display = step === totalSteps ? 'inline-block' : 'none';
+    
+    // Scroll to top of form
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  
+  function validateStep(step) {
+    const panel = form.querySelector(`.wizard-panel[data-step="${step}"]`);
+    const requiredFields = panel.querySelectorAll('[required]');
+    let valid = true;
+    
+    requiredFields.forEach(field => {
+      if (!field.value.trim()) {
+        field.classList.add('is-invalid');
+        valid = false;
+      } else {
+        field.classList.remove('is-invalid');
+      }
+    });
+    
+    return valid;
+  }
+  
+  // Navigation buttons
+  prevBtn.addEventListener('click', () => {
+    if (currentStep > 1) showStep(currentStep - 1);
+  });
+  
+  nextBtn.addEventListener('click', () => {
+    if (validateStep(currentStep) && currentStep < totalSteps) {
+      showStep(currentStep + 1);
+    }
+  });
+  
+  // Step indicator clicks
+  steps.forEach(step => {
+    const btn = step.querySelector('.wizard-step-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const targetStep = parseInt(btn.dataset.gotoStep);
+        // Allow going back freely, but validate when going forward
+        if (targetStep < currentStep || validateStep(currentStep)) {
+          showStep(targetStep);
+        }
+      });
+    }
+  });
+  
+  // Initialize first step
+  showStep(1);
+  
+  // Initialize recurrence options (from original form)
+  initRecurrenceOptions();
+  initReminderButtons();
+  initCharCounts();
+  initRelocatedField();
+}
+
+// Include the original form's JavaScript functions
+<%= render 'events/wizard_scripts' %>
+</script>
