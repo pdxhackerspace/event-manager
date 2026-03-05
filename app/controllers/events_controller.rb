@@ -191,7 +191,7 @@ class EventsController < ApplicationController
     # Only rebuild schedule if recurrence settings were explicitly changed
     if should_rebuild_schedule?
       recurrence_params = build_recurrence_params
-      new_start_time = params[:event][:start_time].present? ? Time.parse(params[:event][:start_time]) : @event.start_time
+      new_start_time = params[:event][:start_time].present? ? Time.zone.parse(params[:event][:start_time]) : @event.start_time
       schedule = Event.build_schedule(new_start_time, params[:event][:recurrence_type], recurrence_params)
       @event.recurrence_rule = schedule.to_yaml
     end
