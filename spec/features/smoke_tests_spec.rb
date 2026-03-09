@@ -108,7 +108,13 @@ RSpec.describe "Smoke Tests", type: :feature do
     end
 
     it "sign up is disabled (users created via Authentik OAuth only)" do
-      skip "Sign up disabled - users created via Authentik OAuth only"
+      # Sign up route should not exist - only OAuth login allowed
+      # Visiting /users/sign_up redirects to sign in (route doesn't exist)
+      visit '/users/sign_up'
+      # Should be redirected to sign in page
+      expect(page).to have_current_path(new_user_session_path)
+      # And the sign up link should not be present on the sign in page
+      expect(page).not_to have_link('Sign up')
     end
 
     it "authentication is required for event creation" do

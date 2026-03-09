@@ -158,7 +158,6 @@ RSpec.describe "Events", type: :request do
         end
 
         it "adds the creator as a host" do
-          skip "Callback works in model specs but not request specs - investigate later"
           post events_path, params: event_params
           event = Event.last
           expect(event).to be_present

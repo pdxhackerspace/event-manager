@@ -21,14 +21,17 @@ Rails.application.routes.draw do
   get 'event_occurrences/reactivate'
   # Devise routes with OmniAuth
   # Users created via Authentik OAuth only (no signup)
-  # Keep edit/update for profile management, skip new/create
+  # Skip all registration routes and manually add only edit/update/destroy
   devise_for :users, controllers: {
     omniauth_callbacks: 'omniauth_callbacks'
-  }, skip_helpers: [:registrations]
+  }, skip: [:registrations]
 
-  # Manually add only edit/update registration routes (no new/create)
+  # Manually add only the registration routes we need (no new/create for sign up)
   devise_scope :user do
-    resource :registration, only: %i[edit update], controller: 'devise/registrations', as: :user_registration
+    get 'users/edit', to: 'devise/registrations#edit', as: :edit_user_registration
+    patch 'users', to: 'devise/registrations#update', as: :user_registration
+    put 'users', to: 'devise/registrations#update'
+    delete 'users', to: 'devise/registrations#destroy'
   end
 
   # Sidekiq Web UI (admin only)
