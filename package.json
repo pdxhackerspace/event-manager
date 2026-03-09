@@ -19,7 +19,7 @@
     "bootstrap-icons": "^1.11.3"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.23",
+    "autoprefixer": "^10.4.27",
     "esbuild": "^0.27.2",
     "nodemon": "^3.1.11",
     "postcss": "^8.4.47",
