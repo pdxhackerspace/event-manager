@@ -33,8 +33,9 @@ class Spectra6BannerJob < ApplicationJob
         spectra6_key = File.join(File.dirname(original_key), OUTPUT_SUBDIR, "#{File.basename(original_key, '.*')}.png")
 
         # Create a new blob for the processed image
+        output_file.rewind
         spectra6_blob = ActiveStorage::Blob.create_and_upload!(
-          io: File.open(output_file.path),
+          io: output_file,
           filename: "#{File.basename(blob.filename.to_s, '.*')}-spectra6.png",
           content_type: 'image/png',
           key: spectra6_key

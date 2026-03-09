@@ -198,11 +198,3 @@ Metrics/PerceivedComplexity:
 Lint/EmptyConditionalBody:
   Enabled: false
 
-# Allow multiple classes per file (helper files often include tightly coupled builder classes)
-Style/OneClassPerFile:
-  Enabled: false
-
-# Allow File.open without block when used as an IO argument to another method
-Style/FileOpen:
-  Enabled: false
-
