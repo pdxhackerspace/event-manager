@@ -23,6 +23,10 @@ if ENV['SENTRY_DSN'].present?
     # Set to a value between 0.0 and 1.0 to enable
     config.traces_sample_rate = ENV.fetch('SENTRY_TRACES_SAMPLE_RATE', '0.1').to_f
 
+    # Profiling (requires stackprof gem)
+    # Set to a value between 0.0 and 1.0 to enable
+    config.profiles_sample_rate = ENV.fetch('SENTRY_PROFILES_SAMPLE_RATE', '0.1').to_f
+
     # Filter sensitive parameters
     config.send_default_pii = false
 
