@@ -45,3 +45,7 @@
 *.swp
 *.swo
 .DS_Store/VERSION
+
+# IDE directories
+.cursor/
+.claude/

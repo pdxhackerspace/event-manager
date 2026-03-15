@@ -1,8 +1,0 @@
----
-alwaysApply: true
----
-Do not push to github unless I tell you to. I will say "push" when I want you to push. When you push always tag a new version number.
-
-Do commit your work
-
-Do run rubocop before pushing

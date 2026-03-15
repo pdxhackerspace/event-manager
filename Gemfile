@@ -67,6 +67,11 @@ gem "connection_pool", "~> 2.4"
 # Rate limiting and throttling
 gem "rack-attack"
 
+# Error tracking
+gem "sentry-ruby"
+gem "sentry-rails"
+gem "sentry-sidekiq"
+
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem "tzinfo-data", platforms: %i[mingw mswin x64_mingw jruby]
 

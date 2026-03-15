@@ -1,8 +1,0 @@
----
-alwaysApply: true
----
-I don't have a Ruby development environment installed, so do dev work like database migrations and running Rubocop or tests under Docker. Use the test version of Docker for this.
-
-Use the test environment and docker-compose.test.yml files for this
-
-docker-compose no longer uses the version: tag at the start, do not put that in files anymore.
