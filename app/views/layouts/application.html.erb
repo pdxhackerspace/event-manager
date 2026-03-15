@@ -192,19 +192,19 @@
             <i class="bi bi-calendar-plus" aria-hidden="true"></i> <%= link_to "Calendar (.ics)", calendar_ical_path, class: "text-decoration-none" %>
             <span aria-hidden="true">|</span>
             <i class="bi bi-filetype-json" aria-hidden="true"></i> <%= link_to "JSON", events_path(format: :json), class: "text-decoration-none" %>
-            <span aria-hidden="true">|</span>
-            <i class="bi bi-github" aria-hidden="true"></i> <%= link_to "GitHub", "https://github.com/romkey/pdxhackerspace-eventmanager", target: "_blank", rel: "noopener", class: "text-decoration-none" %>
           </small>
         </nav>
-        <% if current_user&.admin? %>
-          <br>
-          <small class="text-muted">
-            <% version = File.read(Rails.root.join('VERSION')).strip rescue 'unknown' %>
-            <i class="bi bi-tag"></i> <%= version %> 
-            | 
+        <br>
+        <small class="text-muted">
+          <% version = File.read(Rails.root.join('VERSION')).strip rescue 'unknown' %>
+          <i class="bi bi-tag"></i> <%= version %>
+          <% if current_user&.admin? %>
+            |
             <i class="bi bi-server"></i> <%= Rails.env.titleize %>
-          </small>
-        <% end %>
+          <% end %>
+          |
+          <i class="bi bi-github" aria-hidden="true"></i> <%= link_to "GitHub", "https://github.com/romkey/pdxhackerspace-eventmanager", target: "_blank", rel: "noopener", class: "text-decoration-none" %>
+        </small>
       </div>
     </footer>
   </body>
