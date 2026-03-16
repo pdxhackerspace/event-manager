@@ -43,8 +43,9 @@ gem "jbuilder"
 gem "devise"
 gem "omniauth"
 gem "omniauth-oauth2"
-# Pin to 1.0.2 - version 2.0.0 has CSRF verification issues behind reverse proxies
-gem "omniauth-rails_csrf_protection", "~> 1.0.2"
+# Updated to 2.0.1 to fix ActiveSupport::Configurable deprecation warning
+# If CSRF issues occur behind reverse proxies, may need to revert to 1.0.2
+gem "omniauth-rails_csrf_protection", "~> 2.0"
 gem "pundit"
 
 # Recurring events
