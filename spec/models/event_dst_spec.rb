@@ -200,6 +200,97 @@ RSpec.describe 'Event DST handling', type: :model do
     end
   end
 
+  describe 'default_to_cancelled events do not create duplicates' do
+    let(:start_time) { Time.zone.local(2026, 3, 1, 19, 0, 0) }
+    let(:expected_hour) { 19 }
+
+    let(:event) do
+      event = Event.new(
+        title: 'Default Cancelled DST Test',
+        start_time: start_time,
+        recurrence_type: 'weekly',
+        user: user,
+        location: location,
+        visibility: 'public',
+        max_occurrences: 5,
+        default_to_cancelled: true
+      )
+      schedule = Event.build_schedule(start_time, 'weekly', { days: [start_time.wday] })
+      event.recurrence_rule = schedule.to_yaml
+      event.save!
+      event
+    end
+
+    it 'creates cancelled occurrences at correct times' do
+      event.generate_occurrences
+
+      expect(event.occurrences.count).to eq(5)
+      event.occurrences.each do |occ|
+        expect(occ.status).to eq('cancelled')
+        local_time = occ.occurs_at.in_time_zone('America/Los_Angeles')
+        expect(local_time.hour).to eq(expected_hour)
+      end
+    end
+
+    it 'does not create duplicates when regenerating' do
+      event.generate_occurrences
+      initial_count = event.occurrences.count
+      initial_ids = event.occurrences.pluck(:id).sort
+
+      # Regenerate - should not create duplicates
+      event.regenerate_future_occurrences!
+
+      expect(event.occurrences.reload.count).to eq(initial_count),
+                                                "Expected #{initial_count} occurrences but got #{event.occurrences.count}"
+      expect(event.occurrences.pluck(:id).sort).to eq(initial_ids),
+                                                   "Occurrence IDs changed - duplicates may have been created"
+    end
+
+    it 'fixes time on existing cancelled occurrence without creating duplicate' do
+      event.generate_occurrences
+
+      # Simulate a DST-corrupted occurrence by manually changing time by 1 hour
+      first_occ = event.occurrences.order(:occurs_at).first
+      original_id = first_occ.id
+      wrong_time = first_occ.occurs_at + 1.hour
+      first_occ.update_column(:occurs_at, wrong_time) # rubocop:disable Rails/SkipsModelValidations
+
+      # Verify it's now wrong
+      expect(first_occ.reload.occurs_at.in_time_zone('America/Los_Angeles').hour).to eq(expected_hour + 1)
+
+      initial_count = event.occurrences.count
+
+      # Regenerate - should fix time, not create duplicate
+      event.regenerate_future_occurrences!
+
+      # Same count (no duplicates)
+      expect(event.occurrences.reload.count).to eq(initial_count),
+                                                "Duplicate created: expected #{initial_count}, got #{event.occurrences.count}"
+
+      # Original occurrence should still exist with fixed time
+      fixed_occ = event.occurrences.find_by(id: original_id)
+      expect(fixed_occ).to be_present, "Original occurrence was deleted instead of updated"
+      expect(fixed_occ.occurs_at.in_time_zone('America/Los_Angeles').hour).to eq(expected_hour),
+                                                                              "Time was not fixed"
+      expect(fixed_occ.status).to eq('cancelled'), "Status was changed"
+    end
+
+    it 'preserves manually activated occurrences when regenerating' do
+      event.generate_occurrences
+
+      # Manually activate one occurrence (simulating user action)
+      first_occ = event.occurrences.order(:occurs_at).first
+      first_occ.update!(status: 'active')
+
+      # Regenerate
+      event.regenerate_future_occurrences!
+
+      # The manually activated occurrence should still be active
+      expect(first_occ.reload.status).to eq('active'),
+                                         "Manually activated occurrence had its status changed"
+    end
+  end
+
   describe 'Time.now vs Time.current consistency' do
     it 'uses timezone-aware time methods' do
       # This test ensures we're using Time.current (timezone-aware) not Time.now (system time)

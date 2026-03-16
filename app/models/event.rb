@@ -192,15 +192,16 @@ class Event < ApplicationRecord
   # Find existing occurrence by date (ignoring time) or create new one
   # If existing occurrence has wrong time, update it to the correct time
   def find_or_create_occurrence_by_date(scheduled_time, default_status)
-    scheduled_date = scheduled_time.to_date
+    scheduled_date = scheduled_time.in_time_zone(Time.zone).to_date
     local_time = scheduled_time.in_time_zone(Time.zone)
 
-    # Find occurrence on the same date
-    existing = occurrences.find_by(
-      'DATE(occurs_at AT TIME ZONE ?) = ?',
-      Time.zone.name,
-      scheduled_date
-    )
+    # Find occurrence on the same local date
+    # We search a window around the date to catch any timezone edge cases,
+    # then filter in Ruby for exact date match
+    day_start = scheduled_date.beginning_of_day
+    day_end = scheduled_date.end_of_day
+    candidates = occurrences.where(occurs_at: (day_start - 1.day)..(day_end + 1.day))
+    existing = candidates.find { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date == scheduled_date }
 
     if existing
       # Update time if it's off (DST fix)
