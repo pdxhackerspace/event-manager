@@ -13,7 +13,7 @@ gem "sprockets-rails"
 gem "pg", "~> 1.6"
 
 # Use the Puma web server [https://github.com/puma/puma]
-gem "puma", "~> 7.1"
+gem "puma", "~> 7.2"
 
 # Bundle and transpile JavaScript [https://github.com/rails/jsbundling-rails]
 gem "jsbundling-rails"
@@ -61,9 +61,8 @@ gem "sidekiq-scheduler"
 # Redis for Sidekiq
 gem "redis", "~> 5.0"
 
-# Pin connection_pool to 2.x for Sidekiq 7.3.x compatibility
-# connection_pool 3.0+ has breaking API changes (pop method signature changed)
-gem "connection_pool", "~> 2.4"
+# connection_pool for Sidekiq
+gem "connection_pool"
 
 # Rate limiting and throttling
 gem "rack-attack"
