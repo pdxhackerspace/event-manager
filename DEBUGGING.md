@@ -4,6 +4,7 @@ This document contains helpful commands and procedures for debugging the EventMa
 
 ## Table of Contents
 
+- [Running Tests and Lint](#running-tests-and-lint)
 - [Rails Console Access](#rails-console-access)
 - [Rake Tasks Reference](#rake-tasks-reference)
 - [Occurrence Management](#occurrence-management)
@@ -15,6 +16,87 @@ This document contains helpful commands and procedures for debugging the EventMa
 - [Database Queries](#database-queries)
 - [Timezone Debugging](#timezone-debugging)
 - [Common Issues](#common-issues)
+
+## Running Tests and Lint
+
+All development work uses Docker. Make sure containers are running first:
+
+```bash
+# Start test containers (if not already running)
+docker-compose -f docker-compose.test.yml up -d
+```
+
+### Running the Full Test Suite
+
+```bash
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rspec
+```
+
+### Running Specific Tests
+
+```bash
+# Run a specific test file
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rspec spec/models/event_spec.rb
+
+# Run a specific test by line number
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rspec spec/models/event_spec.rb:42
+
+# Run tests matching a pattern
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rspec --pattern "spec/models/*_spec.rb"
+
+# Run with documentation format (verbose output)
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rspec --format documentation
+```
+
+### Running Rubocop (Lint)
+
+```bash
+# Run Rubocop on all files
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rubocop
+
+# Run on specific files
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rubocop app/models/event.rb
+
+# Auto-fix safe corrections
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rubocop -a
+
+# Auto-fix all corrections (including unsafe)
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rubocop -A
+```
+
+### Pre-Push Checklist
+
+Before pushing changes, run:
+
+```bash
+# 1. Run all tests
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rspec
+
+# 2. Run Rubocop
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rubocop
+
+# 3. If Rubocop finds issues, auto-fix them
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rubocop -A
+
+# 4. Re-run tests after auto-fix to make sure nothing broke
+docker-compose -f docker-compose.test.yml run --rm app bundle exec rspec
+```
+
+### Cleaning Up Docker
+
+```bash
+# Stop containers
+docker-compose -f docker-compose.test.yml down
+
+# Remove volumes (clears database - useful if gems are out of sync)
+docker-compose -f docker-compose.test.yml down -v
+
+# Rebuild containers (after Gemfile changes)
+docker-compose -f docker-compose.test.yml build
+
+# Force reinstall gems
+docker-compose -f docker-compose.test.yml run --rm app bundle install
+```
 
 ## Rails Console Access
 
