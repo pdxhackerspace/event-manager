@@ -387,6 +387,59 @@ RSpec.describe Event, type: :model do
         expect(rule).to be_a(IceCube::MonthlyRule)
       end
     end
+
+    context 'DST transition — spring forward' do
+      it 'generates a summer occurrence at the correct wall-clock hour, not the winter UTC offset' do
+        # Simulate an event created in winter (PST = UTC-8)
+        winter_start = Time.find_zone('America/Los_Angeles').local(2025, 1, 7, 19, 0, 0)
+        schedule = described_class.build_schedule(winter_start, 'weekly', { days: [2], interval: 1 })
+
+        # Pick a Tuesday in summer (PDT = UTC-7)
+        summer_tuesday = Time.find_zone('America/Los_Angeles').local(2025, 6, 10, 0, 0, 0)
+        summer_end     = Time.find_zone('America/Los_Angeles').local(2025, 6, 11, 0, 0, 0)
+
+        occurrences = schedule.occurrences_between(
+          summer_tuesday.in_time_zone(Time.zone),
+          summer_end.in_time_zone(Time.zone)
+        )
+        expect(occurrences).not_to be_empty
+
+        occ_local = occurrences.first.in_time_zone('America/Los_Angeles')
+        expect(occ_local.hour).to eq(19),
+                                  "Expected 7 PM PDT but got #{occ_local} (UTC: #{occurrences.first.utc})"
+      end
+    end
+  end
+
+  describe '#find_or_create_occurrence_by_date' do
+    it 'stores occurrence with correct DST offset when date falls in summer' do
+      event = create(:event, :weekly,
+                     start_time: Time.find_zone('America/Los_Angeles').local(2025, 1, 7, 19, 0, 0))
+
+      summer_time = Time.find_zone('America/Los_Angeles').local(2025, 6, 10, 19, 0, 0)
+      occ = event.find_or_create_occurrence_by_date(summer_time, 'active')
+      occ.save!
+
+      stored_local = occ.occurs_at.in_time_zone('America/Los_Angeles')
+      expect(stored_local.hour).to eq(19)
+      expect(stored_local.utc_offset).to eq(-7 * 3600), "Expected PDT offset (-7h) but got #{stored_local.utc_offset / 3600}h"
+    end
+
+    it 'corrects an existing occurrence that is stored with the wrong DST offset' do
+      event = create(:event, :weekly,
+                     start_time: Time.find_zone('America/Los_Angeles').local(2025, 1, 7, 19, 0, 0))
+
+      # Simulate a wrongly-stored occurrence: 7 PM PST on a PDT date = 8 PM PDT
+      wrong_time = Time.utc(2025, 6, 11, 3, 0, 0) # 7 PM PST expressed as UTC
+      occ = event.occurrences.create!(occurs_at: wrong_time, status: 'active')
+
+      correct_time = Time.find_zone('America/Los_Angeles').local(2025, 6, 10, 19, 0, 0)
+      updated_occ = event.find_or_create_occurrence_by_date(correct_time, 'active')
+      updated_occ.save! if updated_occ.changed?
+
+      expect(occ.reload.occurs_at.in_time_zone('America/Los_Angeles').hour).to eq(19)
+      expect(occ.reload.occurs_at.utc_offset).to eq(-7 * 3600)
+    end
   end
 
   describe 'factory' do

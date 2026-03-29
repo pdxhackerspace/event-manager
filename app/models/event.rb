@@ -180,7 +180,10 @@ class Event < ApplicationRecord
     elsif recurrence_rule.present?
       # Recurring event - generate occurrences
       schedule = IceCube::Schedule.from_yaml(recurrence_rule)
-      future_dates = schedule.occurrences_between(Time.current, 1.year.from_now).first(limit)
+      future_dates = schedule.occurrences_between(
+        Time.current.in_time_zone(Time.zone),
+        1.year.from_now.in_time_zone(Time.zone)
+      ).first(limit)
 
       future_dates.each do |date|
         occ = find_or_create_occurrence_by_date(date, occurrence_status)
@@ -192,25 +195,26 @@ class Event < ApplicationRecord
   # Find existing occurrence by date (ignoring time) or create new one
   # If existing occurrence has wrong time, update it to the correct time
   def find_or_create_occurrence_by_date(scheduled_time, default_status)
-    scheduled_date = scheduled_time.in_time_zone(Time.zone).to_date
-    local_time = scheduled_time.in_time_zone(Time.zone)
+    # Canonicalize: extract wall-clock components from IceCube's time and re-anchor
+    # to the correct DST offset for that date. This prevents PST-offset times from
+    # being stored for dates that fall in PDT (and vice versa).
+    local = scheduled_time.in_time_zone(Time.zone)
+    canonical_time = Time.zone.local(local.year, local.month, local.day,
+                                     local.hour, local.min, local.sec)
+    scheduled_date = canonical_time.to_date
 
-    # Find occurrence on the same local date
-    # We search a window around the date to catch any timezone edge cases,
-    # then filter in Ruby for exact date match
     day_start = scheduled_date.beginning_of_day
-    day_end = scheduled_date.end_of_day
+    day_end   = scheduled_date.end_of_day
     candidates = occurrences.where(occurs_at: (day_start - 1.day)..(day_end + 1.day))
     existing = candidates.find { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date == scheduled_date }
 
     if existing
-      # Update time if it's off (DST fix)
-      existing_local = existing.occurs_at.in_time_zone(Time.zone)
-      existing.occurs_at = scheduled_time if existing_local.hour != local_time.hour || existing_local.min != local_time.min
+      existing_utc   = existing.occurs_at.utc
+      canonical_utc  = canonical_time.utc
+      existing.occurs_at = canonical_time if existing_utc != canonical_utc
       existing
     else
-      # Create new occurrence
-      occurrences.build(occurs_at: scheduled_time, status: default_status)
+      occurrences.build(occurs_at: canonical_time, status: default_status)
     end
   end
 
@@ -314,13 +318,12 @@ class Event < ApplicationRecord
 
   # Update an occurrence's time if it doesn't match the scheduled time
   def update_occurrence_time_if_needed(occurrence, scheduled_time)
-    local_scheduled = scheduled_time.in_time_zone(Time.zone)
-    local_existing = occurrence.occurs_at.in_time_zone(Time.zone)
+    local = scheduled_time.in_time_zone(Time.zone)
+    canonical_time = Time.zone.local(local.year, local.month, local.day,
+                                     local.hour, local.min, local.sec)
+    return if occurrence.occurs_at.utc == canonical_time.utc
 
-    return if local_existing.hour == local_scheduled.hour && local_existing.min == local_scheduled.min
-
-    # Time is off - update it (preserves slug and status)
-    occurrence.update_column(:occurs_at, scheduled_time) # rubocop:disable Rails/SkipsModelValidations
+    occurrence.update_column(:occurs_at, canonical_time) # rubocop:disable Rails/SkipsModelValidations
   end
 
   # Get future scheduled dates based on recurrence rule
@@ -331,7 +334,10 @@ class Event < ApplicationRecord
       start_time > Time.current ? [start_time] : []
     elsif recurrence_rule.present?
       schedule = IceCube::Schedule.from_yaml(recurrence_rule)
-      schedule.occurrences_between(Time.current, 1.year.from_now).first(limit)
+      schedule.occurrences_between(
+        Time.current.in_time_zone(Time.zone),
+        1.year.from_now.in_time_zone(Time.zone)
+      ).first(limit)
     else
       []
     end
@@ -339,7 +345,10 @@ class Event < ApplicationRecord
 
   # Build IceCube schedule from parameters
   def self.build_schedule(start_time, recurrence_type, recurrence_params = {})
-    schedule = IceCube::Schedule.new(start_time)
+    return nil if start_time.nil?
+
+    local_start = start_time.in_time_zone(Time.zone)
+    schedule = IceCube::Schedule.new(local_start)
 
     case recurrence_type
     when 'weekly'

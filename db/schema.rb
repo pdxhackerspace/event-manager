@@ -10,30 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_01_30_174026) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_29_101613) do
   # These are extensions that must be enabled in order to support this database
+  enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
-  enable_extension "plpgsql"
 
   create_table "active_storage_attachments", force: :cascade do |t|
-    t.string "name", null: false
-    t.string "record_type", null: false
-    t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.bigint "record_id", null: false
+    t.string "record_type", null: false
     t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
     t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
-    t.string "key", null: false
-    t.string "filename", null: false
-    t.string "content_type"
-    t.text "metadata"
-    t.string "service_name", null: false
     t.bigint "byte_size", null: false
     t.string "checksum"
+    t.string "content_type"
     t.datetime "created_at", null: false
+    t.string "filename", null: false
+    t.string "key", null: false
+    t.text "metadata"
+    t.string "service_name", null: false
     t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
@@ -44,23 +44,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_30_174026) do
   end
 
   create_table "event_hosts", force: :cascade do |t|
-    t.bigint "event_id", null: false
-    t.bigint "user_id", null: false
     t.datetime "created_at", null: false
+    t.bigint "event_id", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["event_id", "user_id"], name: "index_event_hosts_on_event_id_and_user_id", unique: true
     t.index ["event_id"], name: "index_event_hosts_on_event_id"
     t.index ["user_id"], name: "index_event_hosts_on_user_id"
   end
 
   create_table "event_journals", force: :cascade do |t|
-    t.bigint "event_id", null: false
-    t.bigint "user_id", null: false
     t.string "action", null: false
     t.jsonb "change_data", default: {}
-    t.bigint "occurrence_id"
     t.datetime "created_at", null: false
+    t.bigint "event_id", null: false
+    t.bigint "occurrence_id"
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["action"], name: "index_event_journals_on_action"
     t.index ["created_at"], name: "index_event_journals_on_created_at"
     t.index ["event_id", "created_at"], name: "index_event_journals_on_event_id_and_created_at"
@@ -70,23 +70,23 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_30_174026) do
   end
 
   create_table "event_occurrences", force: :cascade do |t|
-    t.bigint "event_id", null: false
-    t.datetime "occurs_at", null: false
-    t.string "status", default: "active", null: false
-    t.datetime "postponed_until"
     t.text "cancellation_reason"
-    t.text "custom_description"
-    t.integer "duration_override"
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "location_id"
-    t.text "reminder_7d_short"
-    t.text "reminder_1d_short"
-    t.string "slug"
-    t.text "reminder_7d_long"
-    t.text "reminder_1d_long"
+    t.text "custom_description"
     t.datetime "deleted_at"
+    t.integer "duration_override"
+    t.bigint "event_id", null: false
+    t.bigint "location_id"
+    t.datetime "occurs_at", null: false
+    t.datetime "postponed_until"
     t.text "relocated_to"
+    t.text "reminder_1d_long"
+    t.text "reminder_1d_short"
+    t.text "reminder_7d_long"
+    t.text "reminder_7d_short"
+    t.string "slug"
+    t.string "status", default: "active", null: false
+    t.datetime "updated_at", null: false
     t.index ["deleted_at"], name: "index_event_occurrences_on_deleted_at"
     t.index ["event_id", "occurs_at"], name: "index_event_occurrences_on_event_id_and_occurs_at"
     t.index ["event_id"], name: "index_event_occurrences_on_event_id"
@@ -99,40 +99,40 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_30_174026) do
   end
 
   create_table "events", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.string "title", null: false
+    t.text "cancellation_reason"
+    t.datetime "created_at", null: false
+    t.boolean "default_to_cancelled", default: false, null: false
+    t.datetime "deleted_at"
     t.text "description"
-    t.datetime "start_time", null: false
+    t.boolean "draft", default: false, null: false
     t.integer "duration", default: 60
+    t.integer "event_occurrences_count", default: 0, null: false
+    t.string "ical_token"
+    t.bigint "location_id"
+    t.integer "max_occurrences", default: 5, null: false
+    t.string "more_info_url"
+    t.string "open_to", default: "public", null: false
+    t.boolean "permanently_cancelled", default: false, null: false
+    t.boolean "permanently_relocated", default: false, null: false
+    t.datetime "postponed_until"
     t.text "recurrence_rule"
     t.string "recurrence_type", null: false
-    t.string "status", default: "active", null: false
-    t.datetime "postponed_until"
-    t.text "cancellation_reason"
-    t.string "ical_token"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "visibility", default: "public", null: false
-    t.string "open_to", default: "public", null: false
-    t.string "more_info_url"
-    t.integer "max_occurrences", default: 5, null: false
-    t.bigint "location_id"
-    t.boolean "requires_mask", default: false, null: false
-    t.boolean "draft", default: false, null: false
-    t.boolean "slack_announce", default: true, null: false
-    t.boolean "social_reminders", default: true, null: false
-    t.string "slug"
-    t.text "reminder_7d_short"
+    t.text "relocated_to"
+    t.text "reminder_1d_long"
     t.text "reminder_1d_short"
     t.text "reminder_7d_long"
-    t.text "reminder_1d_long"
-    t.datetime "deleted_at"
-    t.integer "event_occurrences_count", default: 0, null: false
+    t.text "reminder_7d_short"
+    t.boolean "requires_mask", default: false, null: false
     t.boolean "sign_feed", default: true, null: false
-    t.boolean "permanently_cancelled", default: false, null: false
-    t.boolean "default_to_cancelled", default: false, null: false
-    t.boolean "permanently_relocated", default: false, null: false
-    t.text "relocated_to"
+    t.boolean "slack_announce", default: true, null: false
+    t.string "slug"
+    t.boolean "social_reminders", default: true, null: false
+    t.datetime "start_time", null: false
+    t.string "status", default: "active", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.string "visibility", default: "public", null: false
     t.index ["deleted_at"], name: "index_events_on_deleted_at"
     t.index ["description"], name: "index_events_on_description_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["ical_token"], name: "index_events_on_ical_token", unique: true
@@ -154,25 +154,25 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_30_174026) do
   end
 
   create_table "locations", force: :cascade do |t|
-    t.string "name", null: false
-    t.text "description"
     t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["name"], name: "index_locations_on_name", unique: true
   end
 
   create_table "reminder_postings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "deleted_at"
+    t.bigint "deleted_by_id"
     t.bigint "event_id", null: false
     t.bigint "event_occurrence_id", null: false
+    t.text "message"
     t.string "platform", null: false
     t.string "post_uid"
     t.string "post_url"
-    t.text "message"
-    t.string "reminder_type"
     t.datetime "posted_at", null: false
-    t.datetime "deleted_at"
-    t.bigint "deleted_by_id"
-    t.datetime "created_at", null: false
+    t.string "reminder_type"
     t.datetime "updated_at", null: false
     t.index ["deleted_by_id"], name: "index_reminder_postings_on_deleted_by_id"
     t.index ["event_id", "posted_at"], name: "index_reminder_postings_on_event_id_and_posted_at"
@@ -183,56 +183,56 @@ ActiveRecord::Schema[7.2].define(version: 2026_01_30_174026) do
   end
 
   create_table "site_configs", force: :cascade do |t|
-    t.string "organization_name"
+    t.string "address"
+    t.string "ai_model"
+    t.text "ai_reminder_prompt", default: "Create a short, friendly reminder for {{event_title}} happening on {{event_date}} at {{event_time}} at PDX Hackerspace.", null: false
     t.string "contact_email"
     t.string "contact_phone"
-    t.text "footer_text"
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.string "website_url"
+    t.boolean "disallow_robots", default: false, null: false
+    t.string "email_test_mode_address"
+    t.boolean "email_test_mode_enabled", default: false, null: false
+    t.text "footer_text"
+    t.boolean "host_email_reminders_enabled", default: true, null: false
     t.text "location_info"
-    t.string "address"
-    t.boolean "slack_enabled", default: false, null: false
-    t.boolean "social_reminders_enabled", default: false, null: false
-    t.text "ai_reminder_prompt", default: "Create a short, friendly reminder for {{event_title}} happening on {{event_date}} at {{event_time}} at PDX Hackerspace.", null: false
-    t.string "ai_model"
-    t.integer "short_reminder_max_length", default: 300, null: false
     t.integer "long_reminder_max_length", default: 800, null: false
     t.boolean "matomo_enabled", default: false, null: false
-    t.string "matomo_url"
     t.string "matomo_site_id"
-    t.boolean "host_email_reminders_enabled", default: true, null: false
-    t.boolean "email_test_mode_enabled", default: false, null: false
-    t.string "email_test_mode_address"
-    t.boolean "disallow_robots", default: false, null: false
+    t.string "matomo_url"
+    t.string "organization_name"
+    t.integer "short_reminder_max_length", default: 300, null: false
+    t.boolean "slack_enabled", default: false, null: false
+    t.boolean "social_reminders_enabled", default: false, null: false
+    t.datetime "updated_at", null: false
+    t.string "website_url"
     t.check_constraint "id = 1", name: "site_configs_singleton"
   end
 
   create_table "social_credentials", force: :cascade do |t|
-    t.string "platform", null: false
     t.text "access_token", null: false
-    t.datetime "expires_at"
-    t.text "refresh_token"
-    t.json "metadata", default: {}
     t.datetime "created_at", null: false
+    t.datetime "expires_at"
+    t.json "metadata", default: {}
+    t.string "platform", null: false
+    t.text "refresh_token"
     t.datetime "updated_at", null: false
     t.index ["platform"], name: "index_social_credentials_on_platform", unique: true
   end
 
   create_table "users", force: :cascade do |t|
-    t.string "email", default: "", null: false
-    t.string "encrypted_password", default: "", null: false
-    t.string "reset_password_token"
-    t.datetime "reset_password_sent_at"
-    t.datetime "remember_created_at"
-    t.string "name"
-    t.string "role", default: "user", null: false
-    t.string "provider"
-    t.string "uid"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
     t.boolean "can_create_events", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "email", default: "", null: false
     t.boolean "email_reminders_enabled", default: true, null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "name"
+    t.string "provider"
+    t.datetime "remember_created_at"
+    t.datetime "reset_password_sent_at"
+    t.string "reset_password_token"
+    t.string "role", default: "user", null: false
+    t.string "uid"
+    t.datetime "updated_at", null: false
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "((provider IS NOT NULL) AND (uid IS NOT NULL))"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
