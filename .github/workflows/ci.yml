@@ -1,0 +1,83 @@
+# Required status check for branch protection: add a job named "ci" (see job id + name below).
+# After the first run, enable "ci" under Settings → Branches → protection rules for staging and main.
+name: ci
+
+on:
+  pull_request:
+    branches:
+      - staging
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: eventmanager_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RAILS_ENV: test
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/eventmanager_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.6'
+          bundler-cache: true
+
+      - name: Install Ruby dependencies
+        run: bundle install --jobs 4 --retry 3
+
+      - name: Run linter (RuboCop)
+        run: bundle exec rubocop --parallel
+
+      # This app does not use Sorbet, Steep, or a JS type checker; keep a no-op so the pipeline documents the slot.
+      - name: Type checker (not applicable)
+        run: echo "No static type checker is configured in this repository."
+
+      - name: Cache Node modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install Node dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Setup database
+        run: |
+          bundle exec rails db:create
+          bundle exec rails db:schema:load
+
+      - name: Precompile assets for test
+        run: |
+          yarn build
+          yarn build:css
+
+      - name: Run tests
+        run: bundle exec parallel_rspec spec/ -n 2 --verbose
+        env:
+          DISABLE_SPRING: 1

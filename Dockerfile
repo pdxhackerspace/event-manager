@@ -61,6 +61,10 @@ RUN SECRET_KEY_BASE=dummy RAILS_ENV=production bundle exec rake assets:precompil
 # ========================================
 FROM ruby:3.3.6-slim AS runtime
 
+# Updated per deployment protocol: CI passes APP_VERSION; local builds default to dev
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
+
 # Install only runtime dependencies
 RUN apt-get update -qq && apt-get install -y \
     postgresql-client \

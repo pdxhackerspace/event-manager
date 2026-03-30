@@ -1,0 +1,124 @@
+# Production: versioned images and git tags on every push to `main`.
+name: Production
+
+on:
+  push:
+    branches:
+      - main
+
+# Updated per deployment protocol
+permissions:
+  contents: write
+  packages: write
+  security-events: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_BASE: ${{ github.repository_owner }}/${{ github.event.repository.name }}
+
+jobs:
+  docker:
+    name: Build and push production image
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # Updated per deployment protocol
+      - name: Read APP_VERSION and enforce VERSION bump
+        run: |
+          PREV=$(git show HEAD~1:VERSION 2>/dev/null || echo "0.0.0")
+          CURR=$(tr -d '[:space:]' < VERSION)
+          if [ "$PREV" = "$CURR" ]; then
+            echo "ERROR: VERSION file was not bumped. Update VERSION before merging to main."
+            exit 1
+          fi
+          echo "APP_VERSION=$CURR" >> "$GITHUB_ENV"
+          echo "VERSION_MAJOR=$(echo "$CURR" | cut -d. -f1)" >> "$GITHUB_ENV"
+          echo "Using APP_VERSION=$CURR"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      # Updated per deployment protocol
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Updated per deployment protocol — :latest, :semver, :major
+      - name: Build and push production image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ env.APP_VERSION }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ env.VERSION_MAJOR }}
+          build-args: |
+            APP_VERSION=${{ env.APP_VERSION }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:buildcache,mode=max
+
+      # Updated per deployment protocol
+      - name: Create and push release git tag
+        env:
+          APP_VERSION: ${{ env.APP_VERSION }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${APP_VERSION}"
+          git push origin "v${APP_VERSION}"
+
+  security-scan:
+    name: Security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: docker
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Read APP_VERSION from VERSION
+        id: ver
+        run: |
+          V=$(tr -d '[:space:]' < VERSION)
+          echo "VERSION=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull the image to scan
+        run: docker pull "${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}"
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Run Trivy vulnerability scanner (table output)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_BASE }}:${{ steps.ver.outputs.VERSION }}
+          format: table
+          severity: CRITICAL,HIGH

@@ -238,8 +238,8 @@ docker compose restart web sidekiq
 # Scan repository
 gitleaks detect --source . --verbose
 
-# Scan specific file
-gitleaks detect --source .env.example
+# Scan env templates (should contain no real secrets)
+gitleaks detect --source .env.production.example --verbose
 ```
 
 **If you accidentally commit a secret:**
