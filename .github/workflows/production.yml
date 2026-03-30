@@ -28,17 +28,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Updated per deployment protocol
+      # Updated per deployment protocol — compare push tip to github.event.before (not HEAD~1), so merge/squash/rebase to main all compare correctly.
       - name: Read APP_VERSION and enforce VERSION bump
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
         run: |
-          PREV=$(git show HEAD~1:VERSION 2>/dev/null || echo "0.0.0")
-          CURR=$(tr -d '[:space:]' < VERSION)
-          if [ "$PREV" = "$CURR" ]; then
-            echo "ERROR: VERSION file was not bumped. Update VERSION before merging to main."
+          normalize() { tr -d '[:space:]' | sed 's/^[vV]//'; }
+          if [ -z "$BEFORE_SHA" ] || [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            PREV_NORMALIZED="0"
+          else
+            PREV_NORMALIZED=$(git show "${BEFORE_SHA}:VERSION" 2>/dev/null | normalize || echo "0")
+          fi
+          CURR_NORMALIZED=$(normalize < VERSION)
+          if [ "$PREV_NORMALIZED" = "$CURR_NORMALIZED" ]; then
+            echo "ERROR: VERSION did not change on this push to main (still ${CURR_NORMALIZED}). Bump VERSION on the release branch before merging."
+            echo "If this is wrong, ensure the commit updating VERSION is included in the push (before SHA was ${BEFORE_SHA:-empty})."
             exit 1
           fi
+          # Pass through raw VERSION for tags (keep v prefix if present)
+          CURR=$(tr -d '[:space:]' < VERSION)
           echo "APP_VERSION=$CURR" >> "$GITHUB_ENV"
-          echo "VERSION_MAJOR=$(echo "$CURR" | cut -d. -f1)" >> "$GITHUB_ENV"
+          echo "VERSION_MAJOR=$(echo "$CURR_NORMALIZED" | cut -d. -f1)" >> "$GITHUB_ENV"
           echo "Using APP_VERSION=$CURR"
 
       - name: Set up Docker Buildx

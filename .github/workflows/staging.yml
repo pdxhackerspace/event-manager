@@ -1,4 +1,6 @@
 # Staging: push Docker images on every push to `staging`.
+# Skips image build/push when this push only syncs `main` into `staging` (PR "Update branch"),
+# or when the commit message contains [skip staging] — avoids pointless deploys while merging staging → main.
 name: Staging
 
 on:
@@ -16,8 +18,34 @@ env:
   IMAGE_BASE: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
 jobs:
+  gate:
+    name: Decide whether to build staging image
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - name: Detect merge-main-into-staging sync (skip image) or [skip staging]
+        id: check
+        run: |
+          msg=$(jq -r '(.head_commit // {}).message // empty' "$GITHUB_EVENT_PATH")
+          if [[ "$msg" == *"[skip staging]"* ]] || [[ "$msg" == *"[skip staging image]"* ]]; then
+            echo "skip: commit message token"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$msg" == *"Merge branch 'main' into staging"* ]] || \
+             [[ "$msg" == *'Merge branch "main" into staging'* ]] || \
+             [[ "$msg" == *"Merge remote-tracking branch 'origin/main' into staging"* ]]; then
+            echo "skip: syncing main into staging only"
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
+
   docker:
     name: Build and push staging image
+    needs: gate
+    if: needs.gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 25
 

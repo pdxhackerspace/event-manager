@@ -113,8 +113,8 @@ group :test do
   gem "simplecov", require: false
 end
 
-# Staging only: capture outgoing mail in the browser (mount at /letter_opener, admin-only in routes)
-group :staging do
+# Browser-based mail capture (/letter_opener); delivery_method set per environment
+group :development, :staging do
   gem "letter_opener_web", "~> 3.0"
 end
 
