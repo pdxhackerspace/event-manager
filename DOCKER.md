@@ -118,20 +118,13 @@ docker compose -f docker-compose.dev.yml ps
 
 ### Environment Variables
 
-Create a `.env` file in the project root for custom configuration:
+Copy the environment template and edit:
 
 ```bash
-# Authentik OAuth (optional)
-AUTHENTIK_CLIENT_ID=your_client_id
-AUTHENTIK_CLIENT_SECRET=your_client_secret
-AUTHENTIK_SITE_URL=https://your-authentik-instance.com
-
-# Database (defaults are fine for development)
-DATABASE_HOST=db
-DATABASE_USER=eventmanager
-DATABASE_PASSWORD=eventmanager_password
-DATABASE_NAME=EventManager_development
+cp .env.development.example .env
 ```
+
+See also `.env.test.example`, `.env.staging.example`, and `.env.production.example` for other targets. Docker Compose reads `.env` in the project root for variable substitution.
 
 ### Port Conflicts
 

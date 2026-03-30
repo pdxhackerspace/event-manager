@@ -117,7 +117,13 @@ export AUTHENTIK_CLIENT_SECRET=your_client_secret
 export AUTHENTIK_SITE_URL=https://your-authentik-instance.com
 ```
 
-Create a `.env` file in the project root:
+Templates live in `.env.development.example`, `.env.test.example`, `.env.staging.example`, and `.env.production.example`. For local setup, copy the development template:
+
+```bash
+cp .env.development.example .env
+```
+
+Then set Authentik (and other vars) in `.env`:
 
 ```
 AUTHENTIK_CLIENT_ID=your_client_id
@@ -125,7 +131,7 @@ AUTHENTIK_CLIENT_SECRET=your_client_secret
 AUTHENTIK_SITE_URL=https://your-authentik-instance.com
 ```
 
-To use `.env` files, add `gem 'dotenv-rails'` to your Gemfile and run `bundle install`.
+Docker Compose loads `.env` for variable substitution. For `rails server` outside Docker, export variables in your shell or add `dotenv-rails` to the Gemfile if you want Rails to read `.env` automatically.
 
 #### 6. Configure Slack Notifications (Optional)
 
