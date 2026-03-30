@@ -113,6 +113,11 @@ group :test do
   gem "simplecov", require: false
 end
 
+# Staging only: capture outgoing mail in the browser (mount at /letter_opener, admin-only in routes)
+group :staging do
+  gem "letter_opener_web", "~> 3.0"
+end
+
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"

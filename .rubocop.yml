@@ -104,6 +104,14 @@ Layout/EmptyLinesAroundModuleBody:
 Rails:
   Enabled: true
 
+# Custom deployment environment (see config/environments/staging.rb)
+Rails/UnknownEnv:
+  Environments:
+    - development
+    - test
+    - production
+    - staging
+
 # Allow Date.today, Time.now etc in most cases
 Rails/Date:
   Enabled: false
