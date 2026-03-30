@@ -54,7 +54,7 @@ jobs:
 
       # Updated per deployment protocol — :latest, :semver, :major
       - name: Build and push production image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true

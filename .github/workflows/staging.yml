@@ -48,7 +48,7 @@ jobs:
 
       # Updated per deployment protocol — tags :staging and :staging-<sha>; same image repo as production
       - name: Build and push staging image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
