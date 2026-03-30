@@ -39,8 +39,10 @@ Rails.application.routes.draw do
     mount Sidekiq::Web => '/sidekiq'
   end
 
-  # Staging: captured mail (letter_opener_web gem, group :staging only)
-  if Rails.env.staging?
+  # letter_opener_web: dev is open locally; staging requires admin (same host may be untrusted)
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: '/letter_opener'
+  elsif Rails.env.staging?
     authenticate :user, ->(user) { user.admin? } do
       mount LetterOpenerWeb::Engine, at: '/letter_opener'
     end

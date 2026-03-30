@@ -36,8 +36,8 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
-  # Email configuration for development
-  # Use :letter_opener or :smtp depending on environment variables
+  # Email: real SMTP if configured; else Letter Opener Web (browse at /letter_opener);
+  # set LETTER_OPENER=0 to use :test delivery instead.
   if ENV['SMTP_ADDRESS'].present?
     config.action_mailer.delivery_method = :smtp
     config.action_mailer.raise_delivery_errors = true
@@ -50,10 +50,13 @@ Rails.application.configure do
       authentication: ENV.fetch('SMTP_AUTHENTICATION', 'plain').to_sym,
       enable_starttls_auto: ENV.fetch('SMTP_ENABLE_STARTTLS', 'true') == 'true'
     }
-  else
-    # Default to :test in development (emails logged, not sent)
+  elsif ENV['LETTER_OPENER'] == '0'
     config.action_mailer.delivery_method = :test
     config.action_mailer.raise_delivery_errors = false
+  else
+    config.action_mailer.delivery_method = :letter_opener_web
+    config.action_mailer.perform_deliveries = true
+    config.action_mailer.raise_delivery_errors = true
   end
 
   config.action_mailer.perform_caching = false
