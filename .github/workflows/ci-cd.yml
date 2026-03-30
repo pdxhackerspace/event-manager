@@ -1,17 +1,9 @@
 name: CI/CD Pipeline
 
+# Lint, test, and PR Docker smoke-build. Staging/production images: see staging.yml & production.yml.
 on:
   pull_request:
     branches: [ main ]
-  push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Tag to build (e.g., v0.13.2)'
-        required: false
-        type: string
 
 permissions:
   contents: read
@@ -20,7 +12,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository_owner }}/${{ github.event.repository.name }}
 
 jobs:
   lint:
@@ -126,114 +118,33 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: lint
-    # Build on PRs (no push) and version tags (push to registry)
-    if: github.event_name == 'pull_request' || startsWith(github.ref, 'refs/tags/v')
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          fetch-depth: 0  # Fetch all history and tags for version generation
-
-      - name: Generate VERSION file
-        run: |
-          # Create VERSION file from git tags (will be copied into Docker image)
-          git describe --tags --always > VERSION
-          echo "Generated VERSION file:"
-          cat VERSION
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker image (PR - no push)
-        if: github.event_name == 'pull_request'
+      - name: Build Docker image (PR — no push)
         uses: docker/build-push-action@v6
         with:
           context: .
           push: false
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}
+          build-args: |
+            APP_VERSION=dev
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
-      - name: Extract metadata (tags, labels)
-        if: startsWith(github.ref, 'refs/tags/v')
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha,prefix=main-
-            type=raw,value=latest
-
-      - name: Build and push Docker image (Version Tag)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-
-  security-scan:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract version tag
-        id: version
-        run: |
-          # Remove 'refs/tags/' and the 'v' prefix
-          VERSION=${GITHUB_REF#refs/tags/}
-          VERSION=${VERSION#v}
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Pull the image to scan
-        run: docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-      - name: Run Trivy vulnerability scanner (table output)
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
-          format: 'table'
-          severity: 'CRITICAL,HIGH'
 
   dependency-check:
     name: Dependency Security Check
