@@ -38,6 +38,10 @@
 # Environment variables and secrets
 .env
 .env.*
+!.env.development.example
+!.env.test.example
+!.env.staging.example
+!.env.production.example
 .env~
 
 # Editor backup files

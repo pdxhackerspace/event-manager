@@ -104,6 +104,14 @@ Layout/EmptyLinesAroundModuleBody:
 Rails:
   Enabled: true
 
+# Custom deployment environment (see config/environments/staging.rb)
+Rails/UnknownEnv:
+  Environments:
+    - development
+    - test
+    - production
+    - staging
+
 # Allow Date.today, Time.now etc in most cases
 Rails/Date:
   Enabled: false
@@ -131,6 +139,11 @@ Rails/Output:
 # Allow JSON.parse over response.parsed_body
 Rails/ResponseParsedBody:
   Enabled: false
+
+# rails_helper uses abort/exit guardrails before the app is fully loaded; intentional
+Rails/Exit:
+  Exclude:
+    - 'spec/rails_helper.rb'
 
 # RSpec configurations
 RSpec/ContextWording:

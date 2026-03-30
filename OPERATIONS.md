@@ -29,7 +29,7 @@ cd pdxhackerspace-eventmanager
 
 **2. Create environment file:**
 ```bash
-cp env.docker.example .env
+cp .env.production.example .env
 ```
 
 **3. Configure environment variables:**
