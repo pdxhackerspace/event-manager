@@ -132,6 +132,11 @@ Rails/Output:
 Rails/ResponseParsedBody:
   Enabled: false
 
+# rails_helper uses abort/exit guardrails before the app is fully loaded; intentional
+Rails/Exit:
+  Exclude:
+    - 'spec/rails_helper.rb'
+
 # RSpec configurations
 RSpec/ContextWording:
   Enabled: false
