@@ -275,7 +275,7 @@ All test files are ready to commit:
 git add spec/
 git add Gemfile Gemfile.lock
 git add .rspec
-git add TESTING.md TEST_SUMMARY.md GOOD_MORNING_README.md TEST_VERIFICATION.md
+git add docs/TESTING.md docs/TEST_SUMMARY.md docs/GOOD_MORNING_README.md docs/TEST_VERIFICATION.md
 git commit -m "Add comprehensive testing framework with 308 tests"
 ```
 

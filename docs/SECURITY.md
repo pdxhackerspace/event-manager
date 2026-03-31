@@ -896,7 +896,7 @@ echo -e "\n=== End Security Check ==="
 5. **Document** - Record timeline and actions taken
 6. **Learn** - Update procedures to prevent recurrence
 
-**Emergency contacts:** See OPERATIONS.md
+**Emergency contacts:** See [OPERATIONS.md](OPERATIONS.md)
 
 ---
 

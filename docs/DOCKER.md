@@ -351,5 +351,5 @@ For issues related to Docker setup, check the logs first:
 docker compose -f docker-compose.dev.yml logs -f
 ```
 
-For application issues, see the main README.md.
+For application issues, see the main [README.md](../README.md).
 
