@@ -616,7 +616,7 @@ config.unlock_in = 1.hour
 
 **Docker security:**
 - ✅ **Non-root user** in containers (runs as user 1000)
-- ✅ **Minimal base image** (ruby:3.2.2)
+- ✅ **Minimal base image** (ruby:3.3.11-slim)
 - ✅ **No unnecessary packages** installed
 - ✅ **Secrets in .env**, not in image
 

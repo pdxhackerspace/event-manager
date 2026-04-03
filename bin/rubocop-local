@@ -10,7 +10,7 @@ IMAGE_NAME="eventmanager-rubocop:latest"
 if ! docker images | grep -q "eventmanager-rubocop"; then
   echo "📦 Building RuboCop Docker image (one-time setup)..."
   docker build -t $IMAGE_NAME -f- . <<'DOCKERFILE'
-FROM ruby:3.2.2
+FROM ruby:3.3.11
 WORKDIR /app
 COPY Gemfile Gemfile.lock ./
 RUN bundle install --jobs 4 --retry 3

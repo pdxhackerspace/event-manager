@@ -42,7 +42,7 @@ Additional guides (Docker, deployment, security, testing, feature notes) live in
 - Docker Compose 2.0+
 
 ### Option 2: Native Installation
-- Ruby 3.3.6
+- Ruby 3.3.11
 - PostgreSQL 12+
 - Node.js and Yarn
 - (Optional) Authentik instance for SSO
