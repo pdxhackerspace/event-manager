@@ -238,7 +238,7 @@ open http://localhost:3000
 
 ## Documentation Files
 
-- `README.md` - Main documentation
+- [README.md](../README.md) — main documentation
 - `SETUP.md` - Quick setup guide
 - `DOCKER.md` - Docker guide
 - `EVENT_OCCURRENCES.md` - Occurrences system

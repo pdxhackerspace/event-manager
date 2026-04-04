@@ -59,6 +59,12 @@ services:
       AUTHENTIK_CLIENT_ID: ${AUTHENTIK_CLIENT_ID:-}
       AUTHENTIK_CLIENT_SECRET: ${AUTHENTIK_CLIENT_SECRET:-}
       AUTHENTIK_SITE_URL: ${AUTHENTIK_SITE_URL:-http://localhost:9000}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/health/liveness || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     stdin_open: true
     tty: true
 
@@ -74,6 +80,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      web:
+        condition: service_healthy
     environment:
       DATABASE_HOST: db
       DATABASE_USER: eventmanager
@@ -81,6 +89,7 @@ services:
       DATABASE_NAME: EventManager_development
       REDIS_URL: redis://redis:6379/0
       RAILS_ENV: development
+      SKIP_DB_MIGRATE: "true"
     stdin_open: true
     tty: true
 

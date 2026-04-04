@@ -2,6 +2,8 @@
 
 A Rails-based event management system for hackerspaces. Allows users to create, manage, and discover events with support for recurring schedules, user authentication via Authentik or local accounts, and public iCal feeds.
 
+Additional guides (Docker, deployment, security, testing, feature notes) live in **[docs/](docs/)**.
+
 ## Features
 
 - **User Authentication**
@@ -40,7 +42,7 @@ A Rails-based event management system for hackerspaces. Allows users to create, 
 - Docker Compose 2.0+
 
 ### Option 2: Native Installation
-- Ruby 3.3.6
+- Ruby 3.3.11
 - PostgreSQL 12+
 - Node.js and Yarn
 - (Optional) Authentik instance for SSO
@@ -69,7 +71,7 @@ That's it! The application will be running with a PostgreSQL database, migration
 - Admin: admin@example.com / password123
 - User: user1@example.com / password123
 
-For more Docker commands and troubleshooting, see [DOCKER.md](DOCKER.md).
+For more Docker commands and troubleshooting, see [docs/DOCKER.md](docs/DOCKER.md).
 
 ### Native Installation
 
@@ -418,9 +420,9 @@ bundle exec rspec
 **All tests passing with 100% success rate!** ✅
 
 For complete testing documentation, see:
-- **TESTING.md** - Complete testing guide
-- **TEST_CHEATSHEET.md** - Quick reference
-- **GOOD_MORNING_README.md** - Implementation summary
+- **[docs/TESTING.md](docs/TESTING.md)** — complete testing guide
+- **[docs/TEST_CHEATSHEET.md](docs/TEST_CHEATSHEET.md)** — quick reference
+- **[docs/GOOD_MORNING_README.md](docs/GOOD_MORNING_README.md)** — implementation summary
 
 ## Technology Stack
 
