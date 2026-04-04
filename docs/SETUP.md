@@ -117,7 +117,7 @@ Use these test accounts:
 
 1. **Configure Authentik (Optional)**
    - Set up an OAuth2 provider in Authentik
-   - Add environment variables (see README.md)
+   - Add environment variables (see [README.md](../README.md))
    - Restart the server
 
 2. **Customize the Application**
@@ -126,7 +126,7 @@ Use these test accounts:
    - Add custom recurrence patterns in `app/models/event.rb`
 
 3. **Deploy to Production**
-   - See README.md for deployment instructions
+   - See [README.md](../README.md) for deployment instructions
    - Set production environment variables
    - Configure production domain in Devise settings
 

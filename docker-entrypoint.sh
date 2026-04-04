@@ -19,9 +19,15 @@ echo "Database is ready!"
 # Create database if it doesn't exist
 bundle exec rails db:create 2>/dev/null || echo "Database already exists"
 
-# Always run migrations - they're idempotent, if already run Rails skips them
-echo "Running database migrations..."
-bundle exec rails db:migrate
+# Run migrations from one process only (e.g. web). Sidekiq uses the same entrypoint; if both
+# run db:migrate on an empty DB in parallel, initialize_database loads schema.rb twice and
+# concurrent enable_extension("pg_trgm") hits PG::UniqueViolation on pg_extension_name_index.
+if [ "${SKIP_DB_MIGRATE:-}" = "true" ]; then
+  echo "Skipping database migrations (SKIP_DB_MIGRATE=true)"
+else
+  echo "Running database migrations..."
+  bundle exec rails db:migrate
+fi
 
 # NEVER auto-seed in production - seeds are only for development/test
 # To seed development: docker compose run --rm app bundle exec rails db:seed
