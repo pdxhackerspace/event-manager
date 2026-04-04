@@ -5,25 +5,20 @@
 FROM ruby:3.3.11 AS builder
 
 # Install build dependencies
-RUN apt-get update -qq && apt-get install -y \
+# ImageMagick: Debian metapackage; apt-get update picks up current security/main versions at build time
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
     curl \
-    gnupg \
     git \
     imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20.x LTS
+# Install Node.js 20.x LTS and Yarn 1.x (Classic) via Corepack (avoids deprecated apt-key Yarn repo)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
-
-# Install Yarn
-RUN curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - && \
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list && \
-    apt-get update && apt-get install -y yarn && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get update -qq && apt-get install -y --no-install-recommends nodejs && \
+    rm -rf /var/lib/apt/lists/* && \
+    corepack enable && corepack prepare yarn@1.22.22 --activate
 
 WORKDIR /app
 
@@ -66,7 +61,7 @@ ARG APP_VERSION=dev
 ENV APP_VERSION=$APP_VERSION
 
 # Install only runtime dependencies
-RUN apt-get update -qq && apt-get install -y \
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     postgresql-client \
     libpq-dev \
     curl \
