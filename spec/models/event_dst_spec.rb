@@ -198,6 +198,21 @@ RSpec.describe 'Event DST handling', type: :model do
                                    "After regeneration: Expected #{occ.occurs_at} to be at #{expected_hour}:00 local, but was #{local_time.hour}:00"
       end
     end
+
+    it 'preserves occurrence slug while fixing DST-shifted time' do
+      target_occurrence = event.occurrences.order(:occurs_at).first
+      original_slug = target_occurrence.slug
+
+      # Simulate drift to the wrong local hour.
+      target_occurrence.update_column(:occurs_at, target_occurrence.occurs_at + 1.hour) # rubocop:disable Rails/SkipsModelValidations
+      event.regenerate_future_occurrences!
+
+      fixed_occurrence = event.occurrences.find(target_occurrence.id)
+      fixed_local_time = fixed_occurrence.occurs_at.in_time_zone('America/Los_Angeles')
+
+      expect(fixed_occurrence.slug).to eq(original_slug)
+      expect(fixed_local_time.hour).to eq(expected_hour)
+    end
   end
 
   describe 'default_to_cancelled events do not create duplicates' do

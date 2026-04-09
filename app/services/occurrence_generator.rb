@@ -40,7 +40,9 @@ class OccurrenceGenerator
 
     scheduled_dates = future_scheduled_dates
     existing_future = event.occurrences.where('occurs_at > ?', Time.current)
-    existing_by_date = existing_future.index_by { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date }
+    existing_by_date = existing_future
+                       .group_by { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date }
+                       .transform_values { |occurrences| occurrences.min_by(&:id) }
     scheduled_date_set = scheduled_dates.to_set { |d| d.in_time_zone(Time.zone).to_date }
 
     occurrence_status = event.default_to_cancelled? ? 'cancelled' : 'active'
@@ -51,7 +53,7 @@ class OccurrenceGenerator
       if existing
         update_occurrence_time_if_needed(existing, scheduled_time)
       else
-        event.occurrences.create!(occurs_at: scheduled_time, status: occurrence_status)
+        event.occurrences.create!(occurs_at: canonicalize_time(scheduled_time), status: occurrence_status)
       end
     end
 
@@ -85,12 +87,8 @@ class OccurrenceGenerator
   # If existing occurrence has wrong time, update it to the correct time
   def find_or_create_occurrence_by_date(scheduled_time, default_status)
     canonical_time = canonicalize_time(scheduled_time)
-    scheduled_date = canonical_time.to_date
-
-    day_start = scheduled_date.beginning_of_day
-    day_end = scheduled_date.end_of_day
-    candidates = event.occurrences.where(occurs_at: (day_start - 1.day)..(day_end + 1.day))
-    existing = candidates.find { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date == scheduled_date }
+    scheduled_date = canonical_time.in_time_zone(Time.zone).to_date
+    existing = occurrence_for_local_date(scheduled_date)
 
     if existing
       existing.occurs_at = canonical_time if existing.occurs_at.utc != canonical_time.utc
@@ -110,11 +108,32 @@ class OccurrenceGenerator
 
   private
 
-  # Canonicalize: extract wall-clock components from IceCube's time and re-anchor
-  # to the correct DST offset for that date. This prevents PST-offset times from
-  # being stored for dates that fall in PDT (and vice versa).
+  # Canonicalize to the schedule's intended local wall-clock time for the date.
+  # This keeps local times stable across DST boundaries regardless of offsets
+  # returned by IceCube for a given generated timestamp.
   def canonicalize_time(scheduled_time)
-    local = scheduled_time.in_time_zone(Time.zone)
-    Time.zone.local(local.year, local.month, local.day, local.hour, local.min, local.sec)
+    target_date = scheduled_time.in_time_zone(Time.zone).to_date
+    wall_clock = schedule_wall_clock_time
+    Time.zone.local(
+      target_date.year,
+      target_date.month,
+      target_date.day,
+      wall_clock.hour,
+      wall_clock.min,
+      wall_clock.sec
+    )
+  end
+
+  def schedule_wall_clock_time
+    event.start_time.in_time_zone(Time.zone)
+  end
+
+  def occurrence_for_local_date(local_date)
+    local_day_start = Time.zone.local(local_date.year, local_date.month, local_date.day).beginning_of_day
+    local_day_end = local_day_start.end_of_day
+
+    candidates = event.occurrences.where(occurs_at: (local_day_start - 1.day)..(local_day_end + 1.day))
+    candidates.select { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date == local_date }
+              .min_by(&:id)
   end
 end

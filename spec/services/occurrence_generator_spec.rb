@@ -6,7 +6,7 @@ RSpec.describe OccurrenceGenerator do
   let(:la_zone) { Time.find_zone('America/Los_Angeles') }
 
   describe '#canonicalize_time' do
-    let(:event) { create(:event, :weekly) }
+    let(:event) { create(:event, :weekly, start_time: la_zone.local(2025, 1, 7, 19, 0, 0)) }
     let(:generator) { described_class.new(event) }
 
     context 'with winter time (PST)' do
@@ -32,17 +32,15 @@ RSpec.describe OccurrenceGenerator do
     end
 
     context 'when IceCube returns a time with stale DST offset' do
-      it 're-anchors to the correct offset for the target date' do
+      it 're-anchors to the scheduled wall-clock time for the target date' do
         # Simulate IceCube returning 7 PM with PST offset for a summer date
         # This would display as 8 PM PDT - the bug we're fixing
         stale_time = Time.utc(2025, 6, 11, 3, 0, 0) # 7 PM PST = 3 AM UTC
 
         canonical = generator.send(:canonicalize_time, stale_time)
 
-        # The input was 3 AM UTC which in LA zone is 8 PM PDT (June 10)
-        # The canonical time preserves that wall-clock hour (8 PM)
-        # because canonicalize extracts the LA local time and re-anchors
-        expect(canonical.in_time_zone(la_zone).hour).to eq(20)
+        # We always anchor to the event's intended local wall-clock time (7 PM)
+        expect(canonical.in_time_zone(la_zone).hour).to eq(19)
         expect(canonical.utc_offset).to eq(-7 * 3600)
       end
     end
@@ -51,6 +49,8 @@ RSpec.describe OccurrenceGenerator do
   describe '#find_or_create_occurrence_by_date' do
     let(:event) { create(:event, :weekly, start_time: la_zone.local(2025, 1, 7, 19, 0, 0)) }
     let(:generator) { described_class.new(event) }
+
+    before { event.occurrences.destroy_all }
 
     context 'when no occurrence exists for the date' do
       it 'builds a new occurrence with correct DST offset' do
@@ -101,6 +101,16 @@ RSpec.describe OccurrenceGenerator do
         expect(occ.occurs_at.utc).to eq(correct_time.utc)
         expect(occ).to be_changed
       end
+
+      it 'preserves the existing slug when correcting occurs_at' do
+        correct_time = la_zone.local(2025, 6, 10, 19, 0, 0)
+        original_slug = wrong_occ.slug
+
+        occ = generator.find_or_create_occurrence_by_date(correct_time, 'active')
+        occ.save!
+
+        expect(occ.reload.slug).to eq(original_slug)
+      end
     end
 
     context 'date matching across DST boundaries' do
@@ -119,7 +129,7 @@ RSpec.describe OccurrenceGenerator do
   end
 
   describe '#update_occurrence_time_if_needed' do
-    let(:event) { create(:event, :weekly) }
+    let(:event) { create(:event, :weekly, start_time: la_zone.local(2025, 1, 7, 19, 0, 0)) }
     let(:generator) { described_class.new(event) }
 
     context 'when occurrence time matches scheduled time' do
