@@ -8,8 +8,8 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     attachable.variant :thumb, resize_to_limit: [300, 300]
   end
 
+  # Slugs are stable identifiers; only generate on create.
   before_validation :generate_slug, on: :create
-  before_validation :refresh_slug_if_occurs_at_changed, on: :update
   before_save :rename_banner_image
 
   validates :occurs_at, presence: true
@@ -199,12 +199,6 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     assign_unique_slug_from_occurs_at
   end
 
-  def refresh_slug_if_occurs_at_changed
-    return unless occurs_at_changed?
-
-    assign_unique_slug_from_occurs_at
-  end
-
   def assign_unique_slug_from_occurs_at
     return if event.blank? || occurs_at.blank?
 
@@ -293,4 +287,5 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
       }
     )
   end
+
 end

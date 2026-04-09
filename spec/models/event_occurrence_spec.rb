@@ -229,6 +229,18 @@ RSpec.describe EventOccurrence, type: :model do
     end
   end
 
+  describe 'slug stability' do
+    it 'does not change slug when occurs_at changes on an existing occurrence' do
+      event = create(:event, :weekly)
+      occurrence = event.occurrences.order(:id).first
+      original_slug = occurrence.slug
+
+      occurrence.update!(occurs_at: occurrence.occurs_at + 1.hour)
+
+      expect(occurrence.reload.slug).to eq(original_slug)
+    end
+  end
+
   describe 'factory' do
     it 'creates a valid occurrence' do
       occurrence = build(:event_occurrence)
