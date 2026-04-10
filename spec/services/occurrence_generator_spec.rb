@@ -294,6 +294,17 @@ RSpec.describe OccurrenceGenerator do
 
         expect(EventOccurrence.find_by(id: orphan.id)).to be_present
       end
+
+      it 'does not modify occurs_at for cancelled occurrences on scheduled dates' do
+        scheduled_occurrence = event.occurrences.order(:occurs_at).first
+        scheduled_occurrence.update!(status: 'cancelled')
+        drifted_time = scheduled_occurrence.occurs_at + 1.hour
+        scheduled_occurrence.update_column(:occurs_at, drifted_time) # rubocop:disable Rails/SkipsModelValidations
+
+        generator.regenerate_future!
+
+        expect(scheduled_occurrence.reload.occurs_at.utc).to eq(drifted_time.utc)
+      end
     end
 
     context 'with DST correction' do
