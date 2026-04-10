@@ -51,7 +51,9 @@ class OccurrenceGenerator
       existing = existing_by_date[scheduled_date]
 
       if existing
-        update_occurrence_time_if_needed(existing, scheduled_time)
+        # Preserve manually managed occurrences (cancelled/postponed/relocated)
+        # and only normalize wall-clock time for active scheduled occurrences.
+        update_occurrence_time_if_needed(existing, scheduled_time) if existing.status == 'active'
       else
         event.occurrences.create!(occurs_at: canonicalize_time(scheduled_time), status: occurrence_status)
       end

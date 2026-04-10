@@ -236,6 +236,13 @@ RSpec.describe 'Event DST handling', type: :model do
       event
     end
 
+    def create_drifted_cancelled_occurrence_for(event)
+      first_occ = event.occurrences.order(:occurs_at).first
+      wrong_time = first_occ.occurs_at + 1.hour
+      first_occ.update_column(:occurs_at, wrong_time) # rubocop:disable Rails/SkipsModelValidations
+      { occurrence_id: first_occ.id, occurrence_slug: first_occ.slug, wrong_time: wrong_time }
+    end
+
     it 'creates cancelled occurrences at correct times' do
       event.generate_occurrences
 
@@ -261,33 +268,25 @@ RSpec.describe 'Event DST handling', type: :model do
                                                    "Occurrence IDs changed - duplicates may have been created"
     end
 
-    it 'fixes time on existing cancelled occurrence without creating duplicate' do
+    it 'does not alter time on existing cancelled occurrence during regeneration' do
       event.generate_occurrences
-
-      # Simulate a DST-corrupted occurrence by manually changing time by 1 hour
-      first_occ = event.occurrences.order(:occurs_at).first
-      original_id = first_occ.id
-      wrong_time = first_occ.occurs_at + 1.hour
-      first_occ.update_column(:occurs_at, wrong_time) # rubocop:disable Rails/SkipsModelValidations
-
-      # Verify it's now wrong
-      expect(first_occ.reload.occurs_at.in_time_zone('America/Los_Angeles').hour).to eq(expected_hour + 1)
+      drifted = create_drifted_cancelled_occurrence_for(event)
 
       initial_count = event.occurrences.count
 
-      # Regenerate - should fix time, not create duplicate
+      # Regenerate - should preserve cancelled occurrence time and not create duplicate
       event.regenerate_future_occurrences!
 
       # Same count (no duplicates)
       expect(event.occurrences.reload.count).to eq(initial_count),
                                                 "Duplicate created: expected #{initial_count}, got #{event.occurrences.count}"
 
-      # Original occurrence should still exist with fixed time
-      fixed_occ = event.occurrences.find_by(id: original_id)
-      expect(fixed_occ).to be_present, "Original occurrence was deleted instead of updated"
-      expect(fixed_occ.occurs_at.in_time_zone('America/Los_Angeles').hour).to eq(expected_hour),
-                                                                              "Time was not fixed"
-      expect(fixed_occ.status).to eq('cancelled'), "Status was changed"
+      # Original cancelled occurrence should still exist and keep its time/slug untouched
+      preserved_occ = event.occurrences.find_by(id: drifted[:occurrence_id])
+      expect(preserved_occ).to be_present, "Original occurrence was deleted instead of preserved"
+      expect(preserved_occ.occurs_at.utc).to eq(drifted[:wrong_time].utc), "Cancelled occurrence time was modified"
+      expect(preserved_occ.status).to eq('cancelled'), "Status was changed"
+      expect(preserved_occ.slug).to eq(drifted[:occurrence_slug]), "Slug was changed"
     end
 
     it 'preserves manually activated occurrences when regenerating' do
