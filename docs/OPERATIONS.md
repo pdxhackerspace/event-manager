@@ -303,6 +303,14 @@ docker compose exec web bundle exec rails runner "
 "
 ```
 
+### Occurrence URL and DST Invariants
+
+During routine regeneration (`RegenerateEventOccurrencesJob`), recurring occurrences must be reconciled in place.
+
+- Existing occurrence slugs are stable identifiers and must not change during time corrections.
+- DST adjustments must preserve the event's intended local wall-clock time (for example, 6:30 PM stays 6:30 PM).
+- If a daily run appears to create suffixed slugs (such as `-1`) for existing occurrences, treat it as a regression and investigate before continuing bulk updates.
+
 ### Cloudflare Integration
 
 Since you're behind Cloudflare:

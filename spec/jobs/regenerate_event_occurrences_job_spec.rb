@@ -1,7 +1,23 @@
 require 'rails_helper'
 
 RSpec.describe RegenerateEventOccurrencesJob, type: :job do
+  around do |example|
+    Time.use_zone('America/Los_Angeles') { example.run }
+  end
+
   describe '#perform' do
+    def build_drifted_occurrence
+      event = create(:event,
+                     :weekly,
+                     status: 'active',
+                     max_occurrences: 5,
+                     start_time: Time.zone.local(2026, 3, 1, 18, 30, 0))
+      occurrence = event.occurrences.order(:occurs_at).first
+      event.occurrences.where.not(id: occurrence.id).destroy_all
+      occurrence.update_column(:occurs_at, occurrence.occurs_at + 1.hour) # rubocop:disable Rails/SkipsModelValidations
+      [event, occurrence]
+    end
+
     it 'runs without errors' do
       expect {
         described_class.perform_now
@@ -46,12 +62,30 @@ RSpec.describe RegenerateEventOccurrencesJob, type: :job do
       create(:event, recurrence_type: 'weekly', status: 'active')
 
       # Stub to raise error
-      allow_any_instance_of(Event).to receive(:generate_occurrences).and_raise(StandardError, 'Test error')
+      allow_any_instance_of(Event).to receive(:regenerate_future_occurrences!).and_raise(StandardError, 'Test error')
 
       # Should not raise error
       expect {
         described_class.perform_now
       }.not_to raise_error
+    end
+
+    it 'preserves occurrence id and slug while correcting local time' do
+      event, occurrence = build_drifted_occurrence
+      original_slug = occurrence.slug
+      expected_hour = event.start_time.in_time_zone(Time.zone).hour
+      local_date = occurrence.occurs_at.in_time_zone(Time.zone).to_date
+
+      described_class.perform_now
+
+      reloaded_occurrence = event.occurrences.find(occurrence.id)
+      matching_local_date = event.occurrences.select do |occ|
+        occ.occurs_at.in_time_zone(Time.zone).to_date == local_date
+      end
+
+      expect(reloaded_occurrence.slug).to eq(original_slug)
+      expect(reloaded_occurrence.occurs_at.in_time_zone(Time.zone).hour).to eq(expected_hour)
+      expect(matching_local_date.size).to eq(1)
     end
   end
 end

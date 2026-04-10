@@ -17,7 +17,7 @@ class RegenerateEventOccurrencesJob < ApplicationJob
 
       begin
         Rails.logger.info "RegenerateEventOccurrencesJob: Regenerating #{event.title} (#{upcoming_count}/#{target_count})"
-        event.generate_occurrences(target_count)
+        event.regenerate_future_occurrences!
         regenerated_count += 1
       rescue StandardError => e
         Rails.logger.error "RegenerateEventOccurrencesJob: Error regenerating #{event.title}: #{e.message}"

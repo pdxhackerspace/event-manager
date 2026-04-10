@@ -101,7 +101,7 @@ RSpec.describe "EventOccurrences", type: :request do
         expect(occurrence.occurs_at).to be_within(1.second).of(new_time)
       end
 
-      it "refreshes the slug when occurs_at changes" do
+      it "keeps the slug stable when occurs_at changes" do
         old_slug = occurrence.slug
         new_time = occurrence.occurs_at + 3.days
         patch event_occurrence_path(occurrence),
@@ -111,8 +111,7 @@ RSpec.describe "EventOccurrences", type: :request do
                 }
               }
         occurrence.reload
-        expect(occurrence.slug).not_to eq(old_slug)
-        expect(occurrence.slug).to include(new_time.strftime('%Y-%m-%d'))
+        expect(occurrence.slug).to eq(old_slug)
       end
     end
 
