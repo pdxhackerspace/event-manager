@@ -265,7 +265,7 @@ GEM
       date
       stringio
     public_suffix (7.0.5)
-    puma (7.2.0)
+    puma (8.0.0)
       nio4r (~> 2.0)
     pundit (2.5.2)
       activesupport (>= 3.0.0)
@@ -487,7 +487,7 @@ DEPENDENCIES
   omniauth-rails_csrf_protection (~> 2.0)
   parallel_tests
   pg (~> 1.6)
-  puma (~> 7.2)
+  puma (~> 8.0)
   pundit
   rack-attack
   rails (~> 8.1.2)
