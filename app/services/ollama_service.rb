@@ -6,43 +6,48 @@ require 'json'
 class OllamaService
   class << self
     def available_models
-      return [] if ollama_server.blank?
+      return [] unless configured?
 
-      uri = URI.parse("#{ollama_server}/api/tags")
-      response = Net::HTTP.get_response(uri)
+      uri = ai_endpoint('/models')
+      request = Net::HTTP::Get.new(uri)
+      add_authorization_header(request)
+      response = http_client(uri).request(request)
 
       return [] unless response.is_a?(Net::HTTPSuccess)
 
       data = JSON.parse(response.body)
-      models = data['models'] || []
-      models.pluck('name').sort
+      models = data['data'] || []
+      models.pluck('id').sort
     rescue StandardError => e
       Rails.logger.warn "OllamaService: Failed to fetch models: #{e.message}"
       []
     end
 
     def configured?
-      ollama_server.present?
+      ai_url.present?
     end
 
     def generate(prompt, model: nil)
       return nil unless configured?
 
-      model ||= SiteConfig.current.ai_model.presence || 'llama2'
+      model ||= SiteConfig.current.ai_model.presence || 'gpt-4o-mini'
 
       Rails.logger.info "OllamaService: Generating with model '#{model}'"
       Rails.logger.debug { "OllamaService: Prompt: #{prompt.truncate(200)}" }
 
-      uri = URI.parse("#{ollama_server}/api/generate")
-      http = Net::HTTP.new(uri.host, uri.port)
+      uri = ai_endpoint('/chat/completions')
+      http = http_client(uri)
       http.open_timeout = 10
       http.read_timeout = 60 # AI generation can take a while
 
       request = Net::HTTP::Post.new(uri)
       request['Content-Type'] = 'application/json'
+      add_authorization_header(request)
       request.body = {
         model: model,
-        prompt: prompt,
+        messages: [
+          { role: 'user', content: prompt }
+        ],
         stream: false
       }.to_json
 
@@ -50,7 +55,7 @@ class OllamaService
 
       if response.is_a?(Net::HTTPSuccess)
         data = JSON.parse(response.body)
-        generated_text = data['response']&.strip
+        generated_text = data.dig('choices', 0, 'message', 'content')&.strip
         Rails.logger.info "OllamaService: Generated #{generated_text&.length || 0} characters"
         generated_text
       else
@@ -175,8 +180,34 @@ class OllamaService
       cleaned.presence || response&.strip
     end
 
-    def ollama_server
-      ENV.fetch('OLLAMA_SERVER', nil)
+    def add_authorization_header(request)
+      key = ai_key
+
+      request['Authorization'] = "Bearer #{key}" if key.present?
+    end
+
+    def ai_endpoint(path)
+      base_url = ai_url.chomp('/').sub(%r{/v1\z}, '')
+
+      URI.parse("#{base_url}/v1#{path}")
+    end
+
+    def ai_key
+      SiteConfig.current.ai_key.presence ||
+        ENV.fetch('AI_API_KEY', nil).presence ||
+        ENV.fetch('OLLAMA_API_KEY', nil)
+    end
+
+    def ai_url
+      SiteConfig.current.ai_url.presence ||
+        ENV.fetch('AI_SERVER_URL', nil).presence ||
+        ENV.fetch('OLLAMA_SERVER', nil)
+    end
+
+    def http_client(uri)
+      Net::HTTP.new(uri.host, uri.port).tap do |http|
+        http.use_ssl = uri.scheme == 'https'
+      end
     end
   end
 end

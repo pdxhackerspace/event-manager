@@ -27,7 +27,11 @@
             </div>
           <% end %>
 
-          <h5 class="border-bottom pb-2 mb-3">Organization Information</h5>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0">Organization Information</h5>
+            </div>
+            <div class="card-body">
 
           <div class="mb-3">
             <%= f.label :organization_name, "Organization Name", class: "form-label" %>
@@ -62,8 +66,14 @@
               </small>
             </div>
           </div>
+            </div>
+          </div>
 
-          <h5 class="border-bottom pb-2 mb-3 mt-4">Branding</h5>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0">Branding</h5>
+            </div>
+            <div class="card-body">
 
           <div class="mb-3">
             <%= f.label :favicon, "Favicon", class: "form-label" %>
@@ -98,8 +108,14 @@
               </div>
             <% end %>
           </div>
+            </div>
+          </div>
 
-          <h5 class="border-bottom pb-2 mb-3 mt-4">Location Information</h5>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0">Location Information</h5>
+            </div>
+            <div class="card-body">
 
           <div class="mb-3">
             <%= f.label :location_info, "General Location Information", class: "form-label" %>
@@ -116,8 +132,14 @@
               <i class="bi bi-pin-map-fill"></i> This will be used to show a Google Map on the /location page
             </small>
           </div>
+            </div>
+          </div>
 
-          <h5 class="border-bottom pb-2 mb-3 mt-4">Integrations</h5>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0">Notifications & AI</h5>
+            </div>
+            <div class="card-body">
 
           <div class="mb-3">
             <div class="form-check">
@@ -167,6 +189,24 @@
             </small>
           </div>
 
+          <div class="row">
+            <div class="col-md-8 mb-3">
+              <%= f.label :ai_url, "AI Server URL", class: "form-label" %>
+              <%= f.url_field :ai_url, class: "form-control", placeholder: "https://ai.example.org" %>
+              <small class="form-text text-muted">
+                <i class="bi bi-hdd-network"></i> The base URL for the OpenAI-compatible AI server. Requests are sent under <code>/v1/</code>.
+              </small>
+            </div>
+
+            <div class="col-md-4 mb-3">
+              <%= f.label :ai_key, "AI API Key", class: "form-label" %>
+              <%= f.password_field :ai_key, value: (@site_config.ai_key.present? ? SiteConfigsController::AI_KEY_MASK : nil), class: "form-control", autocomplete: "new-password" %>
+              <small class="form-text text-muted">
+                <i class="bi bi-key"></i> Leave blank or keep <code>*******</code> to preserve the saved key.
+              </small>
+            </div>
+          </div>
+
           <div class="mb-3">
             <%= f.label :ai_reminder_prompt, "AI reminder prompt", class: "form-label" %>
             <%= f.text_area :ai_reminder_prompt, class: "form-control", rows: 3, placeholder: SiteConfig::DEFAULT_AI_REMINDER_PROMPT %>
@@ -180,17 +220,17 @@
             <% if OllamaService.configured? && @ollama_models.any? %>
               <%= f.select :ai_model, options_for_select(@ollama_models, @site_config.ai_model), { include_blank: "Select a model..." }, class: "form-select" %>
               <small class="form-text text-muted">
-                <i class="bi bi-robot"></i> Select the Ollama model to use for generating AI reminder messages.
+                <i class="bi bi-robot"></i> Select the model to use for generating AI reminder messages.
               </small>
             <% elsif OllamaService.configured? %>
               <%= f.text_field :ai_model, class: "form-control", placeholder: "e.g. llama2, mistral, gemma" %>
               <small class="form-text text-muted text-warning">
-                <i class="bi bi-exclamation-triangle"></i> Could not fetch models from Ollama server. Enter a model name manually.
+                <i class="bi bi-exclamation-triangle"></i> Could not fetch models from the AI server. Enter a model name manually.
               </small>
             <% else %>
-              <%= f.text_field :ai_model, class: "form-control", disabled: true, placeholder: "Ollama not configured" %>
+              <%= f.text_field :ai_model, class: "form-control", placeholder: "e.g. llama2, mistral, gemma" %>
               <small class="form-text text-muted">
-                <i class="bi bi-info-circle"></i> Set <code>OLLAMA_SERVER</code> environment variable to enable AI features.
+                <i class="bi bi-info-circle"></i> Set an AI Server URL, or configure <code>AI_SERVER_URL</code>, to enable AI features.
               </small>
             <% end %>
           </div>
@@ -211,10 +251,14 @@
               </small>
             </div>
           </div>
+            </div>
+          </div>
 
-          <h5 class="border-bottom pb-2 mb-3 mt-4">
-            <i class="bi bi-graph-up"></i> Analytics (Matomo)
-          </h5>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="bi bi-graph-up"></i> Analytics (Matomo)</h5>
+            </div>
+            <div class="card-body">
 
           <div class="mb-3">
             <div class="form-check form-switch">
@@ -243,10 +287,14 @@
               </small>
             </div>
           </div>
+            </div>
+          </div>
 
-          <h5 class="border-bottom pb-2 mb-3 mt-4">
-            <i class="bi bi-shield-exclamation"></i> SEO & Indexing
-          </h5>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0"><i class="bi bi-shield-exclamation"></i> SEO & Indexing</h5>
+            </div>
+            <div class="card-body">
 
           <div class="mb-3">
             <div class="form-check form-switch">
@@ -260,8 +308,14 @@
               servers from being accidentally indexed by search engines.
             </small>
           </div>
+            </div>
+          </div>
 
-          <h5 class="border-bottom pb-2 mb-3 mt-4">Footer</h5>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
+              <h5 class="mb-0">Footer</h5>
+            </div>
+            <div class="card-body">
 
           <div class="mb-3">
             <%= f.label :footer_text, "Footer Text", class: "form-label" %>
@@ -269,6 +323,8 @@
             <small class="form-text text-muted">
               This appears at the bottom of every page. Leave blank for default.
             </small>
+          </div>
+            </div>
           </div>
 
           <div class="mt-4">

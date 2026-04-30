@@ -346,7 +346,7 @@
   <div class="wizard-panel" data-step="4" style="display: none;">
     <% site_config = SiteConfig.current %>
     <% if site_config.slack_enabled? || site_config.social_reminders_enabled? %>
-      <% ollama_configured = ENV['OLLAMA_SERVER'].present? %>
+      <% ollama_configured = OllamaService.configured? %>
       <% short_max = site_config.short_reminder_max_length %>
       <% long_max = site_config.long_reminder_max_length %>
       <div class="card mb-3" id="reminder-messages-section"
