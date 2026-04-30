@@ -163,7 +163,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
     message_type = params[:type]&.to_sym || :short
 
     unless OllamaService.configured?
-      render json: { success: false, message: 'Ollama server not configured.' }
+      render json: { success: false, message: 'AI server not configured.' }
       return
     end
 

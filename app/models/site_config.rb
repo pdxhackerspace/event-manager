@@ -9,6 +9,8 @@ class SiteConfig < ApplicationRecord
                             allow_blank: true
   validates :website_url,
             format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL (starting with http:// or https://)" }, allow_blank: true
+  validates :ai_url,
+            format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL (starting with http:// or https://)" }, allow_blank: true
 
   # Singleton pattern - only one site config should exist with id = 1
   # Uses find_or_create_by! for atomic operation with smaller race window

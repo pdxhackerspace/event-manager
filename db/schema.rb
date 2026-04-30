@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_29_101613) do
+ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -184,8 +184,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_29_101613) do
 
   create_table "site_configs", force: :cascade do |t|
     t.string "address"
+    t.text "ai_key"
     t.string "ai_model"
     t.text "ai_reminder_prompt", default: "Create a short, friendly reminder for {{event_title}} happening on {{event_date}} at {{event_time}} at PDX Hackerspace.", null: false
+    t.string "ai_url"
     t.string "contact_email"
     t.string "contact_phone"
     t.datetime "created_at", null: false

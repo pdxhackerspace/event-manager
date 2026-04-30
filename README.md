@@ -214,16 +214,20 @@ You can customize the prompt used when generating reminders in the Site Configur
 
 #### 8. Configure AI Reminder Generation (Optional)
 
-If you want Ollama to craft flavorful reminder copy, set:
+If you want an OpenAI-compatible AI server to craft flavorful reminder copy, set the AI Server URL in Site Configuration. Requests are sent to the server under the `/v1/` API prefix. If the server requires authentication, add the AI API key there too.
+
+You can also use environment variables as fallbacks:
 
 ```
-export OLLAMA_SERVER=http://localhost:11434
+export AI_SERVER_URL=http://localhost:11434
+export AI_API_KEY=your_optional_api_key
 ```
 
 Or add to `.env`:
 
 ```
-OLLAMA_SERVER=http://localhost:11434
+AI_SERVER_URL=http://localhost:11434
+AI_API_KEY=your_optional_api_key
 ```
 
 This server is queried to generate AI text a week or a day before each event, using the event description, time, and the fact that it's at PDX Hackerspace.
