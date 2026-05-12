@@ -3,7 +3,7 @@
 # Dockerfile for running tests, rubocop, and migrations
 # Includes development and test gems (unlike production Dockerfile)
 # ========================================
-FROM ruby:3.3.11
+FROM ruby:4.0.3
 
 # Install build dependencies
 # ImageMagick: Debian metapackage; apt-get update picks up current security/main versions at build time
