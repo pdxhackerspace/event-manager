@@ -15,6 +15,11 @@ module SeoHelper
     content_for(:og_image) { image_url }
   end
 
+  # Generate an absolute image URL for link preview crawlers.
+  def preview_image_url(attachment)
+    rails_blob_url(attachment) if attachment&.attached?
+  end
+
   # Set canonical URL
   def canonical_url(url)
     content_for(:canonical_url) { url }
@@ -42,7 +47,7 @@ module SeoHelper
   def meta_og_image
     return content_for(:og_image) if content_for?(:og_image)
 
-    url_for(@site_config.banner_image) if @site_config&.banner_image&.attached?
+    preview_image_url(@site_config&.banner_image)
   end
 
   # Get canonical URL

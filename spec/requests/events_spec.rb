@@ -5,6 +5,14 @@ RSpec.describe "Events", type: :request do
   let(:admin) { create(:user, :admin) }
   let(:other_user) { create(:user) }
 
+  def meta_content(selector)
+    Nokogiri::HTML(response.body).at_css(selector)&.[]('content')
+  end
+
+  def expected_blob_url(attachment)
+    rails_blob_url(attachment, host: 'www.example.com')
+  end
+
   describe "GET /events" do
     let!(:public_event) { create(:event, visibility: 'public') }
     let!(:members_event) { create(:event, :members_only) }
@@ -54,6 +62,20 @@ RSpec.describe "Events", type: :request do
           get event_path(event)
           expect(response).to have_http_status(:success)
           expect(response.body).to include(event.title)
+        end
+
+        it "uses the event banner for link preview images" do
+          event.banner_image.attach(
+            io: StringIO.new('fake image content'),
+            filename: 'event-banner.jpg',
+            content_type: 'image/jpeg'
+          )
+
+          get event_path(event)
+
+          expected_url = expected_blob_url(event.banner_image)
+          expect(meta_content('meta[property="og:image"]')).to eq(expected_url)
+          expect(meta_content('meta[name="twitter:image"]')).to eq(expected_url)
         end
       end
 
