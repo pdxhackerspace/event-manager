@@ -7,6 +7,14 @@ RSpec.describe "EventOccurrences", type: :request do
   let(:event) { create(:event, user: user) }
   let(:occurrence) { event.occurrences.first }
 
+  def meta_content(selector)
+    Nokogiri::HTML(response.body).at_css(selector)&.[]('content')
+  end
+
+  def expected_blob_url(attachment)
+    rails_blob_url(attachment, host: 'www.example.com')
+  end
+
   describe "GET /event_occurrences/:id" do
     context "as a guest with public event" do
       let(:public_event) { create(:event, visibility: 'public') }
@@ -16,6 +24,39 @@ RSpec.describe "EventOccurrences", type: :request do
         get event_occurrence_path(public_occurrence)
         expect(response).to have_http_status(:success)
         expect(response.body).to include(public_event.title)
+      end
+
+      it "uses the occurrence banner for link preview images" do
+        public_event.banner_image.attach(
+          io: StringIO.new('fake event image content'),
+          filename: 'event-banner.jpg',
+          content_type: 'image/jpeg'
+        )
+        public_occurrence.banner_image.attach(
+          io: StringIO.new('fake occurrence image content'),
+          filename: 'occurrence-banner.jpg',
+          content_type: 'image/jpeg'
+        )
+
+        get event_occurrence_path(public_occurrence)
+
+        expected_url = expected_blob_url(public_occurrence.banner_image)
+        expect(meta_content('meta[property="og:image"]')).to eq(expected_url)
+        expect(meta_content('meta[name="twitter:image"]')).to eq(expected_url)
+      end
+
+      it "falls back to the event banner for link preview images" do
+        public_event.banner_image.attach(
+          io: StringIO.new('fake event image content'),
+          filename: 'event-banner.jpg',
+          content_type: 'image/jpeg'
+        )
+
+        get event_occurrence_path(public_occurrence)
+
+        expected_url = expected_blob_url(public_event.banner_image)
+        expect(meta_content('meta[property="og:image"]')).to eq(expected_url)
+        expect(meta_content('meta[name="twitter:image"]')).to eq(expected_url)
       end
     end
 
