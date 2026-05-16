@@ -54,10 +54,12 @@ class EventJsonLdBuilder
   end
 
   def image_url
-    if @event.banner_image.attached?
-      @helper.url_for(@event.banner_image)
+    if @occurrence&.banner&.attached?
+      @helper.preview_image_url(@occurrence.banner)
+    elsif @event.banner_image.attached?
+      @helper.preview_image_url(@event.banner_image)
     elsif @site_config&.banner_image&.attached?
-      @helper.url_for(@site_config.banner_image)
+      @helper.preview_image_url(@site_config.banner_image)
     end
   end
 

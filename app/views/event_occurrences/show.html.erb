@@ -4,7 +4,7 @@
 <% og_type 'event' %>
 <% canonical_url event_occurrence_url(@occurrence) %>
 <% if @occurrence.banner.attached? %>
-  <% og_image url_for(@occurrence.banner) %>
+  <% og_image preview_image_url(@occurrence.banner) %>
 <% end %>
 
 <%# JSON-LD Structured Data for this specific occurrence %>

@@ -4,7 +4,7 @@
 <% og_type 'event' %>
 <% canonical_url event_url(@event) %>
 <% if @event.banner_image.attached? %>
-  <% og_image url_for(@event.banner_image) %>
+  <% og_image preview_image_url(@event.banner_image) %>
 <% end %>
 
 <%# RSS Feed for this event %>
