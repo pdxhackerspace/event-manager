@@ -268,7 +268,7 @@ class EventsController < ApplicationController
   end
 
   def ical
-    @event = Event.find_by!(ical_token: params[:token])
+    @event = Event.find_by!(ical_token: params.expect(:token))
 
     # Don't include draft events in iCal feeds
     if @event.draft?
@@ -371,7 +371,7 @@ class EventsController < ApplicationController
 
     # Parse custom rules from params (array of rule definitions)
     if params[:custom_rules].present?
-      params[:custom_rules].each do |rule_data|
+      params.expect(:custom_rules).each do |rule_data|
         rule = parse_custom_rule(rule_data, start_time)
         custom_rules << rule if rule.present?
       end
