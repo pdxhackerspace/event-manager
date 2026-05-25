@@ -21,9 +21,9 @@ class SiteConfigsController < ApplicationController
     @site_config.banner_image.purge if params[:site_config][:remove_banner_image] == '1'
 
     # Remove the removal flags from params before updating
-    params[:site_config].delete(:remove_favicon)
-    params[:site_config].delete(:remove_banner_image)
-    params[:site_config].delete(:ai_key) if unchanged_ai_key_submitted?
+    params.expect(:site_config).delete(:remove_favicon)
+    params.expect(:site_config).delete(:remove_banner_image)
+    params.expect(:site_config).delete(:ai_key) if unchanged_ai_key_submitted?
 
     # Only update if there are params remaining after removing flags
     if params[:site_config].present? && @site_config.update(site_config_params)
