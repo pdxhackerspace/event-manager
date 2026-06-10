@@ -247,6 +247,53 @@ RSpec.describe "JSON API", type: :request do
       expect(occ['postponed_until']).to be_present
     end
 
+    it "includes weekday and month abbreviations for each occurrence" do
+      get events_path, headers: { 'Accept' => 'application/json' }
+      json = JSON.parse(response.body)
+      return if json['occurrences'].empty?
+
+      occ = json['occurrences'].first
+      expect(occ).to have_key('weekday_abbr')
+      expect(occ).to have_key('month_abbr')
+      expect(occ['weekday_abbr']).to match(/\A[A-Z][a-z]{2}\z/)
+      expect(occ['month_abbr']).to match(/\A[A-Z][a-z]{2}\z/)
+    end
+
+    it "includes occurrences in progress when duration_override extends end time" do
+      in_progress_event = create(
+        :event,
+        visibility: 'public',
+        title: 'Extended Event',
+        start_time: 30.minutes.ago,
+        duration: 30
+      )
+      in_progress_event.occurrences.destroy_all
+      create(:event_occurrence, :with_duration_override, event: in_progress_event, occurs_at: 30.minutes.ago)
+
+      get events_path, headers: { 'Accept' => 'application/json' }
+      json = JSON.parse(response.body)
+
+      event_titles = json['occurrences'].map { |o| o['event']['title'] }
+      expect(event_titles).to include('Extended Event')
+    end
+
+    it "includes in-progress occurrences using app timezone wall clock" do
+      now = Time.zone.local(2026, 6, 10, 19, 30, 0)
+      start = Time.zone.local(2026, 6, 10, 18, 0, 0)
+
+      Time.use_zone('America/Los_Angeles') do
+        allow(Time).to receive(:current).and_return(now)
+        in_progress_event = create(:event, visibility: 'public', title: 'Tonight Event', start_time: start, duration: 180)
+        in_progress_event.occurrences.destroy_all
+        create(:event_occurrence, event: in_progress_event, occurs_at: start)
+
+        get events_path, headers: { 'Accept' => 'application/json' }
+        occ = JSON.parse(response.body)['occurrences'].find { |o| o['event']['title'] == 'Tonight Event' }
+
+        expect(occ).to include('in_progress' => true, 'weekday_abbr' => 'Wed', 'month_abbr' => 'Jun')
+      end
+    end
+
     it "does not require authentication" do
       get events_path, headers: { 'Accept' => 'application/json' }
       expect(response).to have_http_status(:success)

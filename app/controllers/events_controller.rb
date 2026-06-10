@@ -422,27 +422,21 @@ class EventsController < ApplicationController
   def events_json_response
     now = Time.current
 
-    # Get all upcoming occurrences from published active events
-    # Include occurrences that haven't ended yet (in progress or future)
+    # Include occurrences in progress or upcoming (not yet ended), using app timezone + effective duration
     occurrences = EventOccurrence
                   .joins(:event)
                   .where(events: { draft: false, status: 'active' })
+                  .not_yet_ended(now)
                   .includes(event: [:hosts, :location, { banner_image_attachment: :blob }])
                   .order(occurs_at: :asc)
 
-    # Filter to occurrences that haven't ended yet and build response
-    occurrences_data = occurrences.filter_map do |occ|
-      # Skip if occurrence has already ended
-      next if occ.occurs_at + occ.duration.minutes < now
+    occurrences_data = occurrences.map { |occ| build_occurrence_json(occ) }
 
-      build_occurrence_json(occ)
-    end
-
-    # Get unique events that have upcoming occurrences
+    # Get unique events that have in-progress or upcoming occurrences
     events_with_occurrences = Event
                               .where(draft: false, status: 'active')
                               .joins(:occurrences)
-                              .where('event_occurrences.occurs_at + (events.duration * interval \'1 minute\') > ?', now)
+                              .merge(EventOccurrence.not_yet_ended(now))
                               .distinct
                               .includes(:hosts, :location, banner_image_attachment: :blob)
                               .order(:title)
@@ -515,6 +509,7 @@ class EventsController < ApplicationController
     is_private = event.visibility != 'public'
     now = Time.current
     occurrence_end = occurrence.occurs_at + occurrence.duration.minutes
+    local_occurs_at = occurrence.occurs_at.in_time_zone(Time.zone)
 
     {
       id: occurrence.id,
@@ -522,6 +517,8 @@ class EventsController < ApplicationController
       occurs_at: occurrence.occurs_at.iso8601,
       occurs_at_unix: occurrence.occurs_at.to_i,
       ends_at_unix: occurrence_end.to_i,
+      weekday_abbr: local_occurs_at.strftime('%a'),
+      month_abbr: local_occurs_at.strftime('%b'),
       duration: is_private ? nil : occurrence.duration,
       is_cancelled: occurrence.status == 'cancelled',
       is_postponed: occurrence.status == 'postponed',
