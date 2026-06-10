@@ -38,7 +38,7 @@ class ReminderPostingsController < ApplicationController
   private
 
   def set_posting
-    @posting = ReminderPosting.find(params[:id])
+    @posting = ReminderPosting.find(params.expect(:id))
   end
 
   def authorize_posting

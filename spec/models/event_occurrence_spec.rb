@@ -67,6 +67,27 @@ RSpec.describe EventOccurrence, type: :model do
         expect(past.first.occurs_at).to be > past.last.occurs_at
       end
     end
+
+    describe '.not_yet_ended' do
+      it 'includes future and in-progress occurrences' do
+        in_progress = create(:event_occurrence, event: event, occurs_at: 30.minutes.ago)
+
+        expect(described_class.not_yet_ended).to include(future_occ, in_progress)
+        expect(described_class.not_yet_ended).not_to include(past_occ)
+      end
+
+      it 'respects duration_override when determining end time' do
+        short_event = create(:event, duration: 30)
+        extended = create(
+          :event_occurrence,
+          :with_duration_override,
+          event: short_event,
+          occurs_at: 45.minutes.ago
+        )
+
+        expect(described_class.not_yet_ended).to include(extended)
+      end
+    end
   end
 
   describe '#description' do
