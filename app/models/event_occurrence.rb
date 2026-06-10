@@ -33,6 +33,16 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   scope :upcoming, -> { where('occurs_at >= ?', Time.current).order(:occurs_at) }
   scope :past, -> { where('occurs_at < ?', Time.current).order(occurs_at: :desc) }
 
+  # Occurrences that have started or will start, and have not yet ended (respects duration_override).
+  END_TIME_SQL = <<~SQL.squish
+    event_occurrences.occurs_at + (
+      COALESCE(event_occurrences.duration_override, events.duration) * INTERVAL '1 minute'
+    )
+  SQL
+  scope :not_yet_ended, lambda { |at = Time.current|
+    joins(:event).where("#{END_TIME_SQL} > ?", at)
+  }
+
   # Format the date/time for this occurrence
   def when_text
     date_str = occurs_at.strftime('%B %d, %Y')
