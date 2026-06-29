@@ -131,13 +131,12 @@ class CalendarController < ApplicationController
     public_occurrences = EventOccurrence
                          .joins(:event)
                          .where(events: { visibility: 'public', draft: false })
+                         .not_yet_ended(now)
                          .includes(event: [:hosts, { banner_image_attachment: :blob }], banner_image_attachment: :blob)
                          .order(:occurs_at)
                          .limit(100)
 
-    occurrences_data = public_occurrences.filter_map do |occ|
-      build_calendar_occurrence_json(occ, now)
-    end
+    occurrences_data = public_occurrences.map { |occ| build_calendar_occurrence_json(occ, now) }
 
     {
       occurrences: occurrences_data,
@@ -148,7 +147,6 @@ class CalendarController < ApplicationController
 
   def build_calendar_occurrence_json(occ, now)
     occurrence_end = occ.occurs_at + occ.duration.minutes
-    return nil if occurrence_end < now
 
     {
       id: occ.id,

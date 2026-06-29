@@ -38,6 +38,16 @@ RSpec.describe "SiteConfig", type: :request do
         get edit_site_config_path
         expect(response.body).to include("My Hackerspace")
       end
+
+      it "shows a masked AI key when one is saved" do
+        allow(OllamaService).to receive(:available_models).and_return([])
+        site_config.update!(ai_key: "secret-key")
+
+        get edit_site_config_path
+
+        expect(response.body).to include('value="*******"')
+        expect(response.body).not_to include("secret-key")
+      end
     end
   end
 
@@ -94,6 +104,51 @@ RSpec.describe "SiteConfig", type: :request do
         expect(site_config.contact_email).to eq("contact@updated.org")
         expect(site_config.contact_phone).to eq("(555) 999-8888")
         expect(site_config.footer_text).to eq("Custom footer text")
+      end
+
+      it "updates AI connection settings" do
+        patch site_config_path, params: {
+          site_config: {
+            ai_url: "https://ai.example.org",
+            ai_key: "new-secret-key",
+            ai_model: "llama3"
+          }
+        }
+        site_config.reload
+
+        expect(site_config.ai_url).to eq("https://ai.example.org")
+        expect(site_config.ai_key).to eq("new-secret-key")
+        expect(site_config.ai_model).to eq("llama3")
+      end
+
+      it "preserves an existing AI key when the submitted key is blank" do
+        site_config.update!(ai_key: "existing-secret-key")
+
+        patch site_config_path, params: {
+          site_config: {
+            ai_url: "https://ai.example.org",
+            ai_key: ""
+          }
+        }
+        site_config.reload
+
+        expect(site_config.ai_url).to eq("https://ai.example.org")
+        expect(site_config.ai_key).to eq("existing-secret-key")
+      end
+
+      it "preserves an existing AI key when the submitted key is masked" do
+        site_config.update!(ai_key: "existing-secret-key")
+
+        patch site_config_path, params: {
+          site_config: {
+            ai_url: "https://ai.example.org",
+            ai_key: "*******"
+          }
+        }
+        site_config.reload
+
+        expect(site_config.ai_url).to eq("https://ai.example.org")
+        expect(site_config.ai_key).to eq("existing-secret-key")
       end
 
       it "redirects to edit page" do

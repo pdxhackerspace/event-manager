@@ -1,1 +1,0 @@
-OLLAMA_SERVER = ENV.fetch('OLLAMA_SERVER', nil)
