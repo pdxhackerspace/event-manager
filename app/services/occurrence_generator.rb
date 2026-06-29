@@ -39,11 +39,16 @@ class OccurrenceGenerator
     return if event.permanently_cancelled? || event.permanently_relocated?
 
     scheduled_dates = future_scheduled_dates
-    existing_future = event.occurrences.where('occurs_at > ?', Time.current)
+    existing_future = event.occurrences.not_yet_ended
     existing_by_date = existing_future
                        .group_by { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date }
                        .transform_values { |occurrences| occurrences.min_by(&:id) }
     scheduled_date_set = scheduled_dates.to_set { |d| d.in_time_zone(Time.zone).to_date }
+    event.occurrences.not_yet_ended.each do |occ|
+      next unless occ.occurs_at <= Time.current
+
+      scheduled_date_set.add(occ.occurs_at.in_time_zone(Time.zone).to_date)
+    end
 
     occurrence_status = event.default_to_cancelled? ? 'cancelled' : 'active'
     scheduled_dates.each do |scheduled_time|
@@ -59,10 +64,11 @@ class OccurrenceGenerator
       end
     end
 
-    # Remove occurrences that are no longer scheduled (only active ones)
+    # Remove occurrences that are no longer scheduled (only active ones, never in-progress)
     existing_by_date.each do |date, occ|
       next if scheduled_date_set.include?(date)
       next unless occ.status == 'active'
+      next if occ.occurs_at <= Time.current && (occ.occurs_at + occ.duration.minutes) > Time.current
 
       occ.destroy
     end
@@ -73,7 +79,8 @@ class OccurrenceGenerator
     limit = event.max_occurrences || 5
 
     if event.recurrence_type == 'once'
-      event.start_time > Time.current ? [event.start_time] : []
+      end_time = event.start_time + event.duration.minutes
+      end_time > Time.current ? [event.start_time] : []
     elsif event.recurrence_rule.present?
       schedule = IceCube::Schedule.from_yaml(event.recurrence_rule)
       schedule.occurrences_between(
