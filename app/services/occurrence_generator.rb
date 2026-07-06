@@ -64,10 +64,12 @@ class OccurrenceGenerator
       end
     end
 
-    # Remove occurrences that are no longer scheduled (only active ones, never in-progress)
+    # Remove occurrences that are no longer scheduled (only active ones, never in-progress).
+    # Preserve active occurrences that were manually rescheduled off the recurrence schedule.
     existing_by_date.each do |date, occ|
       next if scheduled_date_set.include?(date)
       next unless occ.status == 'active'
+      next if manually_rescheduled?(occ)
       next if occ.occurs_at <= Time.current && (occ.occurs_at + occ.duration.minutes) > Time.current
 
       occ.destroy
@@ -144,5 +146,26 @@ class OccurrenceGenerator
     candidates = event.occurrences.where(occurs_at: (local_day_start - 1.day)..(local_day_end + 1.day))
     candidates.select { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date == local_date }
               .min_by(&:id)
+  end
+
+  def manually_rescheduled?(occurrence)
+    postponed_replacement?(occurrence) || occurrence_moved_from_slug_date?(occurrence)
+  end
+
+  def postponed_replacement?(occurrence)
+    target_date = occurrence.occurs_at.in_time_zone(Time.zone).to_date
+    day_start = Time.zone.local(target_date.year, target_date.month, target_date.day).beginning_of_day
+    day_end = day_start.end_of_day
+
+    event.occurrences.postponed.where.not(id: occurrence.id)
+         .exists?(postponed_until: day_start..day_end)
+  end
+
+  # Slugs are generated from occurs_at at creation and never updated when occurs_at changes.
+  def occurrence_moved_from_slug_date?(occurrence)
+    slug_date = occurrence.slug&.match(/(\d{4}-\d{2}-\d{2})/)&.[](1)
+    return false if slug_date.blank?
+
+    slug_date != occurrence.occurs_at.in_time_zone(Time.zone).strftime('%Y-%m-%d')
   end
 end
