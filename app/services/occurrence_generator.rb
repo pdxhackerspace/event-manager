@@ -39,11 +39,16 @@ class OccurrenceGenerator
     return if event.permanently_cancelled? || event.permanently_relocated?
 
     scheduled_dates = future_scheduled_dates
-    existing_future = event.occurrences.where('occurs_at > ?', Time.current)
+    existing_future = event.occurrences.not_yet_ended
     existing_by_date = existing_future
                        .group_by { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date }
                        .transform_values { |occurrences| occurrences.min_by(&:id) }
     scheduled_date_set = scheduled_dates.to_set { |d| d.in_time_zone(Time.zone).to_date }
+    event.occurrences.not_yet_ended.each do |occ|
+      next unless occ.occurs_at <= Time.current
+
+      scheduled_date_set.add(occ.occurs_at.in_time_zone(Time.zone).to_date)
+    end
 
     occurrence_status = event.default_to_cancelled? ? 'cancelled' : 'active'
     scheduled_dates.each do |scheduled_time|
@@ -59,10 +64,13 @@ class OccurrenceGenerator
       end
     end
 
-    # Remove occurrences that are no longer scheduled (only active ones)
+    # Remove occurrences that are no longer scheduled (only active ones, never in-progress).
+    # Preserve active occurrences that were manually rescheduled off the recurrence schedule.
     existing_by_date.each do |date, occ|
       next if scheduled_date_set.include?(date)
       next unless occ.status == 'active'
+      next if manually_rescheduled?(occ)
+      next if occ.occurs_at <= Time.current && (occ.occurs_at + occ.duration.minutes) > Time.current
 
       occ.destroy
     end
@@ -73,7 +81,8 @@ class OccurrenceGenerator
     limit = event.max_occurrences || 5
 
     if event.recurrence_type == 'once'
-      event.start_time > Time.current ? [event.start_time] : []
+      end_time = event.start_time + event.duration.minutes
+      end_time > Time.current ? [event.start_time] : []
     elsif event.recurrence_rule.present?
       schedule = IceCube::Schedule.from_yaml(event.recurrence_rule)
       schedule.occurrences_between(
@@ -137,5 +146,26 @@ class OccurrenceGenerator
     candidates = event.occurrences.where(occurs_at: (local_day_start - 1.day)..(local_day_end + 1.day))
     candidates.select { |occ| occ.occurs_at.in_time_zone(Time.zone).to_date == local_date }
               .min_by(&:id)
+  end
+
+  def manually_rescheduled?(occurrence)
+    postponed_replacement?(occurrence) || occurrence_moved_from_slug_date?(occurrence)
+  end
+
+  def postponed_replacement?(occurrence)
+    target_date = occurrence.occurs_at.in_time_zone(Time.zone).to_date
+    day_start = Time.zone.local(target_date.year, target_date.month, target_date.day).beginning_of_day
+    day_end = day_start.end_of_day
+
+    event.occurrences.postponed.where.not(id: occurrence.id)
+         .exists?(postponed_until: day_start..day_end)
+  end
+
+  # Slugs are generated from occurs_at at creation and never updated when occurs_at changes.
+  def occurrence_moved_from_slug_date?(occurrence)
+    slug_date = occurrence.slug&.match(/(\d{4}-\d{2}-\d{2})/)&.[](1)
+    return false if slug_date.blank?
+
+    slug_date != occurrence.occurs_at.in_time_zone(Time.zone).strftime('%Y-%m-%d')
   end
 end

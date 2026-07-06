@@ -320,7 +320,7 @@
 
   <% site_config = SiteConfig.current %>
   <% if site_config.slack_enabled? || site_config.social_reminders_enabled? %>
-    <% ollama_configured = ENV['OLLAMA_SERVER'].present? %>
+    <% ollama_configured = OllamaService.configured? %>
     <% short_max = site_config.short_reminder_max_length %>
     <% long_max = site_config.long_reminder_max_length %>
     <div class="card mb-3" id="reminder-messages-section"
@@ -449,7 +449,7 @@
 
         <% unless ollama_configured %>
           <div class="alert alert-info py-2 mb-0">
-            <small><i class="bi bi-info-circle"></i> AI generation is disabled. Configure OLLAMA_SERVER to enable.</small>
+            <small><i class="bi bi-info-circle"></i> AI generation is disabled. Configure an AI Server URL in site settings to enable.</small>
           </div>
         <% end %>
       </div>

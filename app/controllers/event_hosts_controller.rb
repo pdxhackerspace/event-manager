@@ -4,7 +4,7 @@ class EventHostsController < ApplicationController
   before_action :authorize_event_management
 
   def create
-    @user_to_add = User.find(params[:user_id])
+    @user_to_add = User.find(params.expect(:user_id))
 
     if @event.add_host(@user_to_add)
       # Log the host addition
@@ -21,7 +21,7 @@ class EventHostsController < ApplicationController
   end
 
   def destroy
-    @host = User.find(params[:id])
+    @host = User.find(params.expect(:id))
     host_name = @host.name || @host.email
 
     if @event.remove_host(@host)
