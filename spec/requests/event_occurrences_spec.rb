@@ -281,4 +281,34 @@ RSpec.describe "EventOccurrences", type: :request do
       end
     end
   end
+
+  describe "POST /event_occurrences/:id/generate_ai_reminder" do
+    before do
+      sign_in user
+      allow(OllamaService).to receive_messages(
+        configured?: true,
+        generate_short_reminder: 'Short reminder',
+        generate_long_reminder: 'Long reminder'
+      )
+    end
+
+    it "defaults to a short reminder when type is omitted" do
+      post generate_ai_reminder_event_occurrence_path(occurrence),
+           params: { days: 6 },
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(OllamaService).to have_received(:generate_short_reminder).with(occurrence, 6)
+      expect(JSON.parse(response.body)).to include('success' => true, 'message' => 'Short reminder')
+    end
+
+    it "generates a long reminder when type is long" do
+      post generate_ai_reminder_event_occurrence_path(occurrence),
+           params: { days: 1, type: 'long' },
+           as: :json
+
+      expect(response).to have_http_status(:success)
+      expect(OllamaService).to have_received(:generate_long_reminder).with(occurrence, 1)
+    end
+  end
 end

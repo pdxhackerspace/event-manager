@@ -295,6 +295,32 @@ RSpec.describe OccurrenceGenerator do
         expect(EventOccurrence.find_by(id: orphan.id)).to be_present
       end
 
+      it 'preserves active occurrences manually rescheduled off the schedule' do
+        scheduled_occurrence = event.occurrences.order(:occurs_at).first
+        original_slug_date = scheduled_occurrence.slug.match(/(\d{4}-\d{2}-\d{2})/)[1]
+        rescheduled_time = scheduled_occurrence.occurs_at + 3.days
+        scheduled_occurrence.update!(occurs_at: rescheduled_time)
+
+        generator.regenerate_future!
+
+        expect(EventOccurrence.find_by(id: scheduled_occurrence.id)).to be_present
+        expect(scheduled_occurrence.reload.occurs_at.utc).to eq(rescheduled_time.utc)
+        expect(original_slug_date).not_to eq(rescheduled_time.in_time_zone(Time.zone).strftime('%Y-%m-%d'))
+      end
+
+      it 'preserves active occurrences created by postponement to off-schedule dates' do
+        scheduled_occurrence = event.occurrences.order(:occurs_at).first
+        rescheduled_time = scheduled_occurrence.occurs_at + 3.days
+        scheduled_occurrence.postpone!(rescheduled_time)
+
+        replacement = event.occurrences.active.find_by(occurs_at: rescheduled_time)
+
+        generator.regenerate_future!
+
+        expect(EventOccurrence.find_by(id: replacement.id)).to be_present
+        expect(replacement.reload.occurs_at.utc).to eq(rescheduled_time.utc)
+      end
+
       it 'does not modify occurs_at for cancelled occurrences on scheduled dates' do
         scheduled_occurrence = event.occurrences.order(:occurs_at).first
         scheduled_occurrence.update!(status: 'cancelled')

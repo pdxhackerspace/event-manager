@@ -160,7 +160,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   def generate_ai_reminder
     days_ahead = params[:days].to_i
     days_ahead = 6 unless [1, 6].include?(days_ahead)
-    message_type = params.expect(:type)&.to_sym || :short
+    message_type = params[:type] == 'long' ? :long : :short
 
     unless OllamaService.configured?
       render json: { success: false, message: 'AI server not configured.' }
