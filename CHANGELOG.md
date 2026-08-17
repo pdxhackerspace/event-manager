@@ -7,6 +7,7 @@
 
 ### Fixed
 - Occurrence edits no longer re-roll or advance the image cycle when the inherit option is unchanged
+- Switching an occurrence from a custom image back to inherit advances the cycle index in cycle mode
 - Image pool settings, reassign, and delete actions use separate forms instead of invalid nested forms
 - Occurrence image reassignment follows schedule order (`occurs_at`) rather than database id order
 - Pool image deletion clears references on soft-deleted occurrences so foreign keys do not block removal

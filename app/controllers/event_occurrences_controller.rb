@@ -232,7 +232,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
     when 'inherit'
       return unless @occurrence.custom_event_image?
 
-      selected = EventImageSelector.new(@occurrence.event).select(use_last_occurrence: false, advance_cycle: false)
+      selected = EventImageSelector.new(@occurrence.event).select(use_last_occurrence: false)
       @occurrence.assign_attributes(event_image: selected, custom_event_image: false)
     when 'pool'
       pool_image = @occurrence.event.event_images.find_by(id: params.dig(:event_occurrence, :event_image_id))
