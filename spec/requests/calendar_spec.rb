@@ -208,5 +208,58 @@ RSpec.describe "Calendar", type: :request do
       expect(response.body).to include('DTSTART')
       expect(response.body).to include('DTEND')
     end
+
+    describe "time zone handling" do
+      let(:occurs_at) { 3.days.from_now.change(hour: 18, min: 30) }
+
+      before do
+        public_event.occurrences.first.update!(occurs_at: occurs_at)
+        get calendar_ical_path(format: :ics)
+      end
+
+      it "emits DTSTART as the UTC instant of the occurrence" do
+        expect(response.body).to include("DTSTART:#{occurs_at.utc.strftime('%Y%m%dT%H%M%SZ')}")
+      end
+
+      it "does not emit the local wall clock, which clients read in their own zone" do
+        expect(response.body).not_to include("DTSTART:#{occurs_at.strftime('%Y%m%dT%H%M%S')}")
+      end
+
+      it "suffixes every DATE-TIME with Z so none of them float" do
+        date_times = response.body.lines.map(&:chomp).grep(/\A(DTSTART|DTEND|DTSTAMP)[:;]/)
+
+        expect(date_times).not_to be_empty
+        expect(date_times).to all(end_with('Z'))
+      end
+
+      it "does not reference a time zone it never defines" do
+        expect(response.body).not_to include('TZID')
+      end
+    end
+
+    it "advertises the display time zone for subscribers" do
+      get calendar_ical_path(format: :ics)
+
+      expect(response.body).to include("X-WR-TIMEZONE:#{Time.zone.tzinfo.name}")
+    end
+
+    it "only uses status values RFC 5545 permits" do
+      get calendar_ical_path(format: :ics)
+
+      statuses = response.body.lines.map(&:chomp).grep(/\ASTATUS:/)
+      expect(statuses).not_to be_empty
+      expect(statuses).to all(be_in(['STATUS:TENTATIVE', 'STATUS:CONFIRMED', 'STATUS:CANCELLED']))
+    end
+
+    it "gives each occurrence a stable UID so subscribers do not duplicate events" do
+      get calendar_ical_path(format: :ics)
+      first = response.body.lines.map(&:chomp).grep(/\AUID:/)
+
+      get calendar_ical_path(format: :ics)
+      second = response.body.lines.map(&:chomp).grep(/\AUID:/)
+
+      expect(second).to eq(first)
+      expect(second).not_to be_empty
+    end
   end
 end

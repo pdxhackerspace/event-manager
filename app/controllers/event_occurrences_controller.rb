@@ -15,19 +15,12 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   # Generate iCal file for a single occurrence (for Apple Calendar, etc.)
   def ical
     event = @occurrence.event
-    cal = Icalendar::Calendar.new
+    builder = IcalBuilder.new(host: request.host,
+                              organization_name: @site_config&.organization_name,
+                              name: event.title)
+    builder.add_occurrence(@occurrence, page_url: event_occurrence_url(@occurrence))
 
-    cal.event do |e|
-      e.dtstart = Icalendar::Values::DateTime.new(@occurrence.occurs_at.utc)
-      e.dtend = Icalendar::Values::DateTime.new((@occurrence.occurs_at + @occurrence.duration.minutes).utc)
-      e.summary = event.title
-      e.description = build_ical_description(event, @occurrence)
-      e.location = @occurrence.event_location&.name
-      e.url = event_occurrence_url(@occurrence)
-      e.uid = "occurrence-#{@occurrence.id}@#{request.host}"
-    end
-
-    send_data cal.to_ical,
+    send_data builder.to_ical,
               type: 'text/calendar',
               disposition: 'attachment',
               filename: "#{event.title.parameterize}-#{@occurrence.occurs_at.strftime('%Y-%m-%d')}.ics"
@@ -247,14 +240,6 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
       event_image.image.attach(custom_file)
       @occurrence.assign_attributes(event_image: event_image, custom_event_image: true)
     end
-  end
-
-  def build_ical_description(event, occurrence)
-    parts = []
-    parts << occurrence.description if occurrence.description.present?
-    parts << "More info: #{event.more_info_url}" if event.more_info_url.present?
-    parts << "Event page: #{event_occurrence_url(occurrence)}"
-    parts.join("\n\n")
   end
 
   def determine_reminder_type(event, site_config)
