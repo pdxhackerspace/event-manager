@@ -3,11 +3,11 @@
 require 'rails_helper'
 
 RSpec.describe 'Ruby Version' do
-  it 'is Ruby 3.3.x' do
-    expect(RUBY_VERSION).to start_with('3.3')
+  it 'is Ruby 4.0.x' do
+    expect(RUBY_VERSION).to start_with('4.0')
   end
 
-  describe 'Ruby 3.3 features' do
+  describe 'Ruby 4.0 features' do
     it 'supports Range#overlap?' do
       expect((1..5).overlap?(3..7)).to be true
       expect((1..5).overlap?(6..10)).to be false

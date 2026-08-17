@@ -2,20 +2,21 @@
 # ========================================
 # Stage 1: Builder - Install dependencies and build assets
 # ========================================
-FROM ruby:3.3.11 AS builder
+FROM ruby:4.0.6 AS builder
 
 # Install build dependencies
 # ImageMagick: Debian metapackage; apt-get update picks up current security/main versions at build time
 RUN apt-get update -qq && apt-get install -y --no-install-recommends \
     build-essential \
     libpq-dev \
+    libyaml-dev \
     curl \
     git \
     imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20.x LTS and Yarn 1.x (Classic) via Corepack (avoids deprecated apt-key Yarn repo)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+# Install Node.js 24.x LTS and Yarn 1.x (Classic) via Corepack (avoids deprecated apt-key Yarn repo)
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - && \
     apt-get update -qq && apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/* && \
     corepack enable && corepack prepare yarn@1.22.22 --activate
@@ -54,7 +55,7 @@ RUN SECRET_KEY_BASE=dummy RAILS_ENV=production bundle exec rake assets:precompil
 # ========================================
 # Stage 2: Runtime - Minimal production image
 # ========================================
-FROM ruby:3.3.11-slim AS runtime
+FROM ruby:4.0.6-slim AS runtime
 
 # Updated per deployment protocol: CI passes APP_VERSION; local builds default to dev
 ARG APP_VERSION=dev
