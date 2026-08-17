@@ -10,7 +10,7 @@ RSpec.describe EventOccurrence, type: :model do
 
   describe 'associations' do
     it { is_expected.to belong_to(:event) }
-    it { is_expected.to have_one_attached(:banner_image) }
+    it { is_expected.to belong_to(:event_image).optional }
   end
 
   describe 'scopes' do
@@ -144,8 +144,8 @@ RSpec.describe EventOccurrence, type: :model do
     context 'when occurrence has its own banner' do
       let(:occurrence) { create(:event_occurrence, :with_banner, event: event) }
 
-      it 'returns the occurrence banner' do
-        expect(occurrence.banner).to eq(occurrence.banner_image)
+      it 'returns the occurrence event image' do
+        expect(occurrence.banner).to eq(occurrence.event_image.image)
       end
     end
 
@@ -153,7 +153,7 @@ RSpec.describe EventOccurrence, type: :model do
       let(:event_with_banner) { create(:event, :with_banner) }
       let(:occurrence) { create(:event_occurrence, event: event_with_banner) }
 
-      it 'returns the event banner' do
+      it 'returns the event fallback banner' do
         expect(occurrence.banner).to eq(event_with_banner.banner_image)
       end
     end
@@ -161,8 +161,7 @@ RSpec.describe EventOccurrence, type: :model do
     context 'when neither occurrence nor event has banner' do
       let(:occurrence) { create(:event_occurrence, event: event) }
 
-      it 'returns the event banner_image (not attached)' do
-        expect(occurrence.banner).to eq(event.banner_image)
+      it 'returns an unattached banner proxy' do
         expect(occurrence.banner.attached?).to be false
       end
     end

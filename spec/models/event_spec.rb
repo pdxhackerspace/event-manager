@@ -20,7 +20,7 @@ RSpec.describe Event, type: :model do
     it { is_expected.to have_many(:event_occurrences).dependent(:destroy) }
     it { is_expected.to have_many(:occurrences).dependent(:destroy) }
     it { is_expected.to have_many(:event_journals).dependent(:nullify) }
-    it { is_expected.to have_one_attached(:banner_image) }
+    it { is_expected.to have_many(:event_images).dependent(:destroy) }
   end
 
   describe 'scopes' do

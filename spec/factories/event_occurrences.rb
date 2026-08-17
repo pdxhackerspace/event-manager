@@ -29,11 +29,13 @@ FactoryBot.define do
 
     trait :with_banner do
       after(:create) do |occurrence|
-        occurrence.banner_image.attach(
-          io: StringIO.new("fake image content"),
-          filename: "occurrence_banner.jpg",
-          content_type: "image/jpeg"
+        event_image = occurrence.event.event_images.create!(position: 99, in_pool: false)
+        event_image.image.attach(
+          io: StringIO.new('fake image content'),
+          filename: 'occurrence_banner.jpg',
+          content_type: 'image/jpeg'
         )
+        occurrence.update!(event_image: event_image, custom_event_image: true)
       end
     end
   end

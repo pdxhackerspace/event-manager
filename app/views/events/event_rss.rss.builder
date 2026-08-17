@@ -41,7 +41,7 @@ xml.rss version: "2.0", "xmlns:atom" => "http://www.w3.org/2005/Atom" do
         xml.description desc_parts.join
 
         # Banner image enclosure
-        banner = occurrence.banner_image.attached? ? occurrence.banner_image : @event.banner_image
+        banner = occurrence.banner
         xml.enclosure url: url_for(banner), type: banner.content_type, length: banner.byte_size if banner.attached?
 
         xml.category @event.recurrence_type.titleize

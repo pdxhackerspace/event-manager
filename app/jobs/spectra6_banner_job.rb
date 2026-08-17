@@ -13,7 +13,7 @@ class Spectra6BannerJob < ApplicationJob
     return unless blob
 
     # Find the attachment to get the record
-    attachment = ActiveStorage::Attachment.find_by(blob_id: blob_id, name: 'banner_image')
+    attachment = ActiveStorage::Attachment.find_by(blob_id: blob_id, name: %w[banner_image image])
     return unless attachment
 
     process_banner(blob, attachment)

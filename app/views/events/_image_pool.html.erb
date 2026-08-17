@@ -1,0 +1,116 @@
+<div id="image-pool" class="card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-images"></i> Image Pool</h5>
+  </div>
+  <div class="card-body">
+    <p class="text-muted">
+      Upload multiple banner images for this event. Choose how images are assigned to new occurrences,
+      reorder the pool, and pick a fixed fallback image.
+    </p>
+
+    <%= form_with url: event_event_images_path(event), method: :post, local: true, html: { multipart: true, class: 'mb-4' } do %>
+      <div class="mb-3">
+        <%= label_tag :images, 'Upload Images', class: 'form-label' %>
+        <%= file_field_tag 'images[]', class: 'form-control', accept: 'image/*', multiple: true %>
+        <small class="form-text text-muted">
+          Recommended: 1200x400 pixels (3:1 ratio). Max 5MB per image.
+        </small>
+      </div>
+      <%= submit_tag 'Add to Pool', class: 'btn btn-outline-primary' %>
+    <% end %>
+
+    <%= form_with(model: event, url: event_path(event), method: :patch, local: true, class: 'mb-4') do |f| %>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <%= f.label :image_selection_mode, 'Selection Mode', class: 'form-label' %>
+          <%= f.select :image_selection_mode,
+                       [['Fixed image for all occurrences', 'fixed'],
+                        ['Random (avoid immediate repeat)', 'random'],
+                        ['Cycle through pool in order', 'cycle']],
+                       {},
+                       class: 'form-select' %>
+          <small class="form-text text-muted">
+            Applied when new occurrences are generated. Existing occurrences keep their assigned image.
+          </small>
+        </div>
+      </div>
+
+      <% pooled_images = event.pooled_images.includes(image_attachment: :blob).to_a %>
+      <% if pooled_images.any? %>
+        <div class="mt-4"
+             data-controller="image-pool"
+             data-image-pool-reorder-url-value="<%= reorder_event_event_images_path(event) %>">
+          <h6 class="mb-3">Pool Images <small class="text-muted">(drag to reorder)</small></h6>
+          <div class="row g-3" data-image-pool-target="list">
+            <% pooled_images.each_with_index do |event_image, index| %>
+              <div class="col-md-4 col-lg-3"
+                   data-image-pool-target="item"
+                   data-image-id="<%= event_image.id %>"
+                   draggable="true"
+                   data-action="dragstart->image-pool#dragstart dragend->image-pool#dragend dragover->image-pool#dragover">
+                <div class="card h-100">
+                  <% if event_image.image.attached? %>
+                    <%= image_tag event_image.image, class: 'card-img-top', style: 'height: 120px; object-fit: cover;', alt: 'Pool image' %>
+                  <% else %>
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 120px;">
+                      <span class="text-muted">No image</span>
+                    </div>
+                  <% end %>
+                  <div class="card-body p-2">
+                    <div class="form-check mb-2">
+                      <%= radio_button_tag 'event[fixed_event_image_id]', event_image.id, event.fixed_event_image_id == event_image.id, class: 'form-check-input', id: "fixed_image_#{event_image.id}" %>
+                      <%= label_tag "fixed_image_#{event_image.id}", 'Fixed image', class: 'form-check-label small' %>
+                    </div>
+                    <div class="btn-group btn-group-sm w-100" role="group" aria-label="Reorder image">
+                      <button type="button" class="btn btn-outline-secondary" data-action="image-pool#moveUp" aria-label="Move up">↑</button>
+                      <button type="button" class="btn btn-outline-secondary" data-action="image-pool#moveDown" aria-label="Move down">↓</button>
+                      <%= button_to event_event_image_path(event, event_image),
+                                    method: :delete,
+                                    class: 'btn btn-outline-danger',
+                                    form: { data: { turbo_confirm: 'Remove this image from the pool?' } } do %>
+                        <i class="bi bi-trash"></i>
+                      <% end %>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% else %>
+        <div class="alert alert-secondary mb-0">
+          No images in the pool yet. Upload images above to get started.
+        </div>
+      <% end %>
+
+      <div class="mt-4">
+        <%= f.submit 'Save Image Settings', class: 'btn btn-primary' %>
+      </div>
+    <% end %>
+
+    <% non_pooled = event.event_images.where(in_pool: false).includes(image_attachment: :blob) %>
+    <% if non_pooled.any? %>
+      <hr>
+      <h6 class="mb-3">Occurrence-Only Images</h6>
+      <p class="text-muted small">Custom images uploaded for specific occurrences. You can add them to the pool.</p>
+      <div class="row g-3">
+        <% non_pooled.each do |event_image| %>
+          <div class="col-md-4 col-lg-3">
+            <div class="card h-100">
+              <% if event_image.image.attached? %>
+                <%= image_tag event_image.image, class: 'card-img-top', style: 'height: 120px; object-fit: cover;', alt: 'Occurrence image' %>
+              <% end %>
+              <div class="card-body p-2">
+                <%= button_to 'Add to Pool',
+                              event_event_image_path(event, event_image),
+                              method: :patch,
+                              params: { event_image: { in_pool: true } },
+                              class: 'btn btn-sm btn-outline-primary w-100' %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

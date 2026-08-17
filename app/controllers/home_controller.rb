@@ -18,7 +18,7 @@ class HomeController < ApplicationController
                             .where(event: base_events)
                             .where(event_occurrences: { status: 'active' })
                             .upcoming
-                            .includes(event: %i[hosts user location], banner_image_attachment: :blob)
+                            .includes(event: %i[hosts user location], event_image: { image_attachment: :blob })
 
     # Build a map of event_id => next occurrence for display
     @next_occurrence_by_event = {}

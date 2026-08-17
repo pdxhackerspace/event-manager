@@ -74,20 +74,16 @@
         </div>
 
         <div class="mb-3">
-          <%= f.label :banner_image, "Banner Image (Optional)", class: "form-label" %>
-          <%= f.file_field :banner_image, class: "form-control", accept: "image/*" %>
+          <%= label_tag 'event_pool_images', 'Banner Images (Optional)', class: 'form-label' %>
+          <%= file_field_tag 'event[pool_images][]', class: 'form-control', accept: 'image/*', multiple: true, id: 'event_pool_images' %>
           <small class="form-text text-muted">
-            <i class="bi bi-image" aria-hidden="true"></i> Recommended: 1200x400 pixels (3:1 ratio). Max 5MB.
+            <i class="bi bi-image" aria-hidden="true"></i> Upload one or more images. Recommended: 1200x400 pixels (3:1 ratio). Max 5MB each.
+            <% if event.persisted? %>
+              Manage ordering and selection mode in the image pool below.
+            <% else %>
+              You can configure ordering and selection mode after creating the event.
+            <% end %>
           </small>
-          <% if event.banner_image.attached? %>
-            <div class="mt-2">
-              <%= image_tag event.banner_image, class: "img-thumbnail", style: "max-width: 300px;", alt: "Current banner" %>
-              <div class="form-check mt-2">
-                <%= f.check_box :remove_banner_image, class: "form-check-input" %>
-                <%= f.label :remove_banner_image, "Remove current banner image", class: "form-check-label" %>
-              </div>
-            </div>
-          <% end %>
         </div>
 
         <div class="mb-3">

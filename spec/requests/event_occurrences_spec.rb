@@ -27,30 +27,26 @@ RSpec.describe "EventOccurrences", type: :request do
       end
 
       it "uses the occurrence banner for link preview images" do
-        public_event.banner_image.attach(
-          io: StringIO.new('fake event image content'),
-          filename: 'event-banner.jpg',
-          content_type: 'image/jpeg'
-        )
-        public_occurrence.banner_image.attach(
+        public_event = create(:event, :with_banner, visibility: 'public')
+        public_occurrence = public_event.occurrences.first
+        custom_image = public_event.event_images.create!(position: 99, in_pool: false)
+        custom_image.image.attach(
           io: StringIO.new('fake occurrence image content'),
           filename: 'occurrence-banner.jpg',
           content_type: 'image/jpeg'
         )
+        public_occurrence.update!(event_image: custom_image, custom_event_image: true)
 
         get event_occurrence_path(public_occurrence)
 
-        expected_url = expected_blob_url(public_occurrence.banner_image)
+        expected_url = expected_blob_url(public_occurrence.banner)
         expect(meta_content('meta[property="og:image"]')).to eq(expected_url)
         expect(meta_content('meta[name="twitter:image"]')).to eq(expected_url)
       end
 
       it "falls back to the event banner for link preview images" do
-        public_event.banner_image.attach(
-          io: StringIO.new('fake event image content'),
-          filename: 'event-banner.jpg',
-          content_type: 'image/jpeg'
-        )
+        public_event = create(:event, :with_banner, visibility: 'public')
+        public_occurrence = public_event.occurrences.first
 
         get event_occurrence_path(public_occurrence)
 

@@ -3,14 +3,12 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   belongs_to :event, counter_cache: true
   belongs_to :location, optional: true
+  belongs_to :event_image, optional: true
   has_many :reminder_postings, dependent: :destroy
-  has_one_attached :banner_image do |attachable|
-    attachable.variant :thumb, resize_to_limit: [300, 300]
-  end
 
   # Slugs are stable identifiers; only generate on create.
   before_validation :generate_slug, on: :create
-  before_save :rename_banner_image
+  before_create :assign_pool_image, unless: :event_image_id?
 
   validates :occurs_at, presence: true
   validates :status, inclusion: { in: %w[active postponed cancelled relocated] }
@@ -115,7 +113,15 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   # Get the banner image (own or inherited from event)
   def banner
-    banner_image.attached? ? banner_image : event.banner_image
+    (event_image || event.fallback_event_image || EventImage.new).image
+  end
+
+  def banner_image
+    banner
+  end
+
+  def custom_banner?
+    custom_event_image?
   end
 
   # Get the location (own or inherited from event)
@@ -230,16 +236,9 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     self.slug = new_slug
   end
 
-  def rename_banner_image
-    return unless banner_image.attached?
-    return unless banner_image.blob.persisted? == false || banner_image.attachment&.new_record?
-
-    blob = banner_image.blob
-    extension = File.extname(blob.filename.to_s)
-    timestamp = Time.current.to_i
-    new_filename = "#{slug || "#{event.title.parameterize}-#{occurs_at.strftime('%Y-%m-%d')}"}-banner-#{timestamp}#{extension}"
-
-    blob.filename = new_filename
+  def assign_pool_image
+    selected = EventImageSelector.new(event).select
+    self.event_image = selected if selected
   end
 
   def log_update
@@ -280,9 +279,8 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def log_banner_change
     return unless current_user_for_journal
     return if new_record?
-
-    # Check if banner was added
-    return unless banner_image.attached? && banner_image.attachment.blob.created_at > 5.seconds.ago
+    return unless saved_change_to_event_image_id?
+    return unless event_image&.image&.attached?
 
     EventJournal.log_occurrence_change(
       self,
@@ -290,9 +288,9 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
       'banner_added',
       {
         'banner_image' => {
-          'filename' => banner_image.filename.to_s,
-          'size' => "#{(banner_image.byte_size.to_f / 1024).round(2)} KB",
-          'content_type' => banner_image.content_type
+          'filename' => event_image.image.filename.to_s,
+          'size' => "#{(event_image.image.byte_size.to_f / 1024).round(2)} KB",
+          'content_type' => event_image.image.content_type
         }
       }
     )

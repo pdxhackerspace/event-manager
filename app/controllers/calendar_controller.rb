@@ -106,7 +106,7 @@ class CalendarController < ApplicationController
     query = EventOccurrence
             .joins(:event)
             .where(event_occurrences: { status: %w[active postponed cancelled relocated] })
-            .includes(event: %i[hosts user], banner_image_attachment: :blob)
+            .includes(event: %i[hosts user], event_image: { image_attachment: :blob })
             .order(:occurs_at)
 
     if public_only
@@ -132,7 +132,8 @@ class CalendarController < ApplicationController
                          .joins(:event)
                          .where(events: { visibility: 'public', draft: false })
                          .not_yet_ended(now)
-                         .includes(event: [:hosts, { banner_image_attachment: :blob }], banner_image_attachment: :blob)
+                         .includes(event: [:hosts, { event_images: { image_attachment: :blob } }],
+                                   event_image: { image_attachment: :blob })
                          .order(:occurs_at)
                          .limit(100)
 
@@ -163,7 +164,7 @@ class CalendarController < ApplicationController
       location: occ.event_location ? { id: occ.event_location.id, name: occ.event_location.name } : nil,
       has_custom_location: occ.location_id.present?,
       banner_url: occ.banner.attached? ? url_for(occ.banner) : nil,
-      has_custom_banner: occ.banner_image.attached?,
+      has_custom_banner: occ.custom_event_image?,
       event: build_calendar_event_info(occ.event)
     }
   end
