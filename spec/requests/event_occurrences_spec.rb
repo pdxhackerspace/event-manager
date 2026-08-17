@@ -171,25 +171,24 @@ RSpec.describe "EventOccurrences", type: :request do
         expect(event.image_cycle_index).to eq(3)
       end
 
-      it "advances the cycle when switching from a custom image to inherit" do
-        first_image = create(:event_image, :with_image, event: event, position: 0)
-        second_image = create(:event_image, :with_image, event: event, position: 1)
-        event.update!(image_selection_mode: 'cycle', fixed_event_image_id: first_image.id, image_cycle_index: 0)
-        occurrence.update!(event_image: second_image, custom_event_image: true)
+      context "when switching from a custom image to inherit in cycle mode" do
+        let!(:first_image) { create(:event_image, :with_image, event: event, position: 0) }
+        let!(:second_image) { create(:event_image, :with_image, event: event, position: 1) }
 
-        patch event_occurrence_path(occurrence),
-              params: {
-                event_occurrence: {
-                  status: occurrence.status,
-                  image_source: 'inherit'
-                }
-              }
+        before do
+          event.update!(image_selection_mode: 'cycle', fixed_event_image_id: first_image.id, image_cycle_index: 0)
+          occurrence.update!(event_image: second_image, custom_event_image: true)
+          patch event_occurrence_path(occurrence),
+                params: { event_occurrence: { status: occurrence.status, image_source: 'inherit' } }
+        end
 
-        occurrence.reload
-        event.reload
-        expect(occurrence.custom_event_image?).to be false
-        expect(occurrence.event_image).to eq(first_image)
-        expect(event.image_cycle_index).to eq(1)
+        it "advances the cycle" do
+          occurrence.reload
+          event.reload
+          expect(occurrence.custom_event_image?).to be false
+          expect(occurrence.event_image).to eq(first_image)
+          expect(event.image_cycle_index).to eq(1)
+        end
       end
     end
 
