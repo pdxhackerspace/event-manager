@@ -35,6 +35,9 @@ module EventManager
     # Database stores times in UTC (recommended)
     config.active_record.default_timezone = :utc
 
+    # Rails 8.1.3+ defaults to libvips; we use mini_magick (see Gemfile).
+    config.active_storage.variant_processor = :mini_magick
+
     # Rails 7.1+ way to autoload lib directory
     # Ignore omniauth since directory name doesn't match module name (omniauth vs OmniAuth)
     config.autoload_lib(ignore: %w[assets tasks omniauth])
