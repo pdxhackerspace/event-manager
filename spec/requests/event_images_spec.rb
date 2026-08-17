@@ -31,6 +31,15 @@ RSpec.describe 'EventImages', type: :request do
 
       expect(response).to redirect_to(edit_event_path(event, anchor: 'image-pool'))
     end
+
+    it 'removes an image referenced by a soft-deleted occurrence' do
+      occurrence = create(:event_occurrence, event: event, event_image: second_image)
+      occurrence.destroy
+
+      expect do
+        delete event_event_image_path(event, second_image)
+      end.to change { EventImage.exists?(second_image.id) }.from(true).to(false)
+    end
   end
 
   describe 'PATCH /events/:event_id/images/:id' do

@@ -5,7 +5,7 @@ class EventImageSelector
     @event = event
   end
 
-  def select(exclude_image_id: nil, use_last_occurrence: true)
+  def select(exclude_image_id: nil, use_last_occurrence: true, advance_cycle: true)
     pool = event.event_images.pooled.ordered.to_a
     return nil if pool.empty?
 
@@ -15,7 +15,7 @@ class EventImageSelector
       last_id ||= event.occurrences.order(id: :desc).limit(1).pick(:event_image_id) if use_last_occurrence
       select_random(pool, exclude_image_id: last_id)
     when 'cycle'
-      select_cycle(pool)
+      select_cycle(pool, advance: advance_cycle)
     else
       event.fallback_event_image
     end
@@ -31,10 +31,10 @@ class EventImageSelector
     candidates.sample
   end
 
-  def select_cycle(pool)
+  def select_cycle(pool, advance: true)
     index = event.image_cycle_index % pool.size
     selected = pool[index]
-    event.update!(image_cycle_index: event.image_cycle_index + 1)
+    event.update!(image_cycle_index: event.image_cycle_index + 1) if advance
     selected
   end
 end

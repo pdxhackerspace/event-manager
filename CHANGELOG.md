@@ -6,6 +6,10 @@
 - Reassign Existing Occurrences button in the image pool to apply the saved selection mode to all non-custom occurrences
 
 ### Fixed
+- Occurrence edits no longer re-roll or advance the image cycle when the inherit option is unchanged
+- Image pool settings, reassign, and delete actions use separate forms instead of invalid nested forms
+- Occurrence image reassignment follows schedule order (`occurs_at`) rather than database id order
+- Pool image deletion clears references on soft-deleted occurrences so foreign keys do not block removal
 - Event image pool migration sets `fixed_event_image_id` on the correct event after repointing banner attachments
 - `bin/rubocop-local` rebuilds its cached image when the Ruby version or gems change, instead of silently reusing an image built on an older Ruby
 

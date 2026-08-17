@@ -150,6 +150,26 @@ RSpec.describe "EventOccurrences", type: :request do
         occurrence.reload
         expect(occurrence.slug).to eq(old_slug)
       end
+
+      it "does not reassign the banner when inherit is submitted unchanged" do
+        image = create(:event_image, :with_image, event: event, position: 0)
+        event.update!(image_selection_mode: 'cycle', fixed_event_image_id: image.id, image_cycle_index: 3)
+        occurrence.update!(event_image: image, custom_event_image: false)
+        original_image_id = occurrence.event_image_id
+
+        patch event_occurrence_path(occurrence),
+              params: {
+                event_occurrence: {
+                  custom_description: 'Updated description',
+                  image_source: 'inherit'
+                }
+              }
+
+        occurrence.reload
+        event.reload
+        expect(occurrence.event_image_id).to eq(original_image_id)
+        expect(event.image_cycle_index).to eq(3)
+      end
     end
 
     context "as a different user" do

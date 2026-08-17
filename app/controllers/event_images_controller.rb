@@ -44,7 +44,7 @@ class EventImagesController < ApplicationController
       @event.update!(fixed_event_image_id: replacement&.id)
     end
 
-    EventOccurrence.where(event_image_id: @event_image.id).find_each do |occurrence|
+    EventOccurrence.unscoped.where(event_image_id: @event_image.id).find_each do |occurrence|
       occurrence.update!(event_image_id: nil, custom_event_image: false)
     end
     filename = @event_image.image.filename.to_s if @event_image.image.attached?

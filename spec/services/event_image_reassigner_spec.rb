@@ -57,5 +57,20 @@ RSpec.describe EventImageReassigner do
       expect(occ2.reload.event_image).to eq(second)
       expect(event.reload.image_cycle_index).to eq(2)
     end
+
+    it 'follows occurs_at order rather than primary key order' do
+      first = attach_pool_image(position: 0)
+      second = attach_pool_image(position: 1)
+      event.update!(image_selection_mode: 'cycle', fixed_event_image_id: first.id, image_cycle_index: 0)
+      event.occurrences.destroy_all
+      later = create(:event_occurrence, event: event, occurs_at: 2.weeks.from_now)
+      earlier = create(:event_occurrence, event: event, occurs_at: 1.week.from_now)
+      event.update!(image_cycle_index: 0)
+
+      described_class.new(event.reload).reassign!
+
+      expect(earlier.reload.event_image).to eq(first)
+      expect(later.reload.event_image).to eq(second)
+    end
   end
 end

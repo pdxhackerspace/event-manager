@@ -12,7 +12,7 @@ class EventImageReassigner
     last_image_id = nil
     updated = 0
 
-    reassignable_occurrences.find_each do |occurrence|
+    reassignable_occurrences.each do |occurrence|
       image = selector.select(exclude_image_id: last_image_id, use_last_occurrence: false)
       next unless image
 
