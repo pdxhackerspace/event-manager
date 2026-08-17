@@ -6,3 +6,6 @@ import { application } from "./application"
 
 import HelloController from "./hello_controller"
 application.register("hello", HelloController)
+
+import ImagePoolController from "./image_pool_controller"
+application.register("image-pool", ImagePoolController)

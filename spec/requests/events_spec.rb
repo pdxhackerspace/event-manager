@@ -65,11 +65,7 @@ RSpec.describe "Events", type: :request do
         end
 
         it "uses the event banner for link preview images" do
-          event.banner_image.attach(
-            io: StringIO.new('fake image content'),
-            filename: 'event-banner.jpg',
-            content_type: 'image/jpeg'
-          )
+          event = create(:event, :with_banner, visibility: 'public')
 
           get event_path(event)
 

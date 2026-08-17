@@ -69,6 +69,13 @@ Rails.application.routes.draw do
 
     # Host management
     resources :event_hosts, only: %i[create destroy]
+
+    resources :event_images, only: %i[create update destroy], path: 'images' do
+      collection do
+        patch :reorder
+        post :reassign
+      end
+    end
   end
 
   # Event Occurrences routes

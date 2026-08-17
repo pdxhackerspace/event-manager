@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_16_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -53,6 +53,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
     t.index ["user_id"], name: "index_event_hosts_on_user_id"
   end
 
+  create_table "event_images", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "event_id", null: false
+    t.boolean "in_pool", default: true, null: false
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_id", "position"], name: "index_event_images_on_event_id_and_position"
+    t.index ["event_id"], name: "index_event_images_on_event_id"
+  end
+
   create_table "event_journals", force: :cascade do |t|
     t.string "action", null: false
     t.jsonb "change_data", default: {}
@@ -73,9 +83,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
     t.text "cancellation_reason"
     t.datetime "created_at", null: false
     t.text "custom_description"
+    t.boolean "custom_event_image", default: false, null: false
     t.datetime "deleted_at"
     t.integer "duration_override"
     t.bigint "event_id", null: false
+    t.bigint "event_image_id"
     t.bigint "location_id"
     t.datetime "occurs_at", null: false
     t.datetime "postponed_until"
@@ -90,6 +102,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
     t.index ["deleted_at"], name: "index_event_occurrences_on_deleted_at"
     t.index ["event_id", "occurs_at"], name: "index_event_occurrences_on_event_id_and_occurs_at"
     t.index ["event_id"], name: "index_event_occurrences_on_event_id"
+    t.index ["event_image_id"], name: "index_event_occurrences_on_event_image_id"
     t.index ["location_id"], name: "index_event_occurrences_on_location_id"
     t.index ["occurs_at"], name: "index_event_occurrences_on_occurs_at"
     t.index ["slug"], name: "index_event_occurrences_on_slug", unique: true
@@ -107,7 +120,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
     t.boolean "draft", default: false, null: false
     t.integer "duration", default: 60
     t.integer "event_occurrences_count", default: 0, null: false
+    t.bigint "fixed_event_image_id"
     t.string "ical_token"
+    t.integer "image_cycle_index", default: 0, null: false
+    t.string "image_selection_mode", default: "fixed", null: false
     t.bigint "location_id"
     t.integer "max_occurrences", default: 5, null: false
     t.string "more_info_url"
@@ -135,6 +151,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
     t.string "visibility", default: "public", null: false
     t.index ["deleted_at"], name: "index_events_on_deleted_at"
     t.index ["description"], name: "index_events_on_description_trgm", opclass: :gin_trgm_ops, using: :gin
+    t.index ["fixed_event_image_id"], name: "index_events_on_fixed_event_image_id"
     t.index ["ical_token"], name: "index_events_on_ical_token", unique: true
     t.index ["location_id"], name: "index_events_on_location_id"
     t.index ["open_to"], name: "index_events_on_open_to"
@@ -246,9 +263,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_30_150000) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "event_hosts", "events"
   add_foreign_key "event_hosts", "users"
+  add_foreign_key "event_images", "events"
   add_foreign_key "event_journals", "event_occurrences", column: "occurrence_id", on_delete: :nullify
   add_foreign_key "event_journals", "events"
   add_foreign_key "event_journals", "users"
+  add_foreign_key "event_occurrences", "event_images"
   add_foreign_key "event_occurrences", "events"
   add_foreign_key "event_occurrences", "locations"
   add_foreign_key "events", "locations"

@@ -132,6 +132,7 @@ class EventsController < ApplicationController
   def create
     @event = current_user.events.build(event_params)
     @event.current_user_for_journal = current_user
+    @event.pool_images = params.dig(:event, :pool_images)
     authorize @event
 
     # Build IceCube schedule if recurring
@@ -174,17 +175,6 @@ class EventsController < ApplicationController
 
   def update
     @event.current_user_for_journal = current_user
-
-    # Handle banner image removal
-    if params[:event][:remove_banner_image] == '1'
-      EventJournal.log_event_change(
-        @event,
-        current_user,
-        'banner_removed',
-        { 'banner_image' => { 'action' => 'removed' } }
-      )
-      @event.banner_image.purge
-    end
 
     # Only rebuild schedule if recurrence settings were explicitly changed
     if should_rebuild_schedule?
@@ -321,7 +311,8 @@ class EventsController < ApplicationController
   def event_params
     params.expect(event: %i[title description start_time duration
                             recurrence_type status visibility open_to
-                            more_info_url max_occurrences banner_image
+                            more_info_url max_occurrences
+                            image_selection_mode fixed_event_image_id
                             location_id requires_mask draft slack_announce social_reminders
                             reminder_7d_short reminder_1d_short reminder_7d_long reminder_1d_long
                             sign_feed permanently_cancelled default_to_cancelled
@@ -427,7 +418,8 @@ class EventsController < ApplicationController
                   .joins(:event)
                   .where(events: { draft: false, status: 'active' })
                   .not_yet_ended(now)
-                  .includes(event: [:hosts, :location, { banner_image_attachment: :blob }])
+                  .includes(event: [:hosts, :location, { event_images: { image_attachment: :blob } }])
+                  .includes(event_image: { image_attachment: :blob })
                   .order(occurs_at: :asc)
 
     occurrences_data = occurrences.map { |occ| build_occurrence_json(occ) }
@@ -438,7 +430,7 @@ class EventsController < ApplicationController
                               .joins(:occurrences)
                               .merge(EventOccurrence.not_yet_ended(now))
                               .distinct
-                              .includes(:hosts, :location, banner_image_attachment: :blob)
+                              .includes(:hosts, :location, event_images: { image_attachment: :blob })
                               .order(:title)
 
     events_data = events_with_occurrences.map do |event|
@@ -551,7 +543,7 @@ class EventsController < ApplicationController
       hosts: is_private ? [] : event.hosts.map { |h| h.name || h.email },
       location: is_private ? nil : event_location_json(event),
       banner_url: is_private ? nil : event_banner_url(event),
-      spectra6_banner_url: is_private ? nil : spectra6_banner_url_for(event.banner_image)
+      spectra6_banner_url: is_private ? nil : spectra6_banner_url_for(event.fallback_event_image&.image)
     }
   end
 
@@ -562,9 +554,10 @@ class EventsController < ApplicationController
   end
 
   def event_banner_url(event)
-    return nil unless event.banner_image.attached?
+    image = event.fallback_event_image&.image
+    return nil unless image&.attached?
 
-    url_for(event.banner_image)
+    url_for(image)
   end
 
   def build_event_info(event, is_private)
@@ -589,8 +582,8 @@ class EventsController < ApplicationController
         more_info_url: event.more_info_url,
         hosts: event.hosts.map { |h| h.name || h.email },
         location: event.location ? { id: event.location.id, name: event.location.name } : nil,
-        banner_url: event.banner_image.attached? ? url_for(event.banner_image) : nil,
-        spectra6_banner_url: spectra6_banner_url_for(event.banner_image)
+        banner_url: event.fallback_event_image&.image&.attached? ? url_for(event.fallback_event_image.image) : nil,
+        spectra6_banner_url: spectra6_banner_url_for(event.fallback_event_image&.image)
       }
     end
   end
@@ -603,20 +596,21 @@ class EventsController < ApplicationController
   end
 
   def occurrence_banner_url(occurrence)
-    return url_for(occurrence.banner) if occurrence.banner.attached?
+    banner = occurrence.banner
+    return url_for(banner) if banner.attached?
 
     nil
   end
 
   def occurrence_spectra6_banner_url(occurrence)
-    return spectra6_banner_url_for(occurrence.banner) if occurrence.banner.attached?
+    banner = occurrence.banner
+    return spectra6_banner_url_for(banner) if banner.attached?
 
-    # Fall back to event's spectra6 banner
-    spectra6_banner_url_for(occurrence.event.banner_image)
+    spectra6_banner_url_for(occurrence.event.fallback_event_image&.image)
   end
 
   def spectra6_banner_url_for(attachment)
-    return nil unless attachment.attached?
+    return nil unless attachment&.attached?
 
     blob = attachment.blob
     spectra6_key = File.join(

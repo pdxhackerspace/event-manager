@@ -431,16 +431,13 @@ class SocialService # rubocop:disable Metrics/ClassLength
       host = ENV.fetch('RAILS_HOST', ENV.fetch('HOST', 'localhost:3000'))
       protocol = ENV.fetch('RAILS_PROTOCOL', 'http')
 
-      if occurrence.banner_image.attached?
-        url = rails_blob_url(occurrence.banner_image, host: host, protocol: protocol)
-        Rails.logger.info "SocialService: Using occurrence banner image: #{url}"
-        url
-      elsif occurrence.event.banner_image.attached?
-        url = rails_blob_url(occurrence.event.banner_image, host: host, protocol: protocol)
-        Rails.logger.info "SocialService: Using event banner image: #{url}"
+      banner = occurrence.banner
+      if banner.attached?
+        url = rails_blob_url(banner, host: host, protocol: protocol)
+        Rails.logger.info "SocialService: Using banner image: #{url}"
         url
       else
-        Rails.logger.info "SocialService: No banner image attached to occurrence or event"
+        Rails.logger.info 'SocialService: No banner image attached to occurrence or event'
         nil
       end
     end

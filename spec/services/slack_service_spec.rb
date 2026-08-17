@@ -184,13 +184,7 @@ RSpec.describe SlackService do
     let(:occurrence) { create(:event_occurrence, event: event) }
 
     context 'when occurrence has banner image' do
-      before do
-        occurrence.banner_image.attach(
-          io: StringIO.new('fake image'),
-          filename: 'banner.jpg',
-          content_type: 'image/jpeg'
-        )
-      end
+      let(:occurrence) { create(:event_occurrence, :with_banner, event: event) }
 
       it 'returns occurrence banner URL' do
         url = described_class.send(:banner_url_for, occurrence)
@@ -201,13 +195,7 @@ RSpec.describe SlackService do
     end
 
     context 'when only event has banner image' do
-      before do
-        event.banner_image.attach(
-          io: StringIO.new('fake image'),
-          filename: 'event_banner.jpg',
-          content_type: 'image/jpeg'
-        )
-      end
+      let(:event) { create(:event, :with_banner) }
 
       it 'returns event banner URL' do
         url = described_class.send(:banner_url_for, occurrence)

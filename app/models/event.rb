@@ -9,25 +9,22 @@ class Event < ApplicationRecord
   has_many :occurrences, class_name: 'EventOccurrence', dependent: :destroy
   has_many :event_journals, dependent: :nullify
   has_many :reminder_postings, dependent: :destroy
-  has_one_attached :banner_image do |attachable|
-    attachable.variant :thumb, resize_to_limit: [300, 300]
-  end
+  has_many :event_images, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :event
+  belongs_to :fixed_event_image, class_name: 'EventImage', optional: true
 
   before_validation :generate_slug, on: :create
   before_validation :update_slug_if_title_changed, on: :update
-  before_save :rename_banner_image
   before_create :generate_ical_token
   after_create :add_creator_as_host
+  after_create :attach_pool_images
   after_create :generate_initial_occurrences
   after_create :log_creation
   after_update :log_update
   after_update :regenerate_occurrences_if_needed, if: :schedule_affecting_fields_changed?
   after_update :cancel_future_occurrences_if_permanently_cancelled
   after_update :reactivate_relocated_occurrences_if_no_longer_relocated
-  after_save :log_banner_change
-  after_commit :queue_spectra6_processing, if: :banner_image_attached_recently?
 
-  attr_accessor :current_user_for_journal
+  attr_accessor :current_user_for_journal, :pool_images
 
   validates :title, presence: true
   validates :start_time, presence: true
@@ -41,6 +38,8 @@ class Event < ApplicationRecord
   validates :slug, presence: true, uniqueness: true
   validates :relocated_to, presence: { message: "is required when event is permanently relocated" },
                            if: :permanently_relocated?
+  validates :image_selection_mode, inclusion: { in: %w[fixed random cycle] }
+  validate :fixed_event_image_belongs_to_event
 
   # Full-text search using pg_trgm (trigram matching)
   # Searches title and description with fuzzy matching
@@ -159,6 +158,18 @@ class Event < ApplicationRecord
 
   def creator
     user
+  end
+
+  def banner_image
+    (fallback_event_image || EventImage.new).image
+  end
+
+  def fallback_event_image
+    fixed_event_image || event_images.pooled.first
+  end
+
+  def pooled_images
+    event_images.pooled.ordered
   end
 
   # Generate future occurrences based on recurrence rules
@@ -384,7 +395,33 @@ class Event < ApplicationRecord
       saved_change_to_default_to_cancelled?
   end
 
+  def attach_pool_images_from_uploads(files)
+    Array(files).compact_blank.each_with_index do |file, index|
+      event_images.create!(position: index, in_pool: true).tap do |event_image|
+        event_image.image.attach(file)
+      end
+    end
+
+    return if fixed_event_image_id.present?
+
+    first_image = event_images.pooled.ordered.first
+    update_column(:fixed_event_image_id, first_image.id) if first_image # rubocop:disable Rails/SkipsModelValidations
+  end
+
   private
+
+  def attach_pool_images
+    return if pool_images.blank?
+
+    attach_pool_images_from_uploads(pool_images)
+  end
+
+  def fixed_event_image_belongs_to_event
+    return if fixed_event_image_id.blank?
+    return if event_images.exists?(id: fixed_event_image_id)
+
+    errors.add(:fixed_event_image_id, 'must belong to this event')
+  end
 
   def generate_slug
     return if slug.present?
@@ -407,18 +444,6 @@ class Event < ApplicationRecord
     return unless title_changed?
 
     generate_slug
-  end
-
-  def rename_banner_image
-    return unless banner_image.attached?
-    return unless banner_image.blob.persisted? == false || banner_image.attachment&.new_record?
-
-    blob = banner_image.blob
-    extension = File.extname(blob.filename.to_s)
-    timestamp = Time.current.to_i
-    new_filename = "#{slug || title.parameterize}-banner-#{timestamp}#{extension}"
-
-    blob.filename = new_filename
   end
 
   def generate_ical_token
@@ -508,36 +533,5 @@ class Event < ApplicationRecord
       'updated',
       tracked_changes
     )
-  end
-
-  def log_banner_change
-    return unless current_user_for_journal
-    return if new_record?
-
-    # Check if banner was added
-    return unless banner_image.attached? && banner_image.attachment.blob.created_at > 5.seconds.ago
-
-    EventJournal.log_event_change(
-      self,
-      current_user_for_journal,
-      'banner_added',
-      {
-        'banner_image' => {
-          'filename' => banner_image.filename.to_s,
-          'size' => "#{(banner_image.byte_size.to_f / 1024).round(2)} KB",
-          'content_type' => banner_image.content_type
-        }
-      }
-    )
-  end
-
-  def banner_image_attached_recently?
-    banner_image.attached? && banner_image.blob.created_at > 10.seconds.ago
-  end
-
-  def queue_spectra6_processing
-    return unless banner_image.attached?
-
-    Spectra6BannerJob.perform_later(banner_image.blob.id)
   end
 end

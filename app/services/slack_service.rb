@@ -88,11 +88,10 @@ class SlackService
       host = ENV.fetch('RAILS_HOST', ENV.fetch('HOST', 'localhost:3000'))
       protocol = ENV.fetch('RAILS_PROTOCOL', 'http')
 
-      if occurrence.banner_image.attached?
-        rails_blob_url(occurrence.banner_image, host: host, protocol: protocol)
-      elsif occurrence.event.banner_image.attached?
-        rails_blob_url(occurrence.event.banner_image, host: host, protocol: protocol)
-      end
+      banner = occurrence.banner
+      return rails_blob_url(banner, host: host, protocol: protocol) if banner.attached?
+
+      nil
     end
   end
 end

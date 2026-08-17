@@ -5,15 +5,15 @@ namespace :banners do
   task generate_spectra6: :environment do
     puts 'Generating spectra6 versions of all banner images...'
 
-    events_with_banners = Event.joins(banner_image_attachment: :blob)
-    total = events_with_banners.count
+    images_with_attachments = EventImage.joins(image_attachment: :blob)
+    total = images_with_attachments.count
 
-    puts "Found #{total} events with banner images"
+    puts "Found #{total} event images with attachments"
 
-    events_with_banners.find_each.with_index do |event, index|
-      puts "[#{index + 1}/#{total}] Processing: #{event.title} (ID: #{event.id})"
+    images_with_attachments.find_each.with_index do |event_image, index|
+      puts "[#{index + 1}/#{total}] Processing event ##{event_image.event_id} image ##{event_image.id}"
 
-      blob_id = event.banner_image.blob.id
+      blob_id = event_image.image.blob.id
       Spectra6BannerJob.perform_later(blob_id)
 
       puts "  ✓ Queued job for blob #{blob_id}"
@@ -27,17 +27,17 @@ namespace :banners do
   task generate_spectra6_sync: :environment do
     puts 'Generating spectra6 versions of all banner images (synchronous)...'
 
-    events_with_banners = Event.joins(banner_image_attachment: :blob)
-    total = events_with_banners.count
+    images_with_attachments = EventImage.joins(image_attachment: :blob)
+    total = images_with_attachments.count
     success = 0
     failed = 0
 
-    puts "Found #{total} events with banner images"
+    puts "Found #{total} event images with attachments"
 
-    events_with_banners.find_each.with_index do |event, index|
-      puts "[#{index + 1}/#{total}] Processing: #{event.title} (ID: #{event.id})"
+    images_with_attachments.find_each.with_index do |event_image, index|
+      puts "[#{index + 1}/#{total}] Processing event ##{event_image.event_id} image ##{event_image.id}"
 
-      blob_id = event.banner_image.blob.id
+      blob_id = event_image.image.blob.id
 
       begin
         Spectra6BannerJob.perform_now(blob_id)

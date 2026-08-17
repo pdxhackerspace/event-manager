@@ -39,17 +39,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
 
   def update
     @occurrence.current_user_for_journal = current_user
-
-    # Handle banner image removal
-    if params[:event_occurrence][:remove_banner_image] == '1'
-      EventJournal.log_occurrence_change(
-        @occurrence,
-        current_user,
-        'banner_removed',
-        { 'banner_image' => { 'action' => 'removed' } }
-      )
-      @occurrence.banner_image.purge
-    end
+    handle_image_selection
 
     if @occurrence.update(occurrence_params)
       redirect_to @occurrence, notice: 'Occurrence was successfully updated.'
@@ -225,13 +215,38 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   end
 
   def occurrence_params
-    p = params.expect(event_occurrence: %i[occurs_at custom_description duration_override status banner_image
+    p = params.expect(event_occurrence: %i[occurs_at custom_description duration_override status
                                            location_id
                                            reminder_7d_short reminder_1d_short
                                            reminder_7d_long reminder_1d_long])
     return p if p[:occurs_at].blank?
 
     p.merge(occurs_at: Time.zone.parse(p[:occurs_at].to_s))
+  end
+
+  def handle_image_selection
+    source = params.dig(:event_occurrence, :image_source)
+    return if source.blank?
+
+    case source
+    when 'inherit'
+      return unless @occurrence.custom_event_image?
+
+      selected = EventImageSelector.new(@occurrence.event).select(use_last_occurrence: false)
+      @occurrence.assign_attributes(event_image: selected, custom_event_image: false)
+    when 'pool'
+      pool_image = @occurrence.event.event_images.find_by(id: params.dig(:event_occurrence, :event_image_id))
+      @occurrence.assign_attributes(event_image: pool_image, custom_event_image: true) if pool_image
+    when 'upload'
+      custom_file = params.dig(:event_occurrence, :custom_image)
+      return if custom_file.blank?
+
+      in_pool = params.dig(:event_occurrence, :add_custom_image_to_pool) == '1'
+      next_position = @occurrence.event.event_images.maximum(:position).to_i + 1
+      event_image = @occurrence.event.event_images.create!(position: next_position, in_pool: in_pool)
+      event_image.image.attach(custom_file)
+      @occurrence.assign_attributes(event_image: event_image, custom_event_image: true)
+    end
   end
 
   def build_ical_description(event, occurrence)

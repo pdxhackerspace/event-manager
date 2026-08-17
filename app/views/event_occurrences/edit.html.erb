@@ -14,7 +14,7 @@
 
     <div class="card">
       <div class="card-body">
-        <%= form_with(model: @occurrence, url: event_occurrence_path(@occurrence), method: :patch, local: true) do |f| %>
+        <%= form_with(model: @occurrence, url: event_occurrence_path(@occurrence), method: :patch, local: true, html: { multipart: true }) do |f| %>
           <% if @occurrence.errors.any? %>
             <div class="alert alert-danger">
               <h4><%= pluralize(@occurrence.errors.count, "error") %> prohibited this occurrence from being saved:</h4>
@@ -141,6 +141,7 @@
                 <% end %>
             </div>
           </div>
+          <% end %>
 
           <% if SiteConfig.current.slack_enabled? || SiteConfig.current.social_reminders_enabled? %>
             <div class="card mb-4 border-secondary">
@@ -173,27 +174,69 @@
               </div>
             </div>
           <% end %>
-        <% end %>
 
           <div class="mb-3">
-            <%= f.label :banner_image, "Custom Banner Image (Optional)", class: "form-label" %>
-            <%= f.file_field :banner_image, class: "form-control", accept: "image/*" %>
-            <small class="form-text text-muted">
-              <i class="bi bi-image"></i> Recommended: 1200x400 pixels or similar 3:1 aspect ratio. Maximum file size: 5MB. Upload a custom banner for this occurrence, or leave blank to use the event's banner
-            </small>
-            <% if @occurrence.banner_image.attached? %>
-              <div class="mt-2">
-                <strong>Current custom banner:</strong><br>
-                <%= image_tag @occurrence.banner_image, class: "img-thumbnail", style: "max-width: 300px;", alt: "Current custom banner for #{@event.title} on #{@occurrence.occurs_at.strftime('%B %d, %Y')}" %>
-                <div class="form-check mt-2">
-                  <%= f.check_box :remove_banner_image, class: "form-check-input" %>
-                  <%= f.label :remove_banner_image, "Remove custom banner (use event's banner)", class: "form-check-label" %>
-                </div>
+            <label class="form-label">Banner Image</label>
+            <% pooled_images = @event.pooled_images.includes(image_attachment: :blob).to_a %>
+            <% current_source = @occurrence.custom_event_image? ? (@occurrence.event_image&.in_pool? ? 'pool' : 'upload') : 'inherit' %>
+
+            <div class="form-check">
+              <%= radio_button_tag 'event_occurrence[image_source]', 'inherit', current_source == 'inherit', class: 'form-check-input', id: 'image_source_inherit' %>
+              <%= label_tag 'image_source_inherit', 'Use event selection (auto-assigned)', class: 'form-check-label' %>
+            </div>
+
+            <div class="form-check">
+              <%= radio_button_tag 'event_occurrence[image_source]', 'pool', current_source == 'pool', class: 'form-check-input', id: 'image_source_pool' %>
+              <%= label_tag 'image_source_pool', 'Choose from pool', class: 'form-check-label' %>
+            </div>
+
+            <% if pooled_images.any? %>
+              <div class="ms-4 mb-2" id="pool-image-options">
+                <% pooled_images.each do |event_image| %>
+                  <div class="form-check">
+                    <%= radio_button_tag 'event_occurrence[event_image_id]', event_image.id,
+                                         @occurrence.event_image_id == event_image.id,
+                                         class: 'form-check-input', id: "pool_image_#{event_image.id}" %>
+                    <%= label_tag "pool_image_#{event_image.id}", class: 'form-check-label d-flex align-items-center gap-2' do %>
+                      <% if event_image.image.attached? %>
+                        <%= image_tag event_image.image, class: 'img-thumbnail', style: 'width: 80px; height: 40px; object-fit: cover;', alt: 'Pool image' %>
+                      <% end %>
+                      <span>Pool image #<%= event_image.position + 1 %></span>
+                    <% end %>
+                  </div>
+                <% end %>
+              </div>
+            <% else %>
+              <p class="text-muted small ms-4">No images in the event pool yet.</p>
+            <% end %>
+
+            <div class="form-check">
+              <%= radio_button_tag 'event_occurrence[image_source]', 'upload', current_source == 'upload', class: 'form-check-input', id: 'image_source_upload' %>
+              <%= label_tag 'image_source_upload', 'Upload custom image', class: 'form-check-label' %>
+            </div>
+
+            <div class="ms-4 mt-2">
+              <%= file_field_tag 'event_occurrence[custom_image]', class: 'form-control', accept: 'image/*' %>
+              <div class="form-check mt-2">
+                <%= check_box_tag 'event_occurrence[add_custom_image_to_pool]', '1', false, class: 'form-check-input', id: 'add_custom_image_to_pool' %>
+                <%= label_tag 'add_custom_image_to_pool', 'Add uploaded image to event pool', class: 'form-check-label' %>
+              </div>
+            </div>
+
+            <% if @occurrence.banner.attached? %>
+              <div class="mt-3">
+                <strong>Current banner:</strong><br>
+                <%= image_tag @occurrence.banner, class: 'img-thumbnail', style: 'max-width: 300px;', alt: "Banner for #{@event.title}" %>
+                <% if @occurrence.custom_event_image? %>
+                  <p class="text-muted small mt-1"><i class="bi bi-image"></i> Custom image for this occurrence</p>
+                <% else %>
+                  <p class="text-muted small mt-1"><i class="bi bi-image"></i> Assigned from event pool</p>
+                <% end %>
               </div>
             <% elsif @event.banner_image.attached? %>
-              <div class="mt-2">
-                <strong>Currently using event's banner:</strong><br>
-                <%= image_tag @event.banner_image, class: "img-thumbnail", style: "max-width: 300px; opacity: 0.7;", alt: "Event banner for #{@event.title}" %>
+              <div class="mt-3">
+                <strong>Event fallback banner:</strong><br>
+                <%= image_tag @event.banner_image, class: 'img-thumbnail', style: 'max-width: 300px; opacity: 0.7;', alt: "Event banner for #{@event.title}" %>
               </div>
             <% end %>
           </div>

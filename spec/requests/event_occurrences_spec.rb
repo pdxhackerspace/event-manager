@@ -27,30 +27,26 @@ RSpec.describe "EventOccurrences", type: :request do
       end
 
       it "uses the occurrence banner for link preview images" do
-        public_event.banner_image.attach(
-          io: StringIO.new('fake event image content'),
-          filename: 'event-banner.jpg',
-          content_type: 'image/jpeg'
-        )
-        public_occurrence.banner_image.attach(
+        public_event = create(:event, :with_banner, visibility: 'public')
+        public_occurrence = public_event.occurrences.first
+        custom_image = public_event.event_images.create!(position: 99, in_pool: false)
+        custom_image.image.attach(
           io: StringIO.new('fake occurrence image content'),
           filename: 'occurrence-banner.jpg',
           content_type: 'image/jpeg'
         )
+        public_occurrence.update!(event_image: custom_image, custom_event_image: true)
 
         get event_occurrence_path(public_occurrence)
 
-        expected_url = expected_blob_url(public_occurrence.banner_image)
+        expected_url = expected_blob_url(public_occurrence.banner)
         expect(meta_content('meta[property="og:image"]')).to eq(expected_url)
         expect(meta_content('meta[name="twitter:image"]')).to eq(expected_url)
       end
 
       it "falls back to the event banner for link preview images" do
-        public_event.banner_image.attach(
-          io: StringIO.new('fake event image content'),
-          filename: 'event-banner.jpg',
-          content_type: 'image/jpeg'
-        )
+        public_event = create(:event, :with_banner, visibility: 'public')
+        public_occurrence = public_event.occurrences.first
 
         get event_occurrence_path(public_occurrence)
 
@@ -153,6 +149,46 @@ RSpec.describe "EventOccurrences", type: :request do
               }
         occurrence.reload
         expect(occurrence.slug).to eq(old_slug)
+      end
+
+      it "does not reassign the banner when inherit is submitted unchanged" do
+        image = create(:event_image, :with_image, event: event, position: 0)
+        event.update!(image_selection_mode: 'cycle', fixed_event_image_id: image.id, image_cycle_index: 3)
+        occurrence.update!(event_image: image, custom_event_image: false)
+        original_image_id = occurrence.event_image_id
+
+        patch event_occurrence_path(occurrence),
+              params: {
+                event_occurrence: {
+                  custom_description: 'Updated description',
+                  image_source: 'inherit'
+                }
+              }
+
+        occurrence.reload
+        event.reload
+        expect(occurrence.event_image_id).to eq(original_image_id)
+        expect(event.image_cycle_index).to eq(3)
+      end
+
+      context "when switching from a custom image to inherit in cycle mode" do
+        let!(:first_image) { create(:event_image, :with_image, event: event, position: 0) }
+        let!(:second_image) { create(:event_image, :with_image, event: event, position: 1) }
+
+        before do
+          event.update!(image_selection_mode: 'cycle', fixed_event_image_id: first_image.id, image_cycle_index: 0)
+          occurrence.update!(event_image: second_image, custom_event_image: true)
+          patch event_occurrence_path(occurrence),
+                params: { event_occurrence: { status: occurrence.status, image_source: 'inherit' } }
+        end
+
+        it "advances the cycle" do
+          occurrence.reload
+          event.reload
+          expect(occurrence.custom_event_image?).to be false
+          expect(occurrence.event_image).to eq(first_image)
+          expect(event.image_cycle_index).to eq(1)
+        end
       end
     end
 

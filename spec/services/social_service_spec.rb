@@ -184,13 +184,7 @@ RSpec.describe SocialService do
 
   describe '.banner_url_for' do
     context 'when occurrence has banner' do
-      before do
-        occurrence.banner_image.attach(
-          io: StringIO.new('fake'),
-          filename: 'occ_banner.jpg',
-          content_type: 'image/jpeg'
-        )
-      end
+      let(:occurrence) { create(:event_occurrence, :with_banner, event: event) }
 
       it 'returns occurrence banner URL' do
         url = described_class.send(:banner_url_for, occurrence)
@@ -200,13 +194,7 @@ RSpec.describe SocialService do
     end
 
     context 'when only event has banner' do
-      before do
-        event.banner_image.attach(
-          io: StringIO.new('fake'),
-          filename: 'event_banner.jpg',
-          content_type: 'image/jpeg'
-        )
-      end
+      let(:event) { create(:event, :with_banner) }
 
       it 'returns event banner URL' do
         url = described_class.send(:banner_url_for, occurrence)

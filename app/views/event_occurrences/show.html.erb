@@ -37,7 +37,7 @@
     <% if @occurrence.banner.attached? %>
       <figure class="mb-4 occurrence-banner">
         <%= image_tag @occurrence.banner, class: "img-fluid rounded", style: "width: 100%; max-height: 400px; object-fit: cover;", alt: "Banner image for #{@event.title}", loading: "lazy", itemprop: "image" %>
-        <% if @occurrence.banner_image.attached? %>
+        <% if @occurrence.custom_banner? %>
           <figcaption class="text-muted mt-1"><small><i class="bi bi-image-fill" aria-hidden="true"></i> Custom banner for this occurrence</small></figcaption>
         <% end %>
       </figure>
