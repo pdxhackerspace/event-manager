@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.19.1] - 2026-08-16
+
+### Added
+- README badges for CI, lint, Docker build, Ruby version, Rails version, and MIT license
+
 ## [v0.19.0] - 2026-08-16
 
 ### Added
