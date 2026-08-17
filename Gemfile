@@ -59,7 +59,7 @@ gem "sidekiq"
 gem "sidekiq-scheduler"
 
 # Redis for Sidekiq
-gem "redis", "~> 5.0"
+gem "redis", "~> 6.0"
 
 # connection_pool for Sidekiq
 gem "connection_pool"
