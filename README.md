@@ -1,8 +1,8 @@
 # EventManager
 
-[![CI](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml)
-[![Lint](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml/badge.svg?branch=main&label=Lint)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml)
-[![Docker Build](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml/badge.svg?branch=main&label=Docker%20Build)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml)
+[![CI](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml)
+[![Lint](https://img.shields.io/github/actions/workflow/status/pdxhackerspace/event-manager/ci.yml?label=Lint)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml)
+[![Docker Build](https://img.shields.io/github/actions/workflow/status/pdxhackerspace/event-manager/production.yml?label=Docker%20Build)](https://github.com/pdxhackerspace/event-manager/actions/workflows/production.yml)
 [![Ruby](https://img.shields.io/badge/Ruby-4.0.6-red?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
 [![Rails](https://img.shields.io/badge/Rails-8.1-red?logo=rubyonrails&logoColor=white)](https://rubyonrails.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)

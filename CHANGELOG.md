@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.19.2] - 2026-08-16
+
+### Fixed
+- README workflow badges now point at the correct workflows so CI, lint, and Docker build show accurate status
+
 ## [v0.19.1] - 2026-08-16
 
 ### Added
