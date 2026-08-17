@@ -66,13 +66,14 @@ class CreateEventImagePool < ActiveRecord::Migration[8.1]
   def migrate_event_banners
     say_with_time 'Migrating event banner images to image pool' do
       MigrationAttachment.where(record_type: 'Event', name: 'banner_image').find_each do |attachment|
+        event_id = attachment.record_id
         event_image = MigrationEventImage.create!(
-          event_id: attachment.record_id,
+          event_id: event_id,
           position: 0,
           in_pool: true
         )
         attachment.update!(record_type: 'EventImage', record_id: event_image.id, name: 'image')
-        MigrationEvent.where(id: attachment.record_id).update_all(
+        MigrationEvent.where(id: event_id).update_all(
           fixed_event_image_id: event_image.id,
           image_selection_mode: 'fixed'
         )
