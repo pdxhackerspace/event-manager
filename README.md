@@ -1,5 +1,12 @@
 # EventManager
 
+[![CI](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml)
+[![Lint](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml/badge.svg?branch=main&label=Lint)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml)
+[![Docker Build](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml/badge.svg?branch=main&label=Docker%20Build)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci-cd.yml)
+[![Ruby](https://img.shields.io/badge/Ruby-4.0.6-red?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
+[![Rails](https://img.shields.io/badge/Rails-8.1-red?logo=rubyonrails&logoColor=white)](https://rubyonrails.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A Rails-based event management system for hackerspaces. Allows users to create, manage, and discover events with support for recurring schedules, user authentication via Authentik or local accounts, and public iCal feeds.
 
 Additional guides (Docker, deployment, security, testing, feature notes) live in **[docs/](docs/)**.
