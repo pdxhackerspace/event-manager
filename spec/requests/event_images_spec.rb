@@ -43,4 +43,29 @@ RSpec.describe 'EventImages', type: :request do
       expect(custom_image.reload.in_pool?).to be true
     end
   end
+
+  describe 'POST /events/:event_id/images/reassign' do
+    it 'reassigns non-custom occurrences using the saved selection mode' do
+      event.occurrences.destroy_all
+      auto_occurrence = create(:event_occurrence, event: event, occurs_at: 1.week.from_now)
+      custom_occurrence = create(:event_occurrence, :with_banner, event: event, occurs_at: 2.weeks.from_now)
+      custom_image = custom_occurrence.event_image
+
+      post reassign_event_event_images_path(event)
+
+      expect(response).to redirect_to(edit_event_path(event, anchor: 'image-pool'))
+      expect(flash[:notice]).to include('Reassigned images for 1 occurrence')
+      expect(auto_occurrence.reload.event_image).to eq(first_image)
+      expect(custom_occurrence.reload.event_image).to eq(custom_image)
+    end
+
+    it 'shows an alert when the pool is empty' do
+      event.event_images.destroy_all
+
+      post reassign_event_event_images_path(event)
+
+      expect(response).to redirect_to(edit_event_path(event, anchor: 'image-pool'))
+      expect(flash[:alert]).to include('No occurrences were reassigned')
+    end
+  end
 end

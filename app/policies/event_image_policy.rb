@@ -15,6 +15,10 @@ class EventImagePolicy < ApplicationPolicy
     manage_event?
   end
 
+  def reassign?
+    manage_event?
+  end
+
   private
 
   def manage_event?

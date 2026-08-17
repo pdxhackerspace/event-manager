@@ -2,7 +2,7 @@ class EventImagesController < ApplicationController
   before_action :authenticate_user!
   before_action :set_event
   before_action :set_event_image, only: %i[update destroy]
-  before_action :authorize_event_image, only: %i[create update destroy reorder]
+  before_action :authorize_event_image, only: %i[create update destroy reorder reassign]
 
   def create
     files = Array(params[:images]).compact_blank
@@ -65,6 +65,19 @@ class EventImagesController < ApplicationController
 
     log_pool_change('images_reordered', { 'ordered_ids' => ordered_ids })
     head :ok
+  end
+
+  def reassign
+    count = EventImageReassigner.new(@event).reassign!
+    log_pool_change('images_reassigned', { 'count' => count, 'mode' => @event.image_selection_mode })
+
+    if count.zero?
+      redirect_to edit_event_path(@event, anchor: 'image-pool'),
+                  alert: 'No occurrences were reassigned. Add images to the pool first.'
+    else
+      redirect_to edit_event_path(@event, anchor: 'image-pool'),
+                  notice: "Reassigned images for #{count} #{'occurrence'.pluralize(count)}."
+    end
   end
 
   private

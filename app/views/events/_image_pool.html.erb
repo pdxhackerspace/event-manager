@@ -30,9 +30,24 @@
                        {},
                        class: 'form-select' %>
           <small class="form-text text-muted">
-            Applied when new occurrences are generated. Existing occurrences keep their assigned image.
+            Applied when new occurrences are generated. Save settings, then use Reassign to update existing non-custom occurrences.
           </small>
         </div>
+      </div>
+
+      <div class="mt-3">
+        <%= button_to 'Reassign Existing Occurrences',
+                      reassign_event_event_images_path(event),
+                      method: :post,
+                      class: 'btn btn-outline-secondary',
+                      form: {
+                        data: {
+                          turbo_confirm: 'Reassign images for all non-custom occurrences using the saved selection mode? Occurrences with custom images are not changed.'
+                        }
+                      } %>
+        <small class="form-text text-muted d-block mt-1">
+          Uses the current saved selection mode and fixed image. Custom occurrence images are left unchanged.
+        </small>
       </div>
 
       <% pooled_images = event.pooled_images.includes(image_attachment: :blob).to_a %>

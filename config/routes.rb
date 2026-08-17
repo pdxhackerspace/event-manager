@@ -73,6 +73,7 @@ Rails.application.routes.draw do
     resources :event_images, only: %i[create update destroy], path: 'images' do
       collection do
         patch :reorder
+        post :reassign
       end
     end
   end

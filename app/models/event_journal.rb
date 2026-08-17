@@ -44,6 +44,7 @@ class EventJournal < ApplicationRecord
     when 'images_added' then images_added_summary
     when 'image_removed' then image_removed_summary
     when 'images_reordered' then 'Reordered image pool'
+    when 'images_reassigned' then images_reassigned_summary
     when 'image_updated' then 'Updated pool image settings'
     else action.titleize
     end
@@ -98,6 +99,16 @@ class EventJournal < ApplicationRecord
 
   def image_removed_summary
     change_data['filename'].present? ? "Removed image from pool: #{change_data['filename']}" : 'Removed image from pool'
+  end
+
+  def images_reassigned_summary
+    count = change_data['count']
+    mode = change_data['mode']
+    if count && mode
+      "Reassigned images for #{count} #{'occurrence'.pluralize(count.to_i)} using #{mode} mode"
+    else
+      'Reassigned occurrence images from pool'
+    end
   end
 
   def occurrence_date

@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.19.0] - 2026-08-16
+
+### Added
+- Reassign Existing Occurrences button in the image pool to apply the saved selection mode to all non-custom occurrences
+
 ## [v0.18.0] - 2026-08-16
 
 ### Added

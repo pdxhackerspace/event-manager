@@ -5,13 +5,15 @@ class EventImageSelector
     @event = event
   end
 
-  def select
+  def select(exclude_image_id: nil, use_last_occurrence: true)
     pool = event.event_images.pooled.ordered.to_a
     return nil if pool.empty?
 
     case event.image_selection_mode
     when 'random'
-      select_random(pool)
+      last_id = exclude_image_id
+      last_id ||= event.occurrences.order(id: :desc).limit(1).pick(:event_image_id) if use_last_occurrence
+      select_random(pool, exclude_image_id: last_id)
     when 'cycle'
       select_cycle(pool)
     else
@@ -21,11 +23,10 @@ class EventImageSelector
 
   private
 
-  def select_random(pool)
+  def select_random(pool, exclude_image_id:)
     return pool.first if pool.size == 1
 
-    last_image_id = event.occurrences.order(id: :desc).limit(1).pick(:event_image_id)
-    candidates = pool.reject { |image| image.id == last_image_id }
+    candidates = pool.reject { |image| exclude_image_id.present? && image.id == exclude_image_id }
     candidates = pool if candidates.empty?
     candidates.sample
   end
