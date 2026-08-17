@@ -5,6 +5,9 @@
 ### Added
 - Reassign Existing Occurrences button in the image pool to apply the saved selection mode to all non-custom occurrences
 
+### Fixed
+- `bin/rubocop-local` rebuilds its cached image when the Ruby version or gems change, instead of silently reusing an image built on an older Ruby
+
 ## [v0.18.0] - 2026-08-16
 
 ### Added

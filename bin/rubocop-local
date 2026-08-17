@@ -4,21 +4,38 @@
 
 set -e
 
-IMAGE_NAME="eventmanager-rubocop:latest"
+cd "$(dirname "$0")/.."
 
-# Check if image exists, if not build it (only once)
-if ! docker images | grep -q "eventmanager-rubocop"; then
-  echo "📦 Building RuboCop Docker image (one-time setup)..."
-  docker build -t $IMAGE_NAME -f- . <<'DOCKERFILE'
-FROM ruby:4.0.6
+# Read the Ruby version from .ruby-version rather than hardcoding it, so this
+# script cannot drift from the version the rest of the repo pins.
+RUBY_VERSION=$(tr -d '[:space:]' < .ruby-version)
+
+# Tag the cached image with a digest of everything that determines its contents.
+# A Ruby or gem change yields a new tag, so the stale image is never silently
+# reused against a newer runtime or gemset.
+DEPS_DIGEST=$(cat .ruby-version Gemfile Gemfile.lock | cksum | cut -d' ' -f1)
+IMAGE_NAME="eventmanager-rubocop:${RUBY_VERSION}-${DEPS_DIGEST}"
+
+if ! docker image inspect "$IMAGE_NAME" >/dev/null 2>&1; then
+  echo "📦 Building RuboCop Docker image for Ruby ${RUBY_VERSION} (one-time setup)..."
+  docker build -t "$IMAGE_NAME" -f- . <<DOCKERFILE
+FROM ruby:${RUBY_VERSION}
 WORKDIR /app
 COPY Gemfile Gemfile.lock ./
 RUN bundle install --jobs 4 --retry 3
 DOCKERFILE
   echo "✅ Image built and cached!"
+
+  # Drop superseded images so the tag-per-gemset scheme doesn't fill the disk.
+  STALE=$(docker images --format '{{.Repository}}:{{.Tag}}' eventmanager-rubocop | grep -v "^${IMAGE_NAME}$" || true)
+  if [ -n "$STALE" ]; then
+    echo "🧹 Removing stale RuboCop images:"
+    echo "$STALE"
+    echo "$STALE" | xargs docker rmi >/dev/null 2>&1 || true
+  fi
 fi
 
 echo "🔍 Running RuboCop..."
-docker run --rm -v "$(pwd):/app" -w /app $IMAGE_NAME bundle exec rubocop --parallel
+docker run --rm -v "$(pwd):/app" -w /app "$IMAGE_NAME" bundle exec rubocop --parallel
 
 echo "✅ RuboCop passed!"
