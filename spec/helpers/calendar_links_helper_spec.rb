@@ -131,19 +131,19 @@ RSpec.describe CalendarLinksHelper, type: :helper do
     it 'includes occurrence description' do
       occurrence.update!(custom_description: 'Custom desc')
 
-      description = helper.send(:build_calendar_description, event, occurrence)
+      description = helper.send(:build_calendar_description, occurrence)
 
       expect(description).to include('Custom desc')
     end
 
     it 'includes more info URL' do
-      description = helper.send(:build_calendar_description, event, occurrence)
+      description = helper.send(:build_calendar_description, occurrence)
 
       expect(description).to include('https://example.com/info')
     end
 
     it 'includes event page URL' do
-      description = helper.send(:build_calendar_description, event, occurrence)
+      description = helper.send(:build_calendar_description, occurrence)
 
       expect(description).to include('Event page:')
     end

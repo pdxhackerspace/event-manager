@@ -347,4 +347,75 @@ RSpec.describe "EventOccurrences", type: :request do
       expect(OllamaService).to have_received(:generate_long_reminder).with(occurrence, 1)
     end
   end
+
+  describe "GET /event_occurrences/:id/ical" do
+    let(:public_event) { create(:event, visibility: 'public', title: 'Exploit Workshop', duration: 240) }
+    let(:public_occurrence) { public_event.occurrences.first }
+    let(:occurs_at) { 3.days.from_now.change(hour: 18, min: 30) }
+
+    before { public_occurrence.update!(occurs_at: occurs_at) }
+
+    it "returns a downloadable calendar file" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response).to have_http_status(:success)
+      expect(response.media_type).to eq('text/calendar')
+      expect(response.headers['Content-Disposition']).to include('attachment')
+    end
+
+    it "names the file after the event and its local date" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response.headers['Content-Disposition'])
+        .to include("exploit-workshop-#{occurs_at.strftime('%Y-%m-%d')}.ics")
+    end
+
+    it "emits DTSTART as the UTC instant of the occurrence" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response.body).to include("DTSTART:#{occurs_at.utc.strftime('%Y%m%dT%H%M%SZ')}")
+    end
+
+    it "emits DTEND advanced by the event duration" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response.body).to include("DTEND:#{(occurs_at + 240.minutes).utc.strftime('%Y%m%dT%H%M%SZ')}")
+    end
+
+    # Regression: the UTC instant used to be written without a "Z", so Apple
+    # Calendar read 6:30 PM Pacific as 1:30 AM local on the following day.
+    it "does not emit a UTC instant as a floating time" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response.body).not_to match(/^DTSTART:\d{8}T\d{6}$/)
+    end
+
+    it "suffixes every DATE-TIME with Z so none of them float" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      date_times = response.body.lines.map(&:chomp).grep(/\A(DTSTART|DTEND|DTSTAMP)[:;]/)
+
+      expect(date_times).not_to be_empty
+      expect(date_times).to all(end_with('Z'))
+    end
+
+    it "includes a single VEVENT for the occurrence" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response.body.scan('BEGIN:VEVENT').size).to eq(1)
+      expect(response.body).to include('SUMMARY:Exploit Workshop')
+    end
+
+    it "links back to the occurrence page" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response.body.gsub(/\r\n[ \t]/, '')).to include(event_occurrence_url(public_occurrence, host: 'www.example.com'))
+    end
+
+    it "omits METHOD because the file is imported rather than published" do
+      get ical_event_occurrence_path(public_occurrence, format: :ics)
+
+      expect(response.body).not_to include('METHOD:')
+    end
+  end
 end

@@ -260,41 +260,20 @@ class EventsController < ApplicationController
   def ical
     @event = Event.find_by!(ical_token: params.expect(:token))
 
-    # Don't include draft events in iCal feeds
-    if @event.draft?
-      calendar = Icalendar::Calendar.new
-      respond_to do |format|
-        format.ics { render plain: calendar.to_ical, content_type: 'text/calendar' }
-      end
-      return
+    # Draft events get an empty feed so the token stays valid once they publish.
+    occurrences = @event.draft? ? EventOccurrence.none : @event.event_occurrences.upcoming.limit(50)
+
+    builder = IcalBuilder.new(host: request.host,
+                              organization_name: @site_config&.organization_name,
+                              name: @event.draft? ? nil : @event.title,
+                              publish: true)
+
+    occurrences.each do |occurrence|
+      builder.add_occurrence(occurrence, page_url: event_occurrence_url(occurrence))
     end
-
-    calendar = Icalendar::Calendar.new
-
-    # Use actual EventOccurrence records (includes status, customizations)
-    @event.event_occurrences.upcoming.limit(50).each do |occurrence|
-      calendar.event do |e|
-        e.dtstart = Icalendar::Values::DateTime.new(occurrence.occurs_at)
-        e.dtend = Icalendar::Values::DateTime.new(occurrence.occurs_at + occurrence.duration.minutes)
-        e.summary = @event.title
-        e.description = occurrence.description # Uses custom or default
-        e.status = occurrence.status.upcase # Per-occurrence status
-
-        # Add cancellation reason if present
-        e.description += "\n\n#{occurrence.status.titleize}: #{occurrence.cancellation_reason}" if occurrence.cancellation_reason.present?
-
-        # Add postponed info if applicable
-        e.description += "\n\nRescheduled to: #{occurrence.postponed_until.strftime('%B %d, %Y at %I:%M %p')}" if occurrence.status == 'postponed' && occurrence.postponed_until
-
-        # Add relocated info if applicable
-        e.description += "\n\nNew Location: #{occurrence.relocated_to}" if occurrence.status == 'relocated' && occurrence.relocated_to.present?
-      end
-    end
-
-    calendar.publish
 
     respond_to do |format|
-      format.ics { render plain: calendar.to_ical, content_type: 'text/calendar' }
+      format.ics { render plain: builder.to_ical, content_type: 'text/calendar' }
     end
   end
 

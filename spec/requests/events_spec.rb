@@ -457,5 +457,67 @@ RSpec.describe "Events", type: :request do
       get event_ical_path(event.ical_token, format: :ics)
       expect(response).to have_http_status(:success)
     end
+
+    describe "time zone handling" do
+      let(:occurs_at) { 3.days.from_now.change(hour: 18, min: 30) }
+
+      before do
+        event.occurrences.first.update!(occurs_at: occurs_at)
+        get event_ical_path(event.ical_token, format: :ics)
+      end
+
+      it "emits DTSTART as the UTC instant of the occurrence" do
+        expect(response.body).to include("DTSTART:#{occurs_at.utc.strftime('%Y%m%dT%H%M%SZ')}")
+      end
+
+      it "does not emit the local wall clock, which clients read in their own zone" do
+        expect(response.body).not_to include("DTSTART:#{occurs_at.strftime('%Y%m%dT%H%M%S')}")
+      end
+
+      it "suffixes every DATE-TIME with Z so none of them float" do
+        date_times = response.body.lines.map(&:chomp).grep(/\A(DTSTART|DTEND|DTSTAMP)[:;]/)
+
+        expect(date_times).not_to be_empty
+        expect(date_times).to all(end_with('Z'))
+      end
+    end
+
+    it "maps occurrence status onto a value RFC 5545 permits" do
+      event.occurrences.first.update!(status: 'cancelled', cancellation_reason: 'Snow')
+
+      get event_ical_path(event.ical_token, format: :ics)
+
+      expect(response.body).to include('STATUS:CANCELLED')
+      expect(response.body).not_to include('STATUS:ACTIVE')
+    end
+
+    it "gives each occurrence a stable UID so subscribers do not duplicate events" do
+      get event_ical_path(event.ical_token, format: :ics)
+      first = response.body.lines.map(&:chomp).grep(/\AUID:/)
+
+      get event_ical_path(event.ical_token, format: :ics)
+      second = response.body.lines.map(&:chomp).grep(/\AUID:/)
+
+      expect(second).to eq(first)
+      expect(second).not_to be_empty
+    end
+
+    context "when the event is a draft" do
+      let(:event) { create(:event, visibility: 'public', draft: true, title: 'Secret Draft') }
+
+      it "returns an empty calendar" do
+        get event_ical_path(event.ical_token, format: :ics)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include('BEGIN:VCALENDAR')
+        expect(response.body).not_to include('BEGIN:VEVENT')
+      end
+
+      it "does not leak the event title" do
+        get event_ical_path(event.ical_token, format: :ics)
+
+        expect(response.body).not_to include('Secret Draft')
+      end
+    end
   end
 end

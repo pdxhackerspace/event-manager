@@ -32,40 +32,30 @@ class CalendarController < ApplicationController
                    .order(:occurs_at)
                    .limit(500)
 
-    calendar = Icalendar::Calendar.new
-    calendar.prodid = "-//#{@site_config&.organization_name || 'EventManager'}//Calendar//EN"
+    organization_name = @site_config&.organization_name
+    builder = IcalBuilder.new(host: request.host,
+                              organization_name: organization_name,
+                              name: "#{organization_name.presence || 'EventManager'} Events",
+                              publish: true)
 
     @occurrences.each do |occurrence|
-      calendar.event do |e|
-        e.dtstart = Icalendar::Values::DateTime.new(occurrence.occurs_at)
-        e.dtend = Icalendar::Values::DateTime.new(occurrence.occurs_at + occurrence.duration.minutes)
-        e.summary = occurrence.event.title
-        e.description = occurrence.description
-        e.url = event_url(occurrence.event)
-
-        # Add location if present
-        e.location = occurrence.event_location.name if occurrence.event_location
-
-        # Add organizer/hosts
-        if occurrence.event.hosts.any?
-          host_names = occurrence.event.hosts.map { |h| h.name || h.email }.join(', ')
-          e.organizer = "Hosts: #{host_names}"
-        end
-
-        # Unique identifier for this occurrence
-        e.uid = "occurrence-#{occurrence.id}@#{request.host}"
-        e.dtstamp = Icalendar::Values::DateTime.new(occurrence.updated_at)
-      end
+      builder.add_occurrence(occurrence,
+                             page_url: event_occurrence_url(occurrence),
+                             organizer: organizer_for(occurrence.event))
     end
 
-    calendar.publish
-
     respond_to do |format|
-      format.ics { render plain: calendar.to_ical, content_type: 'text/calendar' }
+      format.ics { render plain: builder.to_ical, content_type: 'text/calendar' }
     end
   end
 
   private
+
+  def organizer_for(event)
+    return nil if event.hosts.empty?
+
+    "Hosts: #{event.hosts.map { |host| host.name || host.email }.join(', ')}"
+  end
 
   def setup_view_params
     @view = params[:view] || 'calendar'

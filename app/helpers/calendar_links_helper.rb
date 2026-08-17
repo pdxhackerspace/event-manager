@@ -18,7 +18,7 @@ module CalendarLinksHelper
       action: 'TEMPLATE',
       text: event.title,
       dates: "#{format_gcal_time(start_time)}/#{format_gcal_time(end_time)}",
-      details: build_calendar_description(event, occurrence),
+      details: build_calendar_description(occurrence),
       location: occurrence.event_location&.name || '',
       sf: 'true'
     }
@@ -48,7 +48,7 @@ module CalendarLinksHelper
       title: event.title,
       st: start_time.strftime('%Y%m%dT%H%M%SZ'),
       dur: format('%<hours>02d%<mins>02d', hours: duration_hours, mins: duration_mins),
-      desc: build_calendar_description(event, occurrence),
+      desc: build_calendar_description(occurrence),
       in_loc: occurrence.event_location&.name || ''
     }
 
@@ -68,7 +68,7 @@ module CalendarLinksHelper
       subject: event.title,
       startdt: start_time.iso8601,
       enddt: end_time.iso8601,
-      body: build_calendar_description(event, occurrence),
+      body: build_calendar_description(occurrence),
       location: occurrence.event_location&.name || ''
     }
 
@@ -79,12 +79,12 @@ module CalendarLinksHelper
     time.strftime('%Y%m%dT%H%M%SZ')
   end
 
-  def build_calendar_description(event, occurrence)
-    parts = []
-    parts << occurrence.description if occurrence.description.present?
-    parts << "More info: #{event.more_info_url}" if event.more_info_url.present?
-    parts << "Event page: #{Rails.application.routes.url_helpers.event_occurrence_url(occurrence, host: calendar_link_host)}"
-    parts.join("\n\n")
+  def build_calendar_description(occurrence)
+    IcalBuilder.description_for(occurrence, page_url: occurrence_page_url(occurrence))
+  end
+
+  def occurrence_page_url(occurrence)
+    Rails.application.routes.url_helpers.event_occurrence_url(occurrence, host: calendar_link_host)
   end
 
   def calendar_link_host
