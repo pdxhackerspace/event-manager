@@ -83,7 +83,7 @@
               <% if occurrence.banner.attached? %>
                 <div class="col-md-2 text-center">
                   <%= link_to event_occurrence_path(occurrence), "aria-label": "View #{occurrence.event.title} on #{occurrence.occurs_at.strftime('%B %d')}" do %>
-                    <%= image_tag occurrence.banner, class: "img-thumbnail", style: "max-width: 100px; max-height: 100px; object-fit: cover; cursor: pointer;", alt: "Banner for #{occurrence.event.title}", loading: "lazy" %>
+                    <%= event_image_thumbnail_tag occurrence.banner, class: "img-thumbnail", style: "max-width: 100px; max-height: 100px; object-fit: cover; cursor: pointer;", alt: "Banner for #{occurrence.event.title}" %>
                   <% end %>
                 </div>
               <% end %>

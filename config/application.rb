@@ -38,6 +38,13 @@ module EventManager
     # Rails 8.1.3+ defaults to libvips; we use mini_magick (see Gemfile).
     config.active_storage.variant_processor = :mini_magick
 
+    # Serve attachments through the proxy controller instead of the default
+    # redirect controller. Redirect mode costs two round trips per image (a 302
+    # plus the file itself) and returns short-lived, uncacheable URLs. Proxy URLs
+    # are stable and sent with far-future public cache headers, so Cloudflare and
+    # the browser can cache them and repeat page loads never reach Puma.
+    config.active_storage.resolve_model_to_route = :rails_storage_proxy
+
     # Rails 7.1+ way to autoload lib directory
     # Ignore omniauth since directory name doesn't match module name (omniauth vs OmniAuth)
     config.autoload_lib(ignore: %w[assets tasks omniauth])

@@ -1,8 +1,18 @@
 class EventImage < ApplicationRecord
   belongs_to :event
 
+  # Previews render one of these instead of the multi-megabyte original (see
+  # EventImagesHelper). preprocessed generates them in a background job on
+  # upload so page requests never wait on ImageMagick.
+  PREVIEW_VARIANTS = {
+    thumb: { resize_to_limit: [300, 300] },
+    card: { resize_to_limit: [800, 800] }
+  }.freeze
+
   has_one_attached :image do |attachable|
-    attachable.variant :thumb, resize_to_limit: [300, 300]
+    PREVIEW_VARIANTS.each do |variant_name, transformations|
+      attachable.variant variant_name, preprocessed: true, **transformations
+    end
   end
 
   scope :pooled, -> { where(in_pool: true) }

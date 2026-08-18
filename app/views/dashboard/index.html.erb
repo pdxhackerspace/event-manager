@@ -63,7 +63,7 @@
                     <td>
                       <div class="d-flex align-items-center gap-3">
                         <% if event.banner_image.attached? %>
-                          <%= image_tag event.banner_image, class: "rounded", style: "width: 60px; height: 40px; object-fit: cover;", alt: "", loading: "lazy" %>
+                          <%= event_image_thumbnail_tag event.banner_image, class: "rounded", style: "width: 60px; height: 40px; object-fit: cover;", alt: "" %>
                         <% else %>
                           <div class="bg-secondary rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 40px;">
                             <i class="bi bi-calendar-event text-white" aria-hidden="true"></i>

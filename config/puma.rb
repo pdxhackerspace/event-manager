@@ -27,17 +27,24 @@ pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }
 # Specifies the number of `workers` to boot in clustered mode.
 # Workers are forked web server processes. If using threads and workers together
 # the concurrency of the application would be max `threads` * `workers`.
-# Workers do not work on JRuby or Windows (both of which do not support
-# processes).
 #
-# workers ENV.fetch("WEB_CONCURRENCY") { 2 }
+# Active Storage streams every image byte through a request thread, so a single
+# image-heavy page can saturate a small thread pool and leave broken images or
+# proxy timeouts. Run multiple workers in deployed environments; development
+# stays single-process so code reloading and debuggers behave.
+if ENV.fetch("RAILS_ENV", "development") == "development"
+  workers ENV.fetch("WEB_CONCURRENCY", 0).to_i
+else
+  workers ENV.fetch("WEB_CONCURRENCY", 3).to_i
 
-# Use the `preload_app!` method when specifying a `workers` number.
-# This directive tells Puma to first boot the application and load code
-# before forking the application. This takes advantage of Copy On Write
-# process behavior so workers use less memory.
-#
-# preload_app!
+  # Boot the app before forking so workers share memory copy-on-write. Forked
+  # workers must not inherit the parent's database sockets.
+  preload_app!
+
+  before_worker_boot do
+    ActiveRecord::Base.establish_connection if defined?(ActiveRecord::Base)
+  end
+end
 
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart

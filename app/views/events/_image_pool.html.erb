@@ -46,9 +46,7 @@
                 <div class="form-check">
                   <%= radio_button_tag 'event[fixed_event_image_id]', event_image.id, event.fixed_event_image_id == event_image.id, class: 'form-check-input', id: "fixed_image_#{event_image.id}" %>
                   <%= label_tag "fixed_image_#{event_image.id}", class: 'form-check-label d-flex align-items-center gap-2' do %>
-                    <% if event_image.image.attached? %>
-                      <%= image_tag event_image.image, class: 'img-thumbnail', style: 'width: 80px; height: 40px; object-fit: cover;', alt: 'Pool image' %>
-                    <% end %>
+                    <%= event_image_thumbnail_tag event_image.image, class: 'img-thumbnail', style: 'width: 80px; height: 40px; object-fit: cover;', alt: 'Pool image' %>
                     <span>Pool image #<%= event_image.position + 1 %></span>
                   <% end %>
                 </div>
@@ -95,7 +93,7 @@
                  data-action="dragstart->image-pool#dragstart dragend->image-pool#dragend dragover->image-pool#dragover">
               <div class="card h-100">
                 <% if event_image.image.attached? %>
-                  <%= image_tag event_image.image, class: 'card-img-top', style: 'height: 120px; object-fit: cover;', alt: 'Pool image' %>
+                  <%= event_image_thumbnail_tag event_image.image, class: 'card-img-top', style: 'height: 120px; object-fit: cover;', alt: 'Pool image' %>
                 <% else %>
                   <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 120px;">
                     <span class="text-muted">No image</span>
@@ -129,9 +127,7 @@
         <% non_pooled.each do |event_image| %>
           <div class="col-md-4 col-lg-3">
             <div class="card h-100">
-              <% if event_image.image.attached? %>
-                <%= image_tag event_image.image, class: 'card-img-top', style: 'height: 120px; object-fit: cover;', alt: 'Occurrence image' %>
-              <% end %>
+              <%= event_image_thumbnail_tag event_image.image, class: 'card-img-top', style: 'height: 120px; object-fit: cover;', alt: 'Occurrence image' %>
               <div class="card-body p-2">
                 <%= button_to 'Add to Pool',
                               event_event_image_path(event, event_image),
