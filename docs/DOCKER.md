@@ -315,9 +315,10 @@ Production considerations:
 4. **Container orchestration** - Kubernetes, Docker Swarm, or managed services
 5. **Secrets management** - Use Docker secrets or external vaults
 6. **Health checks and monitoring** - Already configured in docker-compose.yml
-7. **Reverse proxy** - nginx or Traefik for SSL termination. It must forward
-   `X-Forwarded-For`, `X-Forwarded-Proto`, and `CF-Connecting-IP`, and must not
-   rate limit `/rails/active_storage` paths — see **IMAGE_DELIVERY.md**
+7. **Reverse proxy** - nginx or Traefik for SSL termination. It must append to
+   `X-Forwarded-For` rather than replacing it, forward `X-Forwarded-Proto`, be
+   listed in `config/trusted_proxies.yml`, and must not rate limit
+   `/rails/active_storage` paths — see **IMAGE_DELIVERY.md**
 8. **SSL certificates** - Let's Encrypt with automatic renewal
 9. **Storage volume** - `./storage` holds all uploads and must be mounted into
    both the `web` and `sidekiq` containers

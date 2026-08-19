@@ -1,5 +1,6 @@
 require_relative "boot"
 
+require "ipaddr"
 require "rails"
 # Pick the frameworks you want:
 require "active_model/railtie"
@@ -34,6 +35,22 @@ module EventManager
     config.time_zone = ENV.fetch('TZ', 'America/Los_Angeles')
     # Database stores times in UTC (recommended)
     config.active_record.default_timezone = :utc
+
+    # Requests arrive through Cloudflare and then a reverse proxy, each appending
+    # itself to X-Forwarded-For. Listing those proxies is what lets
+    # ActionDispatch::RemoteIp identify the visitor rather than the last hop: it
+    # scans the header from the right and takes the first address that is not a
+    # known proxy, so addresses a client forges sit to the left of the one
+    # Cloudflare appends and can never be selected. Rate limiting keys on this.
+    #
+    # A custom list replaces Rails' defaults instead of extending them, so the
+    # loopback and private ranges have to be carried over explicitly. Without
+    # them a forged X-Forwarded-For entry could resolve to a loopback address.
+    proxy_ranges = ENV['TRUSTED_PROXY_RANGES'].presence&.split(',') ||
+                   YAML.load_file(File.expand_path('trusted_proxies.yml', __dir__))
+    config.action_dispatch.trusted_proxies =
+      ActionDispatch::RemoteIp::TRUSTED_PROXIES +
+      proxy_ranges.map { |range| IPAddr.new(range.to_s.strip) }
 
     # Rails 8.1.3+ defaults to libvips; we use mini_magick (see Gemfile).
     config.active_storage.variant_processor = :mini_magick

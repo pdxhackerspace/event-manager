@@ -1,0 +1,42 @@
+# Reverse proxies that sit in front of this app.
+#
+# ActionDispatch::RemoteIp scans X-Forwarded-For from the right and returns the
+# first address that is not listed here, so every proxy in the chain must be
+# listed for the visitor's address to be identified correctly. Rate limiting
+# depends on this; see config/initializers/rack_attack.rb.
+#
+# These are Cloudflare's edge ranges, from https://www.cloudflare.com/ips-v4 and
+# https://www.cloudflare.com/ips-v6, retrieved 2026-08-18. Refresh them when
+# Cloudflare publishes changes. A stale list makes rate limiting coarser, since
+# visitors get bucketed under an unrecognized edge address, but it cannot cause
+# limits to be bypassed.
+#
+# Rails' own loopback and private ranges are added in config/application.rb.
+# Set TRUSTED_PROXY_RANGES (comma separated) to replace this list entirely, for
+# deployments that do not sit behind Cloudflare.
+
+# IPv4
+- 173.245.48.0/20
+- 103.21.244.0/22
+- 103.22.200.0/22
+- 103.31.4.0/22
+- 141.101.64.0/18
+- 108.162.192.0/18
+- 190.93.240.0/20
+- 188.114.96.0/20
+- 197.234.240.0/22
+- 198.41.128.0/17
+- 162.158.0.0/15
+- 104.16.0.0/13
+- 104.24.0.0/14
+- 172.64.0.0/13
+- 131.0.72.0/22
+
+# IPv6
+- 2400:cb00::/32
+- 2606:4700::/32
+- 2803:f800::/32
+- 2405:b500::/32
+- 2405:8100::/32
+- 2a06:98c0::/29
+- 2c0f:f248::/32
