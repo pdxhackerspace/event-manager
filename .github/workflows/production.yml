@@ -45,10 +45,13 @@ jobs:
             echo "If this is wrong, ensure the commit updating VERSION is included in the push (before SHA was ${BEFORE_SHA:-empty})."
             exit 1
           fi
-          # Pass through raw VERSION for tags (keep v prefix if present)
+          # Pass through raw VERSION for image tags (keep v prefix if present)
           CURR=$(tr -d '[:space:]' < VERSION)
           echo "APP_VERSION=$CURR" >> "$GITHUB_ENV"
           echo "VERSION_MAJOR=$(echo "$CURR_NORMALIZED" | cut -d. -f1)" >> "$GITHUB_ENV"
+          # Build the git tag from the normalized version so a VERSION file that
+          # already carries a v prefix does not yield a doubled "vv0.1.2" tag.
+          echo "RELEASE_TAG=v${CURR_NORMALIZED}" >> "$GITHUB_ENV"
           echo "Using APP_VERSION=$CURR"
 
       - name: Set up Docker Buildx
@@ -80,12 +83,12 @@ jobs:
       # Updated per deployment protocol
       - name: Create and push release git tag
         env:
-          APP_VERSION: ${{ env.APP_VERSION }}
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${APP_VERSION}"
-          git push origin "v${APP_VERSION}"
+          git tag "$RELEASE_TAG"
+          git push origin "$RELEASE_TAG"
 
   security-scan:
     name: Security scan
