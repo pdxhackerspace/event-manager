@@ -198,9 +198,7 @@
                                          @occurrence.event_image_id == event_image.id,
                                          class: 'form-check-input', id: "pool_image_#{event_image.id}" %>
                     <%= label_tag "pool_image_#{event_image.id}", class: 'form-check-label d-flex align-items-center gap-2' do %>
-                      <% if event_image.image.attached? %>
-                        <%= image_tag event_image.image, class: 'img-thumbnail', style: 'width: 80px; height: 40px; object-fit: cover;', alt: 'Pool image' %>
-                      <% end %>
+                      <%= event_image_thumbnail_tag event_image.image, class: 'img-thumbnail', style: 'width: 80px; height: 40px; object-fit: cover;', alt: 'Pool image' %>
                       <span>Pool image #<%= event_image.position + 1 %></span>
                     <% end %>
                   </div>
@@ -226,7 +224,7 @@
             <% if @occurrence.banner.attached? %>
               <div class="mt-3">
                 <strong>Current banner:</strong><br>
-                <%= image_tag @occurrence.banner, class: 'img-thumbnail', style: 'max-width: 300px;', alt: "Banner for #{@event.title}" %>
+                <%= event_image_thumbnail_tag @occurrence.banner, class: 'img-thumbnail', style: 'max-width: 300px;', alt: "Banner for #{@event.title}" %>
                 <% if @occurrence.custom_event_image? %>
                   <p class="text-muted small mt-1"><i class="bi bi-image"></i> Custom image for this occurrence</p>
                 <% else %>
@@ -236,7 +234,7 @@
             <% elsif @event.banner_image.attached? %>
               <div class="mt-3">
                 <strong>Event fallback banner:</strong><br>
-                <%= image_tag @event.banner_image, class: 'img-thumbnail', style: 'max-width: 300px; opacity: 0.7;', alt: "Event banner for #{@event.title}" %>
+                <%= event_image_thumbnail_tag @event.banner_image, class: 'img-thumbnail', style: 'max-width: 300px; opacity: 0.7;', alt: "Event banner for #{@event.title}" %>
               </div>
             <% end %>
           </div>

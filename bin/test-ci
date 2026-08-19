@@ -80,15 +80,17 @@ run_lint() {
     fi
 }
 
-# Setup test database
+# Setup test databases
+#
+# One database per parallel_rspec process. Sharing a single database makes the
+# two processes deadlock against each other on rows like SiteConfig's singleton.
 setup_test_db() {
-    print_header "Setting up test database"
+    print_header "Setting up test databases"
     
     $COMPOSE_CMD -f $COMPOSE_FILE exec -T -e RAILS_ENV=test web bash -c "
-        bundle exec rails db:create 2>/dev/null || true
-        bundle exec rails db:schema:load
+        bundle exec rails 'parallel:create[2]' 'parallel:load_schema[2]'
     "
-    print_success "Test database ready"
+    print_success "Test databases ready"
 }
 
 # Run RSpec tests

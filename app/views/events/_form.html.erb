@@ -50,7 +50,7 @@
         </small>
         <% if event.banner_image.attached? %>
           <div class="mt-2">
-            <%= image_tag event.banner_image, class: "img-thumbnail", style: "max-width: 300px;", alt: "Current banner image for #{event.title}" %>
+            <%= event_image_thumbnail_tag event.banner_image, class: "img-thumbnail", style: "max-width: 300px;", alt: "Current banner image for #{event.title}" %>
             <div class="form-check mt-2">
               <%= f.check_box :remove_banner_image, class: "form-check-input" %>
               <%= f.label :remove_banner_image, "Remove current banner image", class: "form-check-label" %>

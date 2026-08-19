@@ -60,8 +60,14 @@ jobs:
 
     env:
       RAILS_ENV: test
-      DATABASE_URL: postgres://postgres:postgres@localhost:5432/eventmanager_test
-      
+      # Deliberately not DATABASE_URL: it pins one database name and would
+      # override the per-process name parallel_tests needs, putting both test
+      # processes in the same database where they deadlock on each other.
+      DATABASE_HOST: localhost
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: postgres
+      DATABASE_NAME: eventmanager_test
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -85,10 +91,9 @@ jobs:
           bundle install --jobs 4 --retry 3
           yarn install --frozen-lockfile
 
-      - name: Setup database
+      - name: Setup databases
         run: |
-          bundle exec rails db:create
-          bundle exec rails db:schema:load
+          bundle exec rails "parallel:create[2]" "parallel:load_schema[2]"
 
       - name: Precompile assets
         run: |

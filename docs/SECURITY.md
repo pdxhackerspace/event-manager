@@ -486,15 +486,42 @@ Create rule:
 
 **For most hackerspaces:** Not necessary unless you're getting international spam.
 
-### Application-Level Rate Limiting (Not Needed)
+### Application-Level Rate Limiting (Also Active)
 
-Since Cloudflare handles rate limiting, **you don't need Rack::Attack or similar gems**.
+Cloudflare rate limiting is the first line of defense, and it has real advantages:
 
-Benefits of Cloudflare rate limiting:
 - Happens before requests reach your server
 - No application performance impact
 - Protects against DDoS at network edge
 - Free on all Cloudflare plans
+
+Rack::Attack is **also** installed and active. The gem's railtie inserts the
+middleware automatically as soon as it is in the `Gemfile`, so it enforces
+`config/initializers/rack_attack.rb` whether or not Cloudflare rules exist. It
+backstops the login and password reset endpoints, which Cloudflare rules cannot
+see the parameters of.
+
+Two things about that file matter operationally:
+
+- **The general `req/ip` throttle skips `/assets`, `/rails/active_storage`, and
+  `/health`.** Active Storage delivery must stay exempt. A single image-heavy
+  page issues dozens of image requests, and counting them exhausted the budget
+  and returned 429s that render as missing images. See
+  [docs/IMAGE_DELIVERY.md](IMAGE_DELIVERY.md).
+- **Throttles key on `Rack::Attack.client_ip`, not `Rack::Request#ip`.** Behind
+  Cloudflare and a reverse proxy, `X-Forwarded-For` arrives as
+  `<visitor>, <cloudflare edge>` and Rack returns the rightmost entry, so every
+  visitor shares one bucket. `client_ip` prefers `CF-Connecting-IP`. Any new
+  throttle must use it.
+
+**Verify throttling is behaving:**
+
+```bash
+docker compose logs web | grep 'Rack::Attack'
+```
+
+Throttled entries should show visitor IPs. If they show Cloudflare edge IPs, IP
+resolution is broken and limits are being applied collectively.
 
 ---
 

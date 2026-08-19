@@ -8,7 +8,7 @@
 <article class="card h-100 <%= border_class %>" aria-labelledby="event-title-<%= event.id %>">
   <% if event.banner_image.attached? %>
     <%= link_to event_path(event), "aria-label": "View #{event.title}" do %>
-      <%= image_tag event.banner_image, class: "card-img-top", style: "max-height: 200px; object-fit: cover; cursor: pointer;", alt: "Banner image for #{event.title}", loading: "lazy" %>
+      <%= event_image_card_tag event.banner_image, class: "card-img-top", style: "max-height: 200px; object-fit: cover; cursor: pointer;", alt: "Banner image for #{event.title}" %>
     <% end %>
   <% end %>
   <div class="card-body">
