@@ -1,11 +1,15 @@
 # Changelog
 
+## [v0.19.5] - 2026-08-18
+
+### Security
+- Rate limits can no longer be bypassed by forging a request header. Visitor addresses are resolved by skipping the proxies listed in `config/trusted_proxies.yml`, and the localhost exemption now requires a genuine local connection, so a forged header can neither claim an exempt address nor evade login and lockout limits by rotating fake ones
+
 ## [v0.19.4] - 2026-08-18
 
 ### Fixed
 - Images no longer come up blank or missing on image-heavy pages: rate limiting counted every image request against the same per-visitor page budget, so viewing a few events with a full image pool returned throttled responses that browsers render as broken images and that quietly started working again minutes later
 - Rate limits are applied per visitor again rather than collectively. Behind Cloudflare and the reverse proxy, every request looked like it came from a Cloudflare edge address, so all visitors shared a single budget
-- Rate limits can no longer be bypassed by forging a request header. Visitor addresses are resolved by skipping the proxies listed in `config/trusted_proxies.yml`, and the localhost exemption now requires a genuine local connection, so a forged header can neither claim an exempt address nor evade login and lockout limits by rotating fake ones
 - Sidekiq can read and write uploaded images, so background image processing no longer fails on a missing storage volume
 - Release tags are named `v0.19.4` rather than `vv0.19.4`; the production workflow was prefixing a `v` onto a VERSION file that already had one
 - CI gives each parallel test process its own database. Both processes shared one, so they intermittently deadlocked against each other and failed builds for reasons unrelated to the code under test
