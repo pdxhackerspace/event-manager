@@ -43,7 +43,11 @@ development:
 # Do not set this db to the same as development or production.
 test:
   <<: *default
-  database: <%= ENV.fetch("DATABASE_NAME") { "EventManager_test" } %>
+  # parallel_tests sets TEST_ENV_NUMBER ("" for the first process, then "2",
+  # "3"...) so each process gets its own database. Without the suffix they share
+  # one and deadlock against each other on rows like SiteConfig's singleton.
+  # Non-parallel runs leave it unset and land on the unsuffixed name as before.
+  database: <%= ENV.fetch("DATABASE_NAME") { "EventManager_test" } %><%= ENV["TEST_ENV_NUMBER"] %>
 
 # As with config/credentials.yml, you never want to store sensitive information,
 # like your database password, in your source code. If your source code is

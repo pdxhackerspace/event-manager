@@ -7,6 +7,7 @@
 - Rate limits are applied per visitor again rather than collectively. Behind Cloudflare and the reverse proxy, every request looked like it came from a Cloudflare edge address, so all visitors shared a single budget
 - Sidekiq can read and write uploaded images, so background image processing no longer fails on a missing storage volume
 - Release tags are named `v0.19.4` rather than `vv0.19.4`; the production workflow was prefixing a `v` onto a VERSION file that already had one
+- CI gives each parallel test process its own database. Both processes shared one, so they intermittently deadlocked against each other and failed builds for reasons unrelated to the code under test
 
 ### Changed
 - Image previews load a scaled-down version instead of the full-resolution original, so the image pool, event cards, calendar thumbnails, and pickers load a fraction of the data they used to
