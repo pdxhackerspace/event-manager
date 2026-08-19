@@ -511,8 +511,18 @@ Two things about that file matter operationally:
 - **Throttles key on `Rack::Attack.client_ip`, not `Rack::Request#ip`.** Behind
   Cloudflare and a reverse proxy, `X-Forwarded-For` arrives as
   `<visitor>, <cloudflare edge>` and Rack returns the rightmost entry, so every
-  visitor shares one bucket. `client_ip` prefers `CF-Connecting-IP`. Any new
-  throttle must use it.
+  visitor would share one bucket. `client_ip` reads the address
+  `ActionDispatch::RemoteIp` resolved. Any new throttle must use it.
+- **Never key a limit on a header a client can set.** `CF-Connecting-IP` and the
+  leftmost `X-Forwarded-For` entry are both attacker-controlled for anyone who
+  can reach the origin directly. Trusting either lets them forge an address and
+  rotate it to evade limits, or claim a safelisted one. Correct resolution
+  depends on `config.action_dispatch.trusted_proxies` listing every proxy in the
+  chain, which is why `config/trusted_proxies.yml` must stay current.
+- **The localhost safelist keys on `REMOTE_ADDR`, not the resolved address.** When
+  every forwarded entry is a known proxy, `ActionDispatch::RemoteIp` falls back to
+  the furthest address in the chain, which is client-supplied. Safelists must use
+  the connecting address, which cannot be forged.
 
 **Verify throttling is behaving:**
 

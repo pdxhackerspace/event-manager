@@ -1,5 +1,10 @@
 # Changelog
 
+## [v0.19.5] - 2026-08-18
+
+### Security
+- Rate limits can no longer be bypassed by forging a request header. Visitor addresses are resolved by skipping the proxies listed in `config/trusted_proxies.yml`, and the localhost exemption now requires a genuine local connection, so a forged header can neither claim an exempt address nor evade login and lockout limits by rotating fake ones
+
 ## [v0.19.4] - 2026-08-18
 
 ### Fixed

@@ -15,34 +15,35 @@ module Rack
       end
 
     ### Client IP Resolution ###
-    # Every throttle must key on the visitor. Behind Cloudflare plus a reverse
-    # proxy, X-Forwarded-For arrives as "<visitor>, <cloudflare edge>" and
-    # Rack::Request#ip returns the edge IP, which collapses all visitors into a
-    # single shared bucket. Resolve the visitor explicitly instead.
+    # Every throttle must key on the visitor. Rack::Request#ip does not know that
+    # the Cloudflare edge is a proxy and returns its address, collapsing all
+    # visitors into one shared bucket.
+    #
+    # ActionDispatch::RemoteIp does know, via config.action_dispatch.trusted_proxies
+    # in config/application.rb. Deliberately never trust a header a client can
+    # set directly, such as CF-Connecting-IP or the leftmost X-Forwarded-For
+    # entry: reading those would let anyone who can reach the origin forge an
+    # address and rotate it to escape these limits entirely.
     def self.client_ip(req)
-      cloudflare_ip(req) || rails_remote_ip(req) || forwarded_client_ip(req) || req.ip
-    end
-
-    # Cloudflare overwrites this header at its edge, so it cannot be spoofed by
-    # clients reaching us through Cloudflare.
-    def self.cloudflare_ip(req)
-      req.get_header('HTTP_CF_CONNECTING_IP').presence
-    end
-
-    # The value ActionDispatch::RemoteIp computed, when that middleware has
-    # already run. It raises on inconsistent forwarding headers, and a throttle
-    # discriminator is the wrong place to blow up, so treat that as unknown.
-    def self.rails_remote_ip(req)
-      req.get_header('action_dispatch.remote_ip')&.to_s.presence
+      req.get_header('action_dispatch.remote_ip')&.to_s.presence || req.ip
     rescue ActionDispatch::RemoteIp::IpSpoofAttackError
-      nil
+      # Contradictory forwarding headers. Bucket the request under the address
+      # that actually connected so it is still counted rather than escaping.
+      connecting_ip(req)
     end
 
-    # X-Forwarded-For is ordered client first, so the leftmost entry is the
-    # visitor. Rack::Request#ip returns the *rightmost* untrusted entry instead,
-    # which behind Cloudflare is an edge IP shared by many visitors.
-    def self.forwarded_client_ip(req)
-      req.get_header('HTTP_X_FORWARDED_FOR').to_s.split(',').first&.strip.presence
+    def self.connecting_ip(req)
+      req.get_header('REMOTE_ADDR').to_s
+    end
+
+    # A safelist must never be reachable through a forwarded header. When every
+    # forwarded entry is a known proxy, ActionDispatch::RemoteIp falls back to the
+    # furthest address in the chain, which is client-supplied — so resolved IPs
+    # are unsafe to safelist on. The connecting address cannot be forged.
+    def self.loopback?(addr)
+      IPAddr.new(addr.to_s).loopback?
+    rescue IPAddr::InvalidAddressError
+      false
     end
 
     # Requests that never represent user intent and would otherwise consume the
@@ -60,9 +61,11 @@ module Rack
     end
 
     ### Safelist ###
-    # Always allow requests from localhost (for development and health checks)
+    # Always allow requests that originate on the host itself (development and
+    # container health checks). Keyed on the connecting address, not the resolved
+    # client IP, so it cannot be reached by forging a forwarded header.
     safelist('allow-localhost') do |req|
-      ['127.0.0.1', '::1'].include?(client_ip(req))
+      loopback?(connecting_ip(req))
     end
 
     ### Throttle Authentication Endpoints ###

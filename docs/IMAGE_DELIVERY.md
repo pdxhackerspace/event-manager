@@ -99,9 +99,12 @@ Deployment is Cloudflare in front of Nginx Proxy Manager in front of Puma.
 
 **Required:**
 
-- Forward `X-Forwarded-For` and `X-Forwarded-Proto`. Nginx Proxy Manager does
-  this by default; `config.assume_ssl = true` depends on it.
-- Leave `CF-Connecting-IP` intact. Rate limiting keys on it.
+- Append to `X-Forwarded-For` rather than replacing it, and forward
+  `X-Forwarded-Proto`. Nginx Proxy Manager does both by default;
+  `config.assume_ssl = true` and per-visitor rate limiting depend on it.
+- Keep `config/trusted_proxies.yml` current. Rate limiting identifies the visitor
+  by skipping known proxies in `X-Forwarded-For`, so an unlisted proxy in the
+  chain makes limits coarser than intended.
 
 **Worth checking in the proxy host's Advanced tab if large uploads or images
 misbehave:**
