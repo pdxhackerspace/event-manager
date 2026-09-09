@@ -60,6 +60,7 @@ jobs:
 
     env:
       RAILS_ENV: test
+      SECRET_KEY_BASE: test_secret_key_base_for_ci
       # Deliberately not DATABASE_URL: it pins one database name and would
       # override the per-process name parallel_tests needs, putting both test
       # processes in the same database where they deadlock on each other.
