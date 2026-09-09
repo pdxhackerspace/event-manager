@@ -1,5 +1,5 @@
 # Helper module for DST occurrence fixing
-# rubocop:disable Metrics/ModuleLength
+# rubocop:disable-next Metrics/ModuleLength
 module DstOccurrenceFixer
   module_function
 
@@ -27,9 +27,8 @@ module DstOccurrenceFixer
         correct_time = local_time.change(hour: expected_hour, min: expected_min)
 
         puts "  Fixing ##{occ.id}: #{local_time.strftime('%Y-%m-%d %H:%M')} -> #{correct_time.strftime('%H:%M')}"
-        # rubocop:disable Rails/SkipsModelValidations
+        # rubocop:disable-next Rails/SkipsModelValidations
         occ.update_column(:occurs_at, correct_time)
-        # rubocop:enable Rails/SkipsModelValidations
         updated_count += 1
       end
     end
@@ -170,7 +169,6 @@ module DstOccurrenceFixer
     puts "Full DST fix complete!"
   end
 end
-# rubocop:enable Metrics/ModuleLength
 
 namespace :events do
   desc 'Fix occurrence times for DST by adjusting to match schedule start time'

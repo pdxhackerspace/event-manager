@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Helper module for schedule parsing and description generation
-# rubocop:disable Metrics/ModuleLength
+# rubocop:disable-next Metrics/ModuleLength
 module EventsHelper
   DAY_NUM_TO_NAME = { 0 => 'sunday', 1 => 'monday', 2 => 'tuesday', 3 => 'wednesday',
                       4 => 'thursday', 5 => 'friday', 6 => 'saturday' }.freeze
@@ -229,4 +229,3 @@ module EventsHelper
     "#{items[0..-2].join(', ')} and #{items.last}"
   end
 end
-# rubocop:enable Metrics/ModuleLength

@@ -99,7 +99,7 @@ RSpec.describe SlackEventReminderJob, type: :job do
       end
     end
 
-    # rubocop:disable RSpec/MultipleMemoizedHelpers
+    # rubocop:disable-next RSpec/MultipleMemoizedHelpers
     context 'filtering occurrences' do
       let(:public_event) { create(:event, visibility: 'public', draft: false, slack_announce: true) }
       let(:members_event) { create(:event, visibility: 'members', draft: false, slack_announce: true) }
@@ -138,7 +138,6 @@ RSpec.describe SlackEventReminderJob, type: :job do
         expect(SlackPostReminderJob).not_to have_been_enqueued.with(no_slack_occ.id, anything, anything)
       end
     end
-    # rubocop:enable RSpec/MultipleMemoizedHelpers
 
     context 'occurrence statuses' do
       let(:event) { create(:event, visibility: 'public', draft: false, slack_announce: true) }
