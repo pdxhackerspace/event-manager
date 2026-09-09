@@ -1,4 +1,4 @@
-# rubocop:disable Metrics/ModuleLength
+# rubocop:disable-next Metrics/ModuleLength
 module ReminderMessageBuilder
   LINK_TEXT = 'More info →'.freeze
 
@@ -163,4 +163,3 @@ module ReminderMessageBuilder
     end
   end
 end
-# rubocop:enable Metrics/ModuleLength

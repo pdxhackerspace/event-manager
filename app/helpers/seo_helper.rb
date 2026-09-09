@@ -1,4 +1,4 @@
-# rubocop:disable Rails/HelperInstanceVariable, Rails/OutputSafety
+# rubocop:disable-next Rails/HelperInstanceVariable, Rails/OutputSafety
 module SeoHelper
   # Set page title - call from views
   def page_title(title)
@@ -78,4 +78,3 @@ module SeoHelper
     { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: list_items }.to_json.html_safe
   end
 end
-# rubocop:enable Rails/HelperInstanceVariable, Rails/OutputSafety

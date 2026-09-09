@@ -85,7 +85,7 @@ RSpec.describe SocialMediaReminderJob, type: :job do
       end
     end
 
-    # rubocop:disable RSpec/MultipleMemoizedHelpers
+    # rubocop:disable-next RSpec/MultipleMemoizedHelpers
     context 'filtering occurrences' do
       let(:public_event) { create(:event, visibility: 'public', draft: false, social_reminders: true) }
       let(:members_event) { create(:event, visibility: 'members', draft: false, social_reminders: true) }
@@ -124,7 +124,6 @@ RSpec.describe SocialMediaReminderJob, type: :job do
         expect(SocialPostReminderJob).not_to have_been_enqueued.with(no_social_occ.id, anything, anything)
       end
     end
-    # rubocop:enable RSpec/MultipleMemoizedHelpers
   end
 
   describe '#already_posted_today?' do
