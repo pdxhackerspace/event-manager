@@ -112,6 +112,17 @@ RSpec.describe SocialService do
     end
   end
 
+  describe '.build_bluesky_record' do
+    it 'uses UTF-8 byte offsets for the link facet when text before the link has multibyte characters' do
+      message = '⚠️ CANCELLED: Foo. More info →'
+      record = described_class.build_bluesky_record(message, nil, 'alt',
+                                                    link_url: 'https://example.com', link_text: 'More info →')
+
+      index = record[:facets].first[:index]
+      expect(message.byteslice(index[:byteStart]...index[:byteEnd])).to eq('More info →')
+    end
+  end
+
   describe '.post_occurrence_reminder' do
     let(:short_parts) { { text: 'Short message', link_url: 'https://example.com', link_text: 'More' } }
     let(:long_parts) { { text: 'Long message with details', link_url: 'https://example.com', link_text: 'More' } }
