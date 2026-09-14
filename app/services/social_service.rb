@@ -216,7 +216,7 @@ class SocialService # rubocop:disable Metrics/ClassLength
       # Add link facet if provided
       if link_url.present? && link_text.present?
         # Find where the link text appears in the message
-        link_start = message.index(link_text)
+        link_start = message.byteindex(link_text)
         if link_start
           link_end = link_start + link_text.bytesize
           record[:facets] = [
