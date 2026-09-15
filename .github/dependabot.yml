@@ -19,6 +19,8 @@ updates:
       prefix: "chore(deps)"
     # Ignore major Rails version bumps - upgrade manually after testing
     ignore:
+      - dependency-name: "json"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "rails"
         update-types: ["version-update:semver-major"]
       - dependency-name: "actioncable"
