@@ -175,6 +175,7 @@ class EventsController < ApplicationController
 
   def update
     @event.current_user_for_journal = current_user
+    @event.pool_images = params.dig(:event, :pool_images)
 
     # Only rebuild schedule if recurrence settings were explicitly changed
     if should_rebuild_schedule?
@@ -186,7 +187,7 @@ class EventsController < ApplicationController
 
     begin
       if @event.update(event_params)
-        attach_pending_pool_images
+        log_added_pool_images
         redirect_to @event, notice: 'Event was successfully updated.'
       else
         Rails.logger.error "Event update failed. Errors: #{@event.errors.full_messages.join(', ')}"
@@ -289,9 +290,9 @@ class EventsController < ApplicationController
   end
 
   # Uploads picked in the image pool but never submitted through "Add to Pool"
-  # ride along with the event form instead of being silently dropped.
-  def attach_pending_pool_images
-    count = @event.attach_pool_images_from_uploads(params.dig(:event, :pool_images))
+  # ride along with the event form, and the model attaches them during the save.
+  def log_added_pool_images
+    count = @event.pool_images_attached_count.to_i
     return if count.zero?
 
     EventJournal.log_event_change(@event, current_user, 'images_added', { 'count' => count })

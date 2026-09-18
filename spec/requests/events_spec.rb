@@ -357,6 +357,18 @@ RSpec.describe "Events", type: :request do
       expect(event.pooled_images.map(&:position)).to eq([0, 1])
     end
 
+    it "attaches uploads before a rescheduled save regenerates occurrences" do
+      expect(event.pooled_images).to be_empty
+
+      patch event_path(event), params: {
+        event: { start_time: 3.weeks.from_now, pool_images: [upload('five.jpg')] }
+      }
+
+      event.reload
+      new_image = event.pooled_images.sole
+      expect(event.occurrences.map(&:event_image_id).uniq).to eq([new_image.id])
+    end
+
     it "adds uploads submitted with the edit form when nothing else changed" do
       expect do
         patch event_path(event), params: { event: { title: event.title, pool_images: [upload('four.jpg')] } }
