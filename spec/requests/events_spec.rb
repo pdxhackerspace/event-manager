@@ -96,6 +96,34 @@ RSpec.describe "Events", type: :request do
       end
     end
 
+    context "when a journal entry's author has been deleted" do
+      # event_journals.user_id is nullable so the audit log outlives the
+      # account. The journal panel, which only hosts and admins see, has to
+      # cope with the gap that leaves.
+      let(:host) { create(:user, :can_create_events) }
+      let(:hosted_event) { create(:event, user: host, visibility: 'public') }
+
+      before do
+        editor = create(:user, name: 'Departed Editor')
+        create(:event_journal, event: hosted_event, user: editor)
+        editor.destroy!
+        sign_in host
+      end
+
+      it "still renders the event page" do
+        get event_path(hosted_event)
+
+        expect(response).to have_http_status(:success)
+      end
+
+      it "names the missing author instead of the deleted account" do
+        get event_path(hosted_event)
+
+        expect(response.body).to include('(deleted user)')
+        expect(response.body).not_to include('Departed Editor')
+      end
+    end
+
     context "as a co-host who did not create the event" do
       let(:creator) { create(:user) }
 
