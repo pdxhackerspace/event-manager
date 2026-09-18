@@ -11,6 +11,31 @@
 ### Fixed
 - Saving an event keeps the selection mode and fixed image chosen in the image pool. Those live in their own form so the pool can save them without leaving the wizard, and saving the event discarded them while still reporting success
 
+## [v0.22.1] - 2026-09-18
+
+### Fixed
+- E-ink banner variants are generated again. `Spectra6BannerJob` built its storage key by joining the original key's directory, which for a normal upload is `.`, producing a `./spectra6-7.3/...` key that Active Storage rejects as a path traversal segment. Every run raised, so no event ever had a Spectra6 banner and the feeds always fell back to the full-size image. Run `bin/rails banners:generate_spectra6` to backfill
+- Re-running `banners:generate_spectra6` replaces an existing variant instead of colliding with its storage key
+- Deleting a user no longer fails outright. `event_journals.user_id` was `NOT NULL` while the association declared `dependent: :nullify`, so removing anyone who had ever edited an event raised a database error. Journal entries now outlive the account, as the audit log intended. (Users who created events are still held back by the events foreign key, which is a separate question)
+
+### Added
+- Test coverage for the activity journal and event host controllers, both of which were previously untested, and for `Spectra6BannerJob` end to end
+
+## [v0.22.0] - 2026-09-18
+
+### Fixed
+- Co-hosts can view the private and draft events they host. Anyone added as a host could already edit, postpone, and cancel such an event but got "not authorized" trying to open it, and it never appeared in their event list
+
+### Changed
+- The events, users, and locations lists are paginated. The events list previously loaded every future occurrence of every event and sorted them in memory on each request, so the work grew with the whole calendar rather than with the page being shown
+- Ordering the events list by each event's next date happens in the database, so pages stay cheap as more occurrences accumulate
+- The public `/events.json`, `/events/eink`, and `/events/rss` feeds issue a fixed number of queries instead of one or more per event. They were looking up each event's e-ink banner variant, pooled images, and next date individually
+- `/events.json` no longer runs the queries for the paginated HTML page it doesn't render
+- The user list shows event counts from a single grouped query rather than one count per row
+
+### Added
+- Test coverage is measured and enforced. SimpleCov was a listed dependency that nothing ever loaded; `COVERAGE=1 bundle exec rspec` now reports coverage, and CI fails if it drops below the current level
+
 ## [v0.21.0] - 2026-09-18
 
 ### Changed

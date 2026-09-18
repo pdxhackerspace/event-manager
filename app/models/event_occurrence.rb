@@ -31,6 +31,24 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   scope :upcoming, -> { where('occurs_at >= ?', Time.current).order(:occurs_at) }
   scope :past, -> { where('occurs_at < ?', Time.current).order(occurs_at: :desc) }
 
+  # Occurrences that still belong in public listings. Relocated ones stay
+  # listed so a permanently relocated event remains discoverable.
+  LISTABLE_STATUSES = %w[active relocated].freeze
+  scope :listable_upcoming, lambda { |at = Time.current|
+    where(status: LISTABLE_STATUSES).where(occurs_at: at..)
+  }
+
+  # Collapses the current scope to one row per event: whichever of its
+  # occurrences comes first. Lets callers avoid loading every future occurrence
+  # just to show the next one.
+  scope :first_per_event, lambda {
+    select('DISTINCT ON (event_occurrences.event_id) event_occurrences.*')
+      .reorder(:event_id, :occurs_at)
+  }
+
+  # Each event's earliest listable upcoming occurrence.
+  scope :next_per_event, ->(at = Time.current) { listable_upcoming(at).first_per_event }
+
   # Occurrences that have started or will start, and have not yet ended (respects duration_override).
   END_TIME_SQL = <<~SQL.squish
     event_occurrences.occurs_at + (

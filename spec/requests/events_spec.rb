@@ -95,6 +95,72 @@ RSpec.describe "Events", type: :request do
         expect(response).to have_http_status(:success)
       end
     end
+
+    context "when a journal entry's author has been deleted" do
+      # event_journals.user_id is nullable so the audit log outlives the
+      # account. The journal panel, which only hosts and admins see, has to
+      # cope with the gap that leaves.
+      let(:host) { create(:user, :can_create_events) }
+      let(:hosted_event) { create(:event, user: host, visibility: 'public') }
+
+      before do
+        editor = create(:user, name: 'Departed Editor')
+        create(:event_journal, event: hosted_event, user: editor)
+        editor.destroy!
+        sign_in host
+      end
+
+      it "still renders the event page" do
+        get event_path(hosted_event)
+
+        expect(response).to have_http_status(:success)
+      end
+
+      it "names the missing author instead of the deleted account" do
+        get event_path(hosted_event)
+
+        expect(response.body).to include('(deleted user)')
+        expect(response.body).not_to include('Departed Editor')
+      end
+    end
+
+    context "as a co-host who did not create the event" do
+      let(:creator) { create(:user) }
+
+      before { sign_in user }
+
+      it "shows a private event they host" do
+        private_event = create(:event, :private, user: creator)
+        private_event.add_host(user)
+
+        get event_path(private_event)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include(private_event.title)
+      end
+
+      it "shows a draft event they host" do
+        draft_event = create(:event, draft: true, visibility: 'public', user: creator)
+        draft_event.add_host(user)
+
+        get event_path(draft_event)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include(draft_event.title)
+      end
+
+      it "lists private and draft events they host on the index" do
+        private_event = create(:event, :private, user: creator, title: 'Hosted Private')
+        draft_event = create(:event, draft: true, visibility: 'public', user: creator, title: 'Hosted Draft')
+        unrelated = create(:event, :private, user: creator, title: 'Not Mine')
+        [private_event, draft_event].each { |e| e.add_host(user) }
+
+        get events_path
+
+        expect(response.body).to include('Hosted Private', 'Hosted Draft')
+        expect(response.body).not_to include(unrelated.title)
+      end
+    end
   end
 
   describe "GET /events/new" do

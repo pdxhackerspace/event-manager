@@ -1,4 +1,6 @@
 module ApplicationHelper
+  include Pagy::Frontend
+
   def authentik_configured?
     ENV['AUTHENTIK_CLIENT_ID'].present? &&
       ENV['AUTHENTIK_CLIENT_SECRET'].present? &&
