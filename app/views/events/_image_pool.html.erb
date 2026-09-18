@@ -46,7 +46,9 @@
 
     <% if persisted %>
       <%= form_with(model: event, url: event_path(event), method: :patch, local: true, multipart: true,
-                    id: 'event-image-settings-form', class: 'mb-3') do |f| %>
+                    id: 'event-image-settings-form', class: 'mb-3',
+                    data: { controller: 'image-settings',
+                            image_settings_form_ids_value: ['event-wizard-form'].to_json }) do |f| %>
         <div class="row g-3">
           <div class="col-md-6">
             <%= f.label :image_selection_mode, 'Selection Mode', class: 'form-label' %>

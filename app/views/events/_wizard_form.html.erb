@@ -473,7 +473,13 @@
       </button>
     </div>
     <div>
-      <%= link_to "Cancel", events_path, class: "btn btn-secondary me-2" %>
+      <%= link_to event.persisted? ? "Cancel Edit" : "Cancel", events_path, class: "btn btn-secondary me-2" %>
+      <% if event.persisted? %>
+        <%= submit_tag "Save and Exit",
+                       form: 'event-wizard-form',
+                       class: "btn btn-outline-success wizard-save-exit-btn me-2",
+                       style: "display: none;" %>
+      <% end %>
       <button type="button" class="btn btn-primary wizard-next-btn">
         Next <i class="bi bi-arrow-right"></i>
       </button>
@@ -563,6 +569,7 @@ function initEventWizard() {
   const prevBtn = wizard.querySelector('.wizard-prev-btn');
   const nextBtn = wizard.querySelector('.wizard-next-btn');
   const submitBtn = wizard.querySelector('.wizard-submit-btn');
+  const saveExitBtn = wizard.querySelector('.wizard-save-exit-btn');
   
   function showStep(step) {
     currentStep = step;
@@ -587,6 +594,10 @@ function initEventWizard() {
     prevBtn.style.display = step > 1 ? 'inline-block' : 'none';
     nextBtn.style.display = step < totalSteps ? 'inline-block' : 'none';
     submitBtn.style.display = step === totalSteps ? 'inline-block' : 'none';
+    // On the last step the submit button already saves and leaves.
+    if (saveExitBtn) {
+      saveExitBtn.style.display = step < totalSteps ? 'inline-block' : 'none';
+    }
     
     // Scroll to top of wizard
     wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -620,6 +631,21 @@ function initEventWizard() {
     }
   });
   
+  // Saving from an early step still submits the whole form, so required fields
+  // on later steps have to be checked before the browser refuses to submit
+  // while the offending field is hidden.
+  if (saveExitBtn) {
+    saveExitBtn.addEventListener('click', (clickEvent) => {
+      for (let step = 1; step <= totalSteps; step++) {
+        if (!validateStep(step)) {
+          clickEvent.preventDefault();
+          showStep(step);
+          return;
+        }
+      }
+    });
+  }
+
   // Step indicator clicks
   steps.forEach(step => {
     const btn = step.querySelector('.wizard-step-btn');

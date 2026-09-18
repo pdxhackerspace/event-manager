@@ -451,6 +451,58 @@ RSpec.describe "Events", type: :request do
         patch event_path(event), params: { event: { title: event.title, pool_images: [upload('four.jpg')] } }
       end.to change { event.pooled_images.count }.by(1)
     end
+
+    it "wires the pool's own settings into the form the wizard saves" do
+      get edit_event_path(event)
+
+      settings_form = Nokogiri::HTML4(response.body).at_css('#event-image-settings-form')
+      expect(settings_form['data-controller']).to eq('image-settings')
+      expect(settings_form['data-image-settings-form-ids-value']).to eq('["event-wizard-form"]')
+    end
+
+    it "applies pool settings submitted alongside the rest of the event" do
+      image = create(:event_image, :with_image, event: event, position: 0)
+
+      patch event_path(event), params: {
+        event: { title: "Carried", image_selection_mode: 'cycle', fixed_event_image_id: image.id }
+      }
+
+      event.reload
+      expect(event.image_selection_mode).to eq('cycle')
+      expect(event.fixed_event_image_id).to eq(image.id)
+    end
+  end
+
+  describe "wizard navigation buttons" do
+    let(:event) { create(:event, user: admin) }
+
+    before { sign_in admin }
+
+    def navigation_labels
+      wizard = Nokogiri::HTML4(response.body).at_css('#event-wizard')
+      buttons = wizard.css('a.btn-secondary, .wizard-save-exit-btn, .wizard-next-btn')
+      buttons.map { |node| node['value'] || node.text.strip }
+    end
+
+    it "offers Save and Exit between the cancel and next buttons when editing" do
+      get edit_event_path(event)
+
+      expect(navigation_labels).to eq(['Cancel Edit', 'Save and Exit', 'Next'])
+    end
+
+    it "submits the event form from outside it, like the final submit button" do
+      get edit_event_path(event)
+
+      save_exit = Nokogiri::HTML4(response.body).at_css('.wizard-save-exit-btn')
+      expect(save_exit['type']).to eq('submit')
+      expect(save_exit['form']).to eq('event-wizard-form')
+    end
+
+    it "omits Save and Exit when creating an event" do
+      get new_event_path
+
+      expect(navigation_labels).to eq(%w[Cancel Next])
+    end
   end
 
   describe "DELETE /events/:id" do
