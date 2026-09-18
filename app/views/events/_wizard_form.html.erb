@@ -1,4 +1,7 @@
-<%= form_with(model: event, local: true, multipart: true, class: "needs-validation event-wizard-form", id: "event-wizard-form", "aria-label": "Event form") do |f| %>
+<% wizard_steps = [['Details', 'bi-info-circle'], ['Images', 'bi-images'], ['Scheduling', 'bi-calendar-event'],
+                   ['Visibility', 'bi-eye'], ['Promotion', 'bi-megaphone']] %>
+
+<div id="event-wizard" data-total-steps="<%= wizard_steps.size %>">
   <% if event.errors.any? %>
     <div class="alert alert-danger" role="alert" aria-live="assertive">
       <h2 class="h4"><%= pluralize(event.errors.count, "error") %> prohibited this event from being saved:</h2>
@@ -13,33 +16,19 @@
   <!-- Wizard Progress Breadcrumbs -->
   <nav aria-label="Event wizard progress" class="mb-4">
     <ol class="wizard-steps d-flex justify-content-between list-unstyled mb-0 position-relative">
-      <li class="wizard-step flex-fill text-center" data-step="1">
-        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="1">
-          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">1</span>
-          <span class="wizard-step-label d-block small">Details</span>
-        </button>
-      </li>
-      <li class="wizard-step flex-fill text-center" data-step="2">
-        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="2">
-          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">2</span>
-          <span class="wizard-step-label d-block small">Scheduling</span>
-        </button>
-      </li>
-      <li class="wizard-step flex-fill text-center" data-step="3">
-        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="3">
-          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">3</span>
-          <span class="wizard-step-label d-block small">Visibility</span>
-        </button>
-      </li>
-      <li class="wizard-step flex-fill text-center" data-step="4">
-        <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="4">
-          <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1">4</span>
-          <span class="wizard-step-label d-block small">Promotion</span>
-        </button>
-      </li>
+      <% wizard_steps.each_with_index do |(label, _icon), index| %>
+        <% number = index + 1 %>
+        <li class="wizard-step flex-fill text-center" data-step="<%= number %>">
+          <button type="button" class="wizard-step-btn btn btn-link text-decoration-none p-0 w-100" data-goto-step="<%= number %>">
+            <span class="wizard-step-number d-inline-flex align-items-center justify-content-center rounded-circle mb-1"><%= number %></span>
+            <span class="wizard-step-label d-block small"><%= label %></span>
+          </button>
+        </li>
+      <% end %>
     </ol>
   </nav>
 
+<%= form_with(model: event, local: true, multipart: true, class: "needs-validation event-wizard-form", id: "event-wizard-form", "aria-label": "Event form") do |f| %>
   <!-- Step 1: Details -->
   <div class="wizard-panel" data-step="1">
     <div class="card mb-3">
@@ -96,8 +85,8 @@
     </div>
   </div>
 
-  <!-- Step 2: Scheduling -->
-  <div class="wizard-panel" data-step="2" style="display: none;">
+  <!-- Step 3: Scheduling -->
+  <div class="wizard-panel" data-step="3" style="display: none;">
     <div class="card mb-3">
       <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Scheduling</h5>
@@ -267,8 +256,8 @@
     </div>
   </div>
 
-  <!-- Step 3: Visibility -->
-  <div class="wizard-panel" data-step="3" style="display: none;">
+  <!-- Step 4: Visibility -->
+  <div class="wizard-panel" data-step="4" style="display: none;">
     <div class="card mb-3">
       <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-eye"></i> Visibility & Publishing</h5>
@@ -325,8 +314,8 @@
     </div>
   </div>
 
-  <!-- Step 4: Promotion -->
-  <div class="wizard-panel" data-step="4" style="display: none;">
+  <!-- Step 5: Promotion -->
+  <div class="wizard-panel" data-step="5" style="display: none;">
     <% site_config = SiteConfig.current %>
     <% if site_config.slack_enabled? || site_config.social_reminders_enabled? %>
       <% ollama_configured = OllamaService.configured? %>
@@ -468,6 +457,14 @@
     <% end %>
   </div>
 
+<% end %>
+
+  <!-- Step 2: Images. Outside the event form because the pool manages itself
+       through its own forms, which cannot be nested inside another form. -->
+  <div class="wizard-panel" data-step="2" style="display: none;">
+    <%= render 'image_pool', event: event %>
+  </div>
+
   <!-- Navigation Buttons -->
   <div class="d-flex justify-content-between mt-4">
     <div>
@@ -480,22 +477,26 @@
       <button type="button" class="btn btn-primary wizard-next-btn">
         Next <i class="bi bi-arrow-right"></i>
       </button>
-      <%= f.submit event.persisted? ? "Update Event" : "Create Event", class: "btn btn-success wizard-submit-btn", style: "display: none;" %>
+      <%= submit_tag event.persisted? ? "Update Event" : "Create Event",
+                     form: 'event-wizard-form',
+                     class: "btn btn-success wizard-submit-btn",
+                     style: "display: none;" %>
     </div>
   </div>
-<% end %>
+</div>
 
 <style>
   .wizard-steps {
     counter-reset: step;
   }
   
+  /* Connector line spans centre-to-centre, so it insets by half a step. */
   .wizard-steps::before {
     content: '';
     position: absolute;
     top: 18px;
-    left: 12.5%;
-    right: 12.5%;
+    left: 10%;
+    right: 10%;
     height: 2px;
     background: #dee2e6;
     z-index: 0;
@@ -551,17 +552,17 @@ document.addEventListener('DOMContentLoaded', initEventWizard);
 document.addEventListener('turbo:load', initEventWizard);
 
 function initEventWizard() {
-  const form = document.getElementById('event-wizard-form');
-  if (!form) return;
+  const wizard = document.getElementById('event-wizard');
+  if (!wizard) return;
   
   let currentStep = 1;
-  const totalSteps = 4;
+  const totalSteps = parseInt(wizard.dataset.totalSteps);
   
-  const panels = form.querySelectorAll('.wizard-panel');
-  const steps = form.querySelectorAll('.wizard-step');
-  const prevBtn = form.querySelector('.wizard-prev-btn');
-  const nextBtn = form.querySelector('.wizard-next-btn');
-  const submitBtn = form.querySelector('.wizard-submit-btn');
+  const panels = wizard.querySelectorAll('.wizard-panel');
+  const steps = wizard.querySelectorAll('.wizard-step');
+  const prevBtn = wizard.querySelector('.wizard-prev-btn');
+  const nextBtn = wizard.querySelector('.wizard-next-btn');
+  const submitBtn = wizard.querySelector('.wizard-submit-btn');
   
   function showStep(step) {
     currentStep = step;
@@ -587,12 +588,12 @@ function initEventWizard() {
     nextBtn.style.display = step < totalSteps ? 'inline-block' : 'none';
     submitBtn.style.display = step === totalSteps ? 'inline-block' : 'none';
     
-    // Scroll to top of form
-    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Scroll to top of wizard
+    wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   
   function validateStep(step) {
-    const panel = form.querySelector(`.wizard-panel[data-step="${step}"]`);
+    const panel = wizard.querySelector(`.wizard-panel[data-step="${step}"]`);
     const requiredFields = panel.querySelectorAll('[required]');
     let valid = true;
     
@@ -633,8 +634,8 @@ function initEventWizard() {
     }
   });
   
-  // Initialize first step
-  showStep(1);
+  // The image pool redirects back with #image-pool, so open on that step.
+  showStep(window.location.hash === '#image-pool' ? 2 : 1);
   
   // Initialize recurrence options (from original form)
   initRecurrenceOptions();

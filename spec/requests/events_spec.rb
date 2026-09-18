@@ -324,6 +324,17 @@ RSpec.describe "Events", type: :request do
       expect(response.body).to include('id="image-pool"')
     end
 
+    it "gives the image pool its own wizard step, outside the event form" do
+      get edit_event_path(event)
+
+      doc = Nokogiri::HTML4(response.body)
+      expect(doc.css('.wizard-step-label').map(&:text))
+        .to eq(%w[Details Images Scheduling Visibility Promotion])
+      expect(doc.at_css('.wizard-panel[data-step="2"] #image-pool')).to be_present
+      expect(doc.at_css('#image-pool').ancestors('form')).to be_empty
+      expect(doc.at_css('.wizard-submit-btn')['form']).to eq('event-wizard-form')
+    end
+
     it "wires pending uploads into every form that saves the event" do
       get edit_event_path(event)
 
