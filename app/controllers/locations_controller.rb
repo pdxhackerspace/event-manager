@@ -4,7 +4,7 @@ class LocationsController < ApplicationController
   before_action :authorize_admin
 
   def index
-    @locations = Location.alphabetical
+    @pagy, @locations = pagy(Location.alphabetical)
   end
 
   def new

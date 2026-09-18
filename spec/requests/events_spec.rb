@@ -95,6 +95,44 @@ RSpec.describe "Events", type: :request do
         expect(response).to have_http_status(:success)
       end
     end
+
+    context "as a co-host who did not create the event" do
+      let(:creator) { create(:user) }
+
+      before { sign_in user }
+
+      it "shows a private event they host" do
+        private_event = create(:event, :private, user: creator)
+        private_event.add_host(user)
+
+        get event_path(private_event)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include(private_event.title)
+      end
+
+      it "shows a draft event they host" do
+        draft_event = create(:event, draft: true, visibility: 'public', user: creator)
+        draft_event.add_host(user)
+
+        get event_path(draft_event)
+
+        expect(response).to have_http_status(:success)
+        expect(response.body).to include(draft_event.title)
+      end
+
+      it "lists private and draft events they host on the index" do
+        private_event = create(:event, :private, user: creator, title: 'Hosted Private')
+        draft_event = create(:event, draft: true, visibility: 'public', user: creator, title: 'Hosted Draft')
+        unrelated = create(:event, :private, user: creator, title: 'Not Mine')
+        [private_event, draft_event].each { |e| e.add_host(user) }
+
+        get events_path
+
+        expect(response.body).to include('Hosted Private', 'Hosted Draft')
+        expect(response.body).not_to include(unrelated.title)
+      end
+    end
   end
 
   describe "GET /events/new" do

@@ -1,5 +1,20 @@
 # Changelog
 
+## [v0.22.0] - 2026-09-18
+
+### Fixed
+- Co-hosts can view the private and draft events they host. Anyone added as a host could already edit, postpone, and cancel such an event but got "not authorized" trying to open it, and it never appeared in their event list
+
+### Changed
+- The events, users, and locations lists are paginated. The events list previously loaded every future occurrence of every event and sorted them in memory on each request, so the work grew with the whole calendar rather than with the page being shown
+- Ordering the events list by each event's next date happens in the database, so pages stay cheap as more occurrences accumulate
+- The public `/events.json`, `/events/eink`, and `/events/rss` feeds issue a fixed number of queries instead of one or more per event. They were looking up each event's e-ink banner variant, pooled images, and next date individually
+- `/events.json` no longer runs the queries for the paginated HTML page it doesn't render
+- The user list shows event counts from a single grouped query rather than one count per row
+
+### Added
+- Test coverage is measured and enforced. SimpleCov was a listed dependency that nothing ever loaded; `COVERAGE=1 bundle exec rspec` now reports coverage, and CI fails if it drops below the current level
+
 ## [v0.21.0] - 2026-09-18
 
 ### Changed
