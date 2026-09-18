@@ -8,6 +8,23 @@ class Spectra6BannerJob < ApplicationJob
   TARGET_WIDTH = 800
   TARGET_HEIGHT = 240
 
+  # Where the processed variant for a given original is stored.
+  #
+  # The variant goes in a subdirectory beside the original. Active Storage keys
+  # are flat by default, so File.dirname returns "." — joining that in produces
+  # a "./..." key, which Rails rejects as a path traversal segment. Only include
+  # a directory when the original key actually has one.
+  def self.variant_key(blob)
+    directory = File.dirname(blob.key)
+    segments = [
+      directory == '.' ? nil : directory,
+      OUTPUT_SUBDIR,
+      "#{File.basename(blob.key, '.*')}.png"
+    ].compact
+
+    File.join(*segments)
+  end
+
   def perform(blob_id)
     blob = ActiveStorage::Blob.find_by(id: blob_id)
     return unless blob
@@ -28,11 +45,12 @@ class Spectra6BannerJob < ApplicationJob
       begin
         run_imagemagick(input_file.path, output_file.path)
 
-        # Upload the processed image with a subdirectory in the key
-        original_key = blob.key
-        spectra6_key = File.join(File.dirname(original_key), OUTPUT_SUBDIR, "#{File.basename(original_key, '.*')}.png")
+        spectra6_key = self.class.variant_key(blob)
 
-        # Create a new blob for the processed image
+        # Blob keys are unique, so a regenerated variant has to replace the
+        # previous one. Lets banners:generate_spectra6 be re-run safely.
+        ActiveStorage::Blob.find_by(key: spectra6_key)&.purge
+
         output_file.rewind
         spectra6_blob = ActiveStorage::Blob.create_and_upload!(
           io: output_file,

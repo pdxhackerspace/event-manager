@@ -34,13 +34,13 @@ if ENV['COVERAGE']
     # the second overwrite the first.
     command_name "rspec-#{ENV.fetch('TEST_ENV_NUMBER', 'single')}"
 
-    # Set just under the current numbers (76.9% line / 59.4% branch) to catch
+    # Set just under the current numbers (78.9% line / 60.8% branch) to catch
     # backsliding. Raise them as coverage improves rather than loosening them.
     #
     # Only the sequential run sees the whole suite. Under parallel_tests each
     # process would check the threshold against a partially merged result and
     # fail intermittently, so measure there but don't gate on it.
-    minimum_coverage(line: 75, branch: 57) unless ENV['TEST_ENV_NUMBER']
+    minimum_coverage(line: 78, branch: 60) unless ENV['TEST_ENV_NUMBER']
   end
 end
 

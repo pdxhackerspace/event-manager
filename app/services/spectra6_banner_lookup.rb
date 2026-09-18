@@ -6,14 +6,6 @@
 # rest of the feed. Looking them up one at a time costs a query per serialized
 # row; this collects the keys up front instead.
 class Spectra6BannerLookup
-  def self.derived_key(blob)
-    File.join(
-      File.dirname(blob.key),
-      Spectra6BannerJob::OUTPUT_SUBDIR,
-      "#{File.basename(blob.key, '.*')}.png"
-    )
-  end
-
   def initialize(attachments)
     keys = Array(attachments).filter_map { |attachment| key_for(attachment) }.uniq
     @blobs_by_key = keys.empty? ? {} : ActiveStorage::Blob.where(key: keys).index_by(&:key)
@@ -26,9 +18,11 @@ class Spectra6BannerLookup
 
   private
 
+  # Spectra6BannerJob owns the key layout; deriving it here independently would
+  # let the reader and writer drift apart.
   def key_for(attachment)
     return nil unless attachment&.attached?
 
-    self.class.derived_key(attachment.blob)
+    Spectra6BannerJob.variant_key(attachment.blob)
   end
 end

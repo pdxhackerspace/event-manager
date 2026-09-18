@@ -9,7 +9,7 @@ RSpec.describe 'JSON feed query behavior', type: :request do
   # here: the feed builds a URL from it and never reads the file.
   def create_spectra6_variant(attachment)
     ActiveStorage::Blob.create!(
-      key: Spectra6BannerLookup.derived_key(attachment.blob),
+      key: Spectra6BannerJob.variant_key(attachment.blob),
       filename: 'banner-spectra6.png',
       content_type: 'image/png',
       byte_size: 16,

@@ -5,7 +5,7 @@ RSpec.describe Spectra6BannerLookup do
   # here: the lookup resolves by key and never reads the file.
   def create_spectra6_variant(attachment)
     ActiveStorage::Blob.create!(
-      key: described_class.derived_key(attachment.blob),
+      key: Spectra6BannerJob.variant_key(attachment.blob),
       filename: 'banner-spectra6.png',
       content_type: 'image/png',
       byte_size: 16,
@@ -17,14 +17,15 @@ RSpec.describe Spectra6BannerLookup do
   let(:event) { create(:event, :with_banner) }
   let(:attachment) { event.reload.fallback_event_image.image }
 
-  describe '.derived_key' do
-    it 'places the variant beside the original under the job output subdirectory' do
-      blob = attachment.blob
+  describe 'key agreement with the writer' do
+    it 'looks under the key Spectra6BannerJob writes to' do
+      variant = create_spectra6_variant(attachment)
 
-      key = described_class.derived_key(blob)
-
-      expect(File.dirname(key)).to eq(File.join(File.dirname(blob.key), Spectra6BannerJob::OUTPUT_SUBDIR))
-      expect(File.basename(key)).to eq("#{File.basename(blob.key, '.*')}.png")
+      # Spectra6BannerJob.variant_key is the only definition of the layout; this
+      # asserts the lookup reads from there rather than deriving its own.
+      expect(described_class.new([attachment]).blob_for(attachment).key)
+        .to eq(Spectra6BannerJob.variant_key(attachment.blob))
+      expect(variant.key).to eq(Spectra6BannerJob.variant_key(attachment.blob))
     end
   end
 

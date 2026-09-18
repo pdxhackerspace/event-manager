@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.22.1] - 2026-09-18
+
+### Fixed
+- E-ink banner variants are generated again. `Spectra6BannerJob` built its storage key by joining the original key's directory, which for a normal upload is `.`, producing a `./spectra6-7.3/...` key that Active Storage rejects as a path traversal segment. Every run raised, so no event ever had a Spectra6 banner and the feeds always fell back to the full-size image. Run `bin/rails banners:generate_spectra6` to backfill
+- Re-running `banners:generate_spectra6` replaces an existing variant instead of colliding with its storage key
+- Deleting a user no longer fails outright. `event_journals.user_id` was `NOT NULL` while the association declared `dependent: :nullify`, so removing anyone who had ever edited an event raised a database error. Journal entries now outlive the account, as the audit log intended. (Users who created events are still held back by the events foreign key, which is a separate question)
+
+### Added
+- Test coverage for the activity journal and event host controllers, both of which were previously untested, and for `Spectra6BannerJob` end to end
+
 ## [v0.22.0] - 2026-09-18
 
 ### Fixed
