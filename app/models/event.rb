@@ -104,8 +104,10 @@ class Event < ApplicationRecord
                                 .select('event_occurrences.event_id AS event_id',
                                         'MIN(event_occurrences.occurs_at) AS next_occurs_at')
 
+    # Events sharing a next time need a unique tiebreaker, or LIMIT/OFFSET can
+    # repeat or skip them from one page to the next.
     joins("INNER JOIN (#{next_times.to_sql}) next_occurrences ON next_occurrences.event_id = events.id")
-      .order(Arel.sql('next_occurrences.next_occurs_at ASC'))
+      .order(Arel.sql('next_occurrences.next_occurs_at ASC'), :id)
   }
 
   # Get occurrence dates for a date range (from IceCube schedule)

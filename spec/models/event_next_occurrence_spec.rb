@@ -96,5 +96,23 @@ RSpec.describe 'ordering events by their next occurrence' do
 
       expect(Event.by_next_occurrence(now).count).to eq(2)
     end
+
+    # Whether an untiebroken query actually misorders rows is up to the planner,
+    # so the guarantee pagination depends on is asserted against the SQL.
+    it 'breaks ties on a unique key, so a page cannot repeat or skip events' do
+      expect(Event.by_next_occurrence(now).to_sql)
+        .to end_with('ORDER BY next_occurrences.next_occurs_at ASC, "events"."id" ASC')
+    end
+
+    it 'pages through events sharing a next time in a consistent order' do
+      shared = 1.day.after(now)
+      events = Array.new(4) { event_with_occurrences_at(shared) }
+
+      paged = [0, 2, 4].flat_map do |offset|
+        Event.by_next_occurrence(now).limit(2).offset(offset).to_a
+      end
+
+      expect(paged).to eq(events.sort_by(&:id))
+    end
   end
 end
