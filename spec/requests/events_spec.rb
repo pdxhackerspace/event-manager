@@ -387,6 +387,38 @@ RSpec.describe "Events", type: :request do
     end
   end
 
+  describe "wizard navigation buttons" do
+    let(:event) { create(:event, user: admin) }
+
+    before { sign_in admin }
+
+    def navigation_labels
+      wizard = Nokogiri::HTML4(response.body).at_css('#event-wizard')
+      buttons = wizard.css('a.btn-secondary, .wizard-save-exit-btn, .wizard-next-btn')
+      buttons.map { |node| node['value'] || node.text.strip }
+    end
+
+    it "offers Save and Exit between the cancel and next buttons when editing" do
+      get edit_event_path(event)
+
+      expect(navigation_labels).to eq(['Cancel Edit', 'Save and Exit', 'Next'])
+    end
+
+    it "submits the event form from outside it, like the final submit button" do
+      get edit_event_path(event)
+
+      save_exit = Nokogiri::HTML4(response.body).at_css('.wizard-save-exit-btn')
+      expect(save_exit['type']).to eq('submit')
+      expect(save_exit['form']).to eq('event-wizard-form')
+    end
+
+    it "omits Save and Exit when creating an event" do
+      get new_event_path
+
+      expect(navigation_labels).to eq(%w[Cancel Next])
+    end
+  end
+
   describe "DELETE /events/:id" do
     let!(:event) { create(:event, user: user) }
 
