@@ -4,18 +4,15 @@ class EventPolicy < ApplicationPolicy
   end
 
   def show?
-    # Draft events - only author and admins can view
-    return false if record.draft? && user.present? && !user.admin? && user != record.user
-    return false if record.draft? && user.blank?
+    # Hosts and admins can always see what they manage, drafts and private
+    # events included, so viewing never falls behind editing.
+    return true if host?
 
-    # Public events - anyone can view
+    # Unpublished events stay hidden from everyone else.
+    return false if record.draft?
+
     return true if record.public?
-
-    # Members events - signed in users can view
     return true if record.members_only? && user.present?
-
-    # Private events - only owner and admin can view
-    return true if record.private? && user.present? && (user.admin? || user == record.user)
 
     false
   end
@@ -25,7 +22,7 @@ class EventPolicy < ApplicationPolicy
   end
 
   def update?
-    user.present? && (user.admin? || record.hosted_by?(user))
+    host?
   end
 
   def destroy?
@@ -46,19 +43,23 @@ class EventPolicy < ApplicationPolicy
 
   class Scope < Scope
     def resolve
-      if user.blank?
-        # Not signed in - only show published public events
-        scope.published.public_events
-      elsif user.admin?
-        # Admins can see all events (including drafts)
-        scope.all
-      else
-        # Regular users can see published public, members, their own private events, and their own drafts
-        scope.where(
-          '(draft = ? AND (visibility = ? OR visibility = ? OR (visibility = ? AND user_id = ?))) OR (draft = ? AND user_id = ?)',
-          false, 'public', 'members', 'private', user.id, true, user.id
-        )
-      end
+      # Not signed in - only published public events
+      return scope.published.public_events if user.blank?
+
+      # Admins see everything, including drafts
+      return scope.all if user.admin?
+
+      # Published events open to signed-in users, plus every event the user
+      # hosts, which covers their own drafts and private events.
+      scope.published.where(visibility: %w[public members])
+           .or(scope.where(id: EventHost.where(user: user).select(:event_id)))
     end
+  end
+
+  private
+
+  # hosted_by? already treats admins as hosts of every event.
+  def host?
+    user.present? && record.hosted_by?(user)
   end
 end

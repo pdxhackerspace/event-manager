@@ -310,6 +310,29 @@ RSpec.describe User, type: :model do
     end
   end
 
+  describe 'deletion' do
+    # event_journals.user_id was NOT NULL, which made the association's
+    # dependent: :nullify raise and blocked deleting anyone who had ever
+    # edited an event. Creators are still held back by the events.user_id
+    # foreign key, which is a separate question.
+    let(:editor) { create(:user) }
+    let(:someone_elses_event) { create(:event) }
+
+    it 'succeeds for a user with journal entries' do
+      create(:event_journal, event: someone_elses_event, user: editor)
+
+      expect { editor.destroy! }.to change(User, :count).by(-1)
+    end
+
+    it 'leaves the journal entries behind' do
+      entry = create(:event_journal, event: someone_elses_event, user: editor)
+
+      editor.destroy!
+
+      expect(entry.reload.user_id).to be_nil
+    end
+  end
+
   describe 'factory' do
     it 'creates a valid user' do
       user = build(:user)

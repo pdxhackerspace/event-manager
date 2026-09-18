@@ -17,7 +17,7 @@
                     <%= journal.summary %>
                   </h6>
                   <small class="text-muted">
-                    <i class="bi bi-person-circle"></i> <%= journal.user.name || journal.user.email %>
+                    <i class="bi bi-person-circle"></i> <%= journal.user ? (journal.user.name || journal.user.email) : '(deleted user)' %>
                     · 
                     <i class="bi bi-clock"></i> <%= time_ago_in_words(journal.created_at) %> ago
                     (<%= journal.created_at.strftime('%b %d, %Y at %I:%M %p') %>)

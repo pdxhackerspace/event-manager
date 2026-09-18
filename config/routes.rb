@@ -55,8 +55,8 @@ Rails.application.routes.draw do
   get 'dashboard', to: 'dashboard#index', as: 'dashboard'
 
   # Events routes
-  get 'events/rss', to: 'events#rss', as: 'events_rss', defaults: { format: 'rss' }
-  get 'events/eink', to: 'events#eink', as: 'events_eink', defaults: { format: 'json' }
+  get 'events/rss', to: 'event_feeds#rss', as: 'events_rss', defaults: { format: 'rss' }
+  get 'events/eink', to: 'event_feeds#eink', as: 'events_eink', defaults: { format: 'json' }
   resources :events do
     member do
       post :postpone
@@ -64,7 +64,7 @@ Rails.application.routes.draw do
       post :reactivate
       post :generate_ai_reminder
       get :embed
-      get :rss, action: :event_rss, as: :rss, defaults: { format: 'rss' }
+      get :rss, to: 'event_feeds#event_rss', as: :rss, defaults: { format: 'rss' }
     end
 
     # Host management
@@ -101,7 +101,7 @@ Rails.application.routes.draw do
   get 'calendar/embed', to: 'calendar#embed', as: 'calendar_embed'
 
   # Public iCal feed
-  get 'events/:token/ical', to: 'events#ical', as: 'event_ical'
+  get 'events/:token/ical', to: 'event_feeds#ical', as: 'event_ical'
 
   # Users management (admin only)
   resources :users, only: %i[index show edit update destroy] do

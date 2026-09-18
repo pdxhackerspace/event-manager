@@ -94,6 +94,22 @@ class Event < ApplicationRecord
   scope :published, -> { where(draft: false) }
   scope :drafts, -> { where(draft: true) }
 
+  # Events with at least one upcoming listable occurrence, ordered by whichever
+  # occurrence comes next. Doing this in SQL keeps index pages sliceable instead
+  # of requiring every future occurrence to be loaded and sorted in Ruby.
+  scope :by_next_occurrence, lambda { |at = Time.current|
+    next_times = EventOccurrence.listable_upcoming(at)
+                                .reorder(nil)
+                                .group(:event_id)
+                                .select('event_occurrences.event_id AS event_id',
+                                        'MIN(event_occurrences.occurs_at) AS next_occurs_at')
+
+    # Events sharing a next time need a unique tiebreaker, or LIMIT/OFFSET can
+    # repeat or skip them from one page to the next.
+    joins("INNER JOIN (#{next_times.to_sql}) next_occurrences ON next_occurrences.event_id = events.id")
+      .order(Arel.sql('next_occurrences.next_occurs_at ASC'), :id)
+  }
+
   # Get occurrence dates for a date range (from IceCube schedule)
   def occurrence_dates(start_date, end_date)
     return [] if recurrence_rule.blank?
@@ -168,7 +184,15 @@ class Event < ApplicationRecord
   end
 
   def fallback_event_image
-    fixed_event_image || event_images.pooled.first
+    return fixed_event_image if fixed_event_image
+
+    # Reuse eager-loaded rows when the caller preloaded them. The feeds
+    # serialize hundreds of events, and `pooled.first` would re-query per event
+    # even with event_images already in memory. The association is ordered by
+    # position then id, so the first pooled record is the same either way.
+    return event_images.detect(&:in_pool?) if event_images.loaded?
+
+    event_images.pooled.first
   end
 
   def pooled_images

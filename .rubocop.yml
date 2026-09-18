@@ -59,7 +59,6 @@ Metrics/ClassLength:
   Exclude:
     - 'spec/**/*'
     - 'app/models/event.rb'  # Core event business logic with many methods
-    - 'app/controllers/events_controller.rb'  # Events controller with embed and API actions
 
 # Allow more complex methods (including API controllers with nested JSON)
 Metrics/AbcSize:
@@ -68,7 +67,6 @@ Metrics/AbcSize:
     - 'spec/**/*'
     - 'db/seeds.rb'
     - 'app/controllers/calendar_controller.rb'
-    - 'app/controllers/events_controller.rb'
     - 'app/models/user.rb'  # from_omniauth has extensive debug logging
     - 'lib/omniauth/strategies/authentik.rb'  # raw_info has extensive debug logging
 

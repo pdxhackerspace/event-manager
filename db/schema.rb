@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_16_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_18_212131) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -70,7 +70,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_16_180000) do
     t.bigint "event_id", null: false
     t.bigint "occurrence_id"
     t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
+    t.bigint "user_id"
     t.index ["action"], name: "index_event_journals_on_action"
     t.index ["created_at"], name: "index_event_journals_on_created_at"
     t.index ["event_id", "created_at"], name: "index_event_journals_on_event_id_and_created_at"
