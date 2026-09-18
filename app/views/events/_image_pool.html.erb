@@ -17,7 +17,7 @@
     <% if persisted %>
       <div class="mb-4"
            data-controller="pending-upload"
-           data-pending-upload-form-id-value="event-wizard-form"
+           data-pending-upload-form-ids-value="<%= ['event-wizard-form', 'event-image-settings-form'].to_json %>"
            data-pending-upload-field-name-value="event[pool_images][]">
         <%= form_with url: event_event_images_path(event), method: :post, local: true, html: { multipart: true } do %>
           <div class="mb-3">
@@ -45,7 +45,8 @@
     <% end %>
 
     <% if persisted %>
-      <%= form_with(model: event, url: event_path(event), method: :patch, local: true, class: 'mb-3') do |f| %>
+      <%= form_with(model: event, url: event_path(event), method: :patch, local: true, multipart: true,
+                    id: 'event-image-settings-form', class: 'mb-3') do |f| %>
         <div class="row g-3">
           <div class="col-md-6">
             <%= f.label :image_selection_mode, 'Selection Mode', class: 'form-label' %>

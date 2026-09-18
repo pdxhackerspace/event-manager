@@ -324,6 +324,14 @@ RSpec.describe "Events", type: :request do
       expect(response.body).to include('id="image-pool"')
     end
 
+    it "wires pending uploads into every form that saves the event" do
+      get edit_event_path(event)
+
+      expect(response.body).to include('id="event-image-settings-form"')
+      expect(response.body).to include('event-wizard-form&quot;,&quot;event-image-settings-form')
+      expect(response.body.scan('enctype="multipart/form-data"').size).to be >= 3
+    end
+
     it "adds uploads from the create wizard to the pool" do
       post events_path, params: {
         event: {
