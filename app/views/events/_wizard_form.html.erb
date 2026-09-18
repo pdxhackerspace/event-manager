@@ -605,11 +605,15 @@ function initEventWizard() {
   
   function validateStep(step) {
     const panel = wizard.querySelector(`.wizard-panel[data-step="${step}"]`);
-    const requiredFields = panel.querySelectorAll('[required]');
     let valid = true;
     
-    requiredFields.forEach(field => {
-      if (!field.value.trim()) {
+    // checkValidity covers more than an empty field: a malformed More Info URL
+    // or a duration off the 15-minute step blocks submission just as surely.
+    // A required field holding only spaces passes it but not the model.
+    panel.querySelectorAll('input, select, textarea').forEach(field => {
+      const blank = field.required && !field.value.trim();
+      
+      if (!field.disabled && (blank || !field.checkValidity())) {
         field.classList.add('is-invalid');
         valid = false;
       } else {
@@ -631,15 +635,25 @@ function initEventWizard() {
     }
   });
   
-  // Saving from an early step still submits the whole form, so required fields
-  // on later steps have to be checked before the browser refuses to submit
-  // while the offending field is hidden.
+  // Saving from an early step still submits the whole form, so every step has
+  // to be checked first: the browser refuses to submit while a field is
+  // invalid, but cannot show what is wrong while that field is on a hidden
+  // panel, leaving the click looking like it did nothing.
   if (saveExitBtn) {
     saveExitBtn.addEventListener('click', (clickEvent) => {
+      // This stops at the first bad step, so marks left on later ones by an
+      // earlier attempt would linger after the field behind them was fixed.
+      wizard.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+      
       for (let step = 1; step <= totalSteps; step++) {
         if (!validateStep(step)) {
           clickEvent.preventDefault();
           showStep(step);
+          
+          // On screen at last, so the browser can name the problem itself.
+          const field = wizard.querySelector(`.wizard-panel[data-step="${step}"] .is-invalid`);
+          field.reportValidity();
+          field.focus();
           return;
         }
       }

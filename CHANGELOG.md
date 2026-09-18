@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- **Save and Exit** opens the wizard step holding any field the browser will not accept, not just an empty required one. A malformed More Info URL or a duration off the 15-minute step blocked the save from a different step, and because the field was on a hidden panel the browser could not say what was wrong, so the button looked like it did nothing. The wizard now opens that step and lets the browser report the problem
+
 ## [v0.23.0] - 2026-09-18
 
 ### Added
