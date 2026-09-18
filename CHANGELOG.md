@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [v0.23.0] - 2026-09-18
 
 ### Added
 - Editing an event can be saved from any wizard step with a new **Save and Exit** button, instead of having to walk through to Promotion to reach the save. If a required field further along the wizard is empty, the wizard opens that step rather than the browser silently refusing to submit
