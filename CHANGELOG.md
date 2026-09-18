@@ -8,7 +8,7 @@
 - Images uploaded to a pool that already has images are numbered from the next free position rather than skipping one
 
 ### Changed
-- Creating and editing an event now present the same Image Pool section above the wizard. The separate "Banner Images" field on the wizard's Details step is gone
+- The event wizard has a new **Images** step between Details and Scheduling holding the whole image pool, so images are no longer tacked onto another step. Creating and editing an event now walk the same five steps, and the separate "Banner Images" field on the Details step is gone
 - Uploads submitted with the event form are added to the pool on edit as well as on create
 
 ### Added
