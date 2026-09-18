@@ -301,6 +301,69 @@ RSpec.describe "Events", type: :request do
     end
   end
 
+  describe "image pool uploads" do
+    def upload(filename)
+      Rack::Test::UploadedFile.new(StringIO.new('fake image content'), 'image/jpeg', original_filename: filename)
+    end
+
+    let(:event) { create(:event, user: admin) }
+
+    before { sign_in admin }
+
+    it "shows the image pool on the new event page" do
+      get new_event_path
+
+      expect(response.body).to include('id="image-pool"')
+      expect(response.body).to include('form="event-wizard-form"')
+      expect(response.body).to include('enctype="multipart/form-data"')
+    end
+
+    it "shows the image pool on the edit page" do
+      get edit_event_path(event)
+
+      expect(response.body).to include('id="image-pool"')
+    end
+
+    it "wires pending uploads into every form that saves the event" do
+      get edit_event_path(event)
+
+      expect(response.body).to include('id="event-image-settings-form"')
+      expect(response.body).to include('event-wizard-form&quot;,&quot;event-image-settings-form')
+      expect(response.body.scan('enctype="multipart/form-data"').size).to be >= 3
+    end
+
+    it "adds uploads from the create wizard to the pool" do
+      post events_path, params: {
+        event: {
+          title: "Pooled Event", start_time: 1.week.from_now, duration: 120,
+          recurrence_type: "once", visibility: "public", open_to: "public",
+          pool_images: [upload('one.jpg'), upload('two.jpg')]
+        }
+      }
+
+      created = Event.find_by(title: "Pooled Event")
+      expect(created.pooled_images.map(&:position)).to eq([0, 1])
+      expect(created.fixed_event_image_id).to eq(created.pooled_images.first.id)
+    end
+
+    it "adds uploads submitted with the edit form to the pool" do
+      create(:event_image, :with_image, event: event, position: 0)
+
+      expect do
+        patch event_path(event), params: { event: { title: "Still Fine", pool_images: [upload('three.jpg')] } }
+      end.to change { event.pooled_images.count }.by(1)
+
+      expect(event.reload.title).to eq("Still Fine")
+      expect(event.pooled_images.map(&:position)).to eq([0, 1])
+    end
+
+    it "adds uploads submitted with the edit form when nothing else changed" do
+      expect do
+        patch event_path(event), params: { event: { title: event.title, pool_images: [upload('four.jpg')] } }
+      end.to change { event.pooled_images.count }.by(1)
+    end
+  end
+
   describe "DELETE /events/:id" do
     let!(:event) { create(:event, user: user) }
 

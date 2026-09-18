@@ -394,25 +394,35 @@ class Event < ApplicationRecord
       saved_change_to_default_to_cancelled?
   end
 
+  # Returns the number of images added to the pool.
   def attach_pool_images_from_uploads(files)
-    Array(files).compact_blank.each_with_index do |file, index|
-      event_images.create!(position: index, in_pool: true).tap do |event_image|
+    files = Array(files).compact_blank
+    return 0 if files.empty?
+
+    next_position = (event_images.pooled.maximum(:position) || -1) + 1
+    files.each_with_index do |file, index|
+      event_images.create!(position: next_position + index, in_pool: true).tap do |event_image|
         event_image.image.attach(file)
       end
     end
 
-    return if fixed_event_image_id.present?
+    if fixed_event_image_id.blank?
+      first_image = event_images.pooled.ordered.first
+      update_column(:fixed_event_image_id, first_image.id) if first_image # rubocop:disable Rails/SkipsModelValidations
+    end
 
-    first_image = event_images.pooled.ordered.first
-    update_column(:fixed_event_image_id, first_image.id) if first_image # rubocop:disable Rails/SkipsModelValidations
+    files.size
   end
 
   private
 
   def attach_pool_images
-    return if pool_images.blank?
+    files = pool_images
+    return if files.blank?
 
-    attach_pool_images_from_uploads(pool_images)
+    # Cleared so a later save can't attach the same uploads twice.
+    self.pool_images = nil
+    attach_pool_images_from_uploads(files)
   end
 
   def fixed_event_image_belongs_to_event

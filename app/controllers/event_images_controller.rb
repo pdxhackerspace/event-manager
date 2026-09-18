@@ -11,19 +11,7 @@ class EventImagesController < ApplicationController
       return
     end
 
-    next_position = @event.event_images.pooled.maximum(:position).to_i + 1
-    created_count = 0
-
-    files.each_with_index do |file, index|
-      event_image = @event.event_images.create!(position: next_position + index, in_pool: true)
-      event_image.image.attach(file)
-      created_count += 1
-    end
-
-    if @event.fixed_event_image_id.blank?
-      first_image = @event.event_images.pooled.ordered.first
-      @event.update!(fixed_event_image_id: first_image.id) if first_image
-    end
+    created_count = @event.attach_pool_images_from_uploads(files)
 
     log_pool_change('images_added', { 'count' => created_count })
     redirect_to edit_event_path(@event, anchor: 'image-pool'), notice: "#{created_count} #{'image'.pluralize(created_count)} added to the pool."

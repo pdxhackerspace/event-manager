@@ -1,5 +1,19 @@
 # Changelog
 
+## [v0.20.0] - 2026-09-18
+
+### Fixed
+- Banner images picked while creating an event are actually uploaded. The event form was never marked as multipart, so the browser dropped the files and the new event ended up with an empty image pool
+- Images picked in the image pool but never submitted with "Add to Pool" are uploaded when the event is saved, instead of being silently discarded
+- Images uploaded to a pool that already has images are numbered from the next free position rather than skipping one
+
+### Changed
+- Creating and editing an event now present the same Image Pool section above the wizard. The separate "Banner Images" field on the wizard's Details step is gone
+- Uploads submitted with the event form are added to the pool on edit as well as on create
+
+### Added
+- Selection mode can be chosen while creating an event rather than only afterwards
+
 ## [v0.19.5] - 2026-08-18
 
 ### Security
