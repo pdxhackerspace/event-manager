@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.21.0] - 2026-09-18
+
+### Changed
+- The event wizard has a new **Images** step between Details and Scheduling holding the whole image pool, so images are no longer pinned above the wizard alongside whichever step happens to be open. Creating and editing an event walk the same five steps
+- Actions taken in the image pool return to the Images step rather than to the top of the wizard
+
 ## [v0.20.0] - 2026-09-18
 
 ### Fixed
@@ -8,7 +14,7 @@
 - Images uploaded to a pool that already has images are numbered from the next free position rather than skipping one
 
 ### Changed
-- The event wizard has a new **Images** step between Details and Scheduling holding the whole image pool, so images are no longer tacked onto another step. Creating and editing an event now walk the same five steps, and the separate "Banner Images" field on the Details step is gone
+- Creating and editing an event now present the same Image Pool section above the wizard. The separate "Banner Images" field on the wizard's Details step is gone
 - Uploads submitted with the event form are added to the pool on edit as well as on create
 
 ### Added
