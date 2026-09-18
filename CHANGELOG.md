@@ -8,6 +8,9 @@
 ### Changed
 - The wizard's **Cancel** button reads **Cancel Edit** when editing an existing event, so it cannot be mistaken for cancelling the event itself
 
+### Fixed
+- Saving an event keeps the selection mode and fixed image chosen in the image pool. Those live in their own form so the pool can save them without leaving the wizard, and saving the event discarded them while still reporting success
+
 ## [v0.21.0] - 2026-09-18
 
 ### Changed
