@@ -186,6 +186,7 @@ class EventsController < ApplicationController
 
     begin
       if @event.update(event_params)
+        attach_pending_pool_images
         redirect_to @event, notice: 'Event was successfully updated.'
       else
         Rails.logger.error "Event update failed. Errors: #{@event.errors.full_messages.join(', ')}"
@@ -285,6 +286,15 @@ class EventsController < ApplicationController
 
   def authorize_event
     authorize @event
+  end
+
+  # Uploads picked in the image pool but never submitted through "Add to Pool"
+  # ride along with the event form instead of being silently dropped.
+  def attach_pending_pool_images
+    count = @event.attach_pool_images_from_uploads(params.dig(:event, :pool_images))
+    return if count.zero?
+
+    EventJournal.log_event_change(@event, current_user, 'images_added', { 'count' => count })
   end
 
   def event_params

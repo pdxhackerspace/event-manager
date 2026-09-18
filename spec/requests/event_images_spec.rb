@@ -11,6 +11,18 @@ RSpec.describe 'EventImages', type: :request do
     sign_in user
   end
 
+  describe 'POST /events/:event_id/images' do
+    it 'appends uploads after the images already in the pool' do
+      upload = Rack::Test::UploadedFile.new(StringIO.new('fake image content'), 'image/jpeg',
+                                            original_filename: 'third.jpg')
+
+      post event_event_images_path(event), params: { images: [upload] }
+
+      expect(response).to redirect_to(edit_event_path(event, anchor: 'image-pool'))
+      expect(event.pooled_images.map(&:position)).to eq([0, 1, 2])
+    end
+  end
+
   describe 'PATCH /events/:event_id/images/reorder' do
     it 'reorders pooled images' do
       patch reorder_event_event_images_path(event),

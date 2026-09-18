@@ -9,3 +9,6 @@ application.register("hello", HelloController)
 
 import ImagePoolController from "./image_pool_controller"
 application.register("image-pool", ImagePoolController)
+
+import PendingUploadController from "./pending_upload_controller"
+application.register("pending-upload", PendingUploadController)
