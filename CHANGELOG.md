@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Fixed
+- The event wizard points at whichever field the browser will not accept, instead of appearing to do nothing. A malformed More Info URL or a duration off the 15-minute step silently stopped **Save and Exit**, **Update Event**, **Next**, and the step numbers alike: the browser refuses an invalid field but cannot explain itself while that field is on a hidden panel or scrolled out of sight. The wizard now opens the step holding the field, moves to it, and lets the browser name the problem
+
 ## [v0.23.0] - 2026-09-18
 
 ### Added

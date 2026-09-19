@@ -571,7 +571,7 @@ function initEventWizard() {
   const submitBtn = wizard.querySelector('.wizard-submit-btn');
   const saveExitBtn = wizard.querySelector('.wizard-save-exit-btn');
   
-  function showStep(step) {
+  function showStep(step, { scroll = true } = {}) {
     currentStep = step;
     
     // Show/hide panels
@@ -600,16 +600,22 @@ function initEventWizard() {
     }
     
     // Scroll to top of wizard
-    wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (scroll) {
+      wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
   
   function validateStep(step) {
     const panel = wizard.querySelector(`.wizard-panel[data-step="${step}"]`);
-    const requiredFields = panel.querySelectorAll('[required]');
     let valid = true;
     
-    requiredFields.forEach(field => {
-      if (!field.value.trim()) {
+    // checkValidity covers more than an empty field: a malformed More Info URL
+    // or a duration off the 15-minute step blocks submission just as surely.
+    // A required field holding only spaces passes it but not the model.
+    panel.querySelectorAll('input, select, textarea').forEach(field => {
+      const blank = field.required && !field.value.trim();
+      
+      if (!field.disabled && (blank || !field.checkValidity())) {
         field.classList.add('is-invalid');
         valid = false;
       } else {
@@ -620,31 +626,58 @@ function initEventWizard() {
     return valid;
   }
   
+  // A rejected field can be off-screen, or on a panel that is not even open, so
+  // every control that validates has to bring it into view and let the browser
+  // say what is wrong. Otherwise the control just appears to do nothing.
+  function validateAndReport(step) {
+    if (validateStep(step)) return true;
+    
+    if (currentStep !== step) showStep(step, { scroll: false });
+    
+    // Focusing scrolls the field into view at once. The smooth scroll showStep
+    // normally runs would still be going when the bubble appears, and Chromium
+    // dismisses the bubble as soon as anything scrolls.
+    const field = wizard.querySelector(`.wizard-panel[data-step="${step}"] .is-invalid`);
+    field.focus();
+    field.reportValidity();
+    
+    return false;
+  }
+  
+  function validateAllSteps() {
+    // This stops at the first bad step, so marks left on later ones by an
+    // earlier attempt would linger after the field behind them was fixed.
+    wizard.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+    
+    for (let step = 1; step <= totalSteps; step++) {
+      if (!validateAndReport(step)) return false;
+    }
+    
+    return true;
+  }
+  
   // Navigation buttons
   prevBtn.addEventListener('click', () => {
     if (currentStep > 1) showStep(currentStep - 1);
   });
   
   nextBtn.addEventListener('click', () => {
-    if (validateStep(currentStep) && currentStep < totalSteps) {
+    if (validateAndReport(currentStep) && currentStep < totalSteps) {
       showStep(currentStep + 1);
     }
   });
   
-  // Saving from an early step still submits the whole form, so required fields
-  // on later steps have to be checked before the browser refuses to submit
-  // while the offending field is hidden.
-  if (saveExitBtn) {
-    saveExitBtn.addEventListener('click', (clickEvent) => {
-      for (let step = 1; step <= totalSteps; step++) {
-        if (!validateStep(step)) {
-          clickEvent.preventDefault();
-          showStep(step);
-          return;
-        }
-      }
+  // Every panel belongs to the same form, so either save button submits all of
+  // them from whichever step is open, and the browser refuses while any field
+  // is invalid. Checking every step first is what makes it possible to open the
+  // one holding the problem.
+  [saveExitBtn, submitBtn].forEach(btn => {
+    if (!btn) return;
+    
+    btn.addEventListener('click', (clickEvent) => {
+      if (!validateAllSteps()) clickEvent.preventDefault();
     });
-  }
+  });
 
   // Step indicator clicks
   steps.forEach(step => {
@@ -653,7 +686,7 @@ function initEventWizard() {
       btn.addEventListener('click', () => {
         const targetStep = parseInt(btn.dataset.gotoStep);
         // Allow going back freely, but validate when going forward
-        if (targetStep < currentStep || validateStep(currentStep)) {
+        if (targetStep < currentStep || validateAndReport(currentStep)) {
           showStep(targetStep);
         }
       });
