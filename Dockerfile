@@ -2,7 +2,7 @@
 # ========================================
 # Stage 1: Builder - Install dependencies and build assets
 # ========================================
-FROM ruby:4.0.6 AS builder
+FROM ruby:4.0.7 AS builder
 
 # Install build dependencies
 # ImageMagick: Debian metapackage; apt-get update picks up current security/main versions at build time
