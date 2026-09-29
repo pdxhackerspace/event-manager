@@ -56,8 +56,8 @@ RSpec.describe SlackService do
         it 'includes image block in payload' do
           expect(http_mock).to receive(:request) do |request|
             body = JSON.parse(request.body)
-            expect(body['blocks']).to be_present
-            expect(body['blocks'][0]['accessory']['type']).to eq('image')
+            expect(body['blocks'].map { |block| block['type'] }).to eq(%w[section image])
+            expect(body['blocks'][1]['image_url']).to eq('https://example.com/image.jpg')
             response_mock
           end
 
@@ -129,6 +129,21 @@ RSpec.describe SlackService do
       expect(result).to be true
     end
 
+    context 'when the occurrence has a banner' do
+      let(:occurrence) { create(:event_occurrence, :with_banner, event: event) }
+
+      it 'posts the banner as a full-width image block titled for the event' do
+        expect(http_mock).to receive(:request) do |request|
+          image_block = JSON.parse(request.body)['blocks'].find { |block| block['type'] == 'image' }
+          expect(image_block['image_url']).to include('active_storage')
+          expect(image_block['alt_text']).to eq(event.title)
+          response_mock
+        end
+
+        described_class.post_occurrence_reminder(occurrence, 'Test reminder')
+      end
+    end
+
     it 'records posting on success' do
       expect do
         described_class.post_occurrence_reminder(occurrence, 'Test reminder', reminder_type: '6 days')
@@ -170,12 +185,19 @@ RSpec.describe SlackService do
     it 'builds block payload with image' do
       payload = described_class.send(:build_payload, 'Hello', 'https://img.jpg', 'Alt text')
 
-      expect(payload[:blocks]).to be_present
-      expect(payload[:blocks][0][:type]).to eq('section')
-      expect(payload[:blocks][0][:text][:text]).to eq('Hello')
-      expect(payload[:blocks][0][:accessory][:image_url]).to eq('https://img.jpg')
-      expect(payload[:blocks][0][:accessory][:alt_text]).to eq('Alt text')
+      expect(payload[:blocks]).to eq(
+        [
+          { type: 'section', text: { type: 'mrkdwn', text: 'Hello' } },
+          { type: 'image', image_url: 'https://img.jpg', alt_text: 'Alt text' }
+        ]
+      )
       expect(payload[:text]).to eq('Hello') # Fallback
+    end
+
+    it 'shows the image full width rather than as a thumbnail beside the text' do
+      payload = described_class.send(:build_payload, 'Hello', 'https://img.jpg', 'Alt text')
+
+      expect(payload[:blocks][0]).not_to have_key(:accessory)
     end
   end
 
