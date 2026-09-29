@@ -63,19 +63,15 @@ class SlackService
       Rails.logger.error "SlackService: Failed to record posting: #{e.message}"
     end
 
+    # The banner gets its own image block rather than a section accessory:
+    # Slack renders an accessory as a small thumbnail beside the text, while
+    # an image block spans the full width of the message.
     def build_payload(text, image_url, image_alt)
       if image_url.present?
         {
           blocks: [
-            {
-              type: 'section',
-              text: { type: 'mrkdwn', text: text },
-              accessory: {
-                type: 'image',
-                image_url: image_url,
-                alt_text: image_alt
-              }
-            }
+            { type: 'section', text: { type: 'mrkdwn', text: text } },
+            { type: 'image', image_url: image_url, alt_text: image_alt }
           ],
           text: text # Fallback for notifications
         }
