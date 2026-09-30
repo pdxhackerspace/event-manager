@@ -114,17 +114,7 @@
         </p>
       <% end %>
       <p class="mb-0">
-      <% 
-        open_to_text = case event.open_to
-        when 'public' then 'Open to All'
-        when 'members' then 'Members Only'
-        when 'private' then 'Private'
-        end
-      %>
-        <span class="badge bg-secondary">
-          <i class="bi bi-<%= event.open_to == 'public' ? 'door-open' : (event.open_to == 'members' ? 'people-fill' : 'envelope') %>" aria-hidden="true"></i>
-          <%= open_to_text %>
-        </span>
+        <%= open_to_badge(event) %>
         <% if event.requires_mask %>
           <span class="badge bg-info">
             <i class="bi bi-shield-fill-check" aria-hidden="true"></i> Masks Required
