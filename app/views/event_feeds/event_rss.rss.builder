@@ -45,6 +45,7 @@ xml.rss version: "2.0", "xmlns:atom" => "http://www.w3.org/2005/Atom" do
         xml.enclosure url: url_for(banner), type: banner.content_type, length: banner.byte_size if banner.attached?
 
         xml.category @event.recurrence_type.titleize
+        xml.category EventsHelper::OPEN_TO_DISPLAY.fetch(@event.open_to.to_s, EventsHelper::OPEN_TO_DISPLAY['private'])[:label]
         xml.category occurrence.status.titleize if occurrence.status != 'active'
       end
     end

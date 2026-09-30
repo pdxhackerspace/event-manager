@@ -105,6 +105,18 @@ RSpec.describe "RSS Feeds", type: :request do
         get events_rss_path(format: :rss)
         expect(response.body).to include("<category>Once</category>")
       end
+
+      it "labels each open_to level distinctly" do
+        create(:event, visibility: 'public', open_to: 'members', title: 'Members Feed Event')
+        create(:event, visibility: 'public', open_to: 'private', title: 'Private Feed Event')
+        get events_rss_path(format: :rss)
+        items = Nokogiri::XML(response.body).xpath('//item')
+        categories = ->(title) { items.find { |i| i.at('title').text == title }.xpath('category').map(&:text) }
+
+        expect(categories.call('Members Feed Event')).to include('Members Only')
+        expect(categories.call('Private Feed Event')).to include('Private')
+        expect(categories.call('Private Feed Event')).not_to include('Members Only')
+      end
     end
 
     context "with event banner" do
@@ -207,6 +219,14 @@ RSpec.describe "RSS Feeds", type: :request do
       it "includes location in description" do
         get rss_event_path(event, format: :rss)
         expect(response.body).to include("Conference Room")
+      end
+    end
+
+    context "with a members-only event" do
+      it "includes the open-to category" do
+        event.update!(open_to: 'members')
+        get rss_event_path(event, format: :rss)
+        expect(response.body).to include("<category>Members Only</category>")
       end
     end
 
