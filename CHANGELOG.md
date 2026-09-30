@@ -1,9 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [v0.23.2] - 2026-09-29
 
 ### Changed
-- Occurrences now show whether they are **Open to All**, **Members Only**, or **Private**: a badge on the occurrence page, the event's upcoming occurrences, and the embedded calendar and event lists, and an icon on the calendar grid
+- Occurrences now show whether they are **Open to All**, **Members Only**, or **Private**: a badge on the occurrence page, the event's upcoming occurrences, and the embedded calendar and event lists, and an icon on the calendar grid, with the label included in the grid link's accessible name
+
+### Fixed
+- The RSS feeds no longer label private events "Members Only"; the per-event feed now includes the open-to category too
 
 ## [v0.23.1] - 2026-09-29
 
