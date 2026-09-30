@@ -170,6 +170,9 @@
             <dd class="col-sm-7"><%= @event.hosts.map { |h| h.name || h.email }.join(', ') %></dd>
           <% end %>
 
+          <dt class="col-sm-5">Open To:</dt>
+          <dd class="col-sm-7"><%= open_to_badge(@event) %></dd>
+
           <dt class="col-sm-5">Status:</dt>
           <dd class="col-sm-7"><%= @occurrence.status.titleize %></dd>
 

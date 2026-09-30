@@ -137,6 +137,7 @@
                       Cancelled
                     </span>
                   <% end %>
+                  <%= open_to_badge(occurrence.event, extra_class: 'ms-2') %>
                 </div>
                 <div class="btn-group btn-group-sm">
                   <%= link_to "View", event_occurrence_path(occurrence), class: "btn btn-outline-primary" %>

@@ -43,7 +43,7 @@ xml.rss version: "2.0", "xmlns:atom" => "http://www.w3.org/2005/Atom" do
         end
 
         xml.category event.recurrence_type.titleize
-        xml.category event.open_to == 'public' ? 'Open to All' : 'Members Only'
+        xml.category EventsHelper::OPEN_TO_DISPLAY.fetch(event.open_to.to_s, EventsHelper::OPEN_TO_DISPLAY['private'])[:label]
       end
     end
   end

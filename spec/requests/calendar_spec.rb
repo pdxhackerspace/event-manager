@@ -120,6 +120,16 @@ RSpec.describe "Calendar", type: :request do
     end
   end
 
+  describe "calendar grid accessibility" do
+    it "puts who the event is open to in the occurrence link's accessible name" do
+      event = create(:event, visibility: 'public', open_to: 'members', start_time: 1.week.from_now)
+      get calendar_path(view: 'calendar', month: event.start_time.strftime('%Y-%m-%d'))
+
+      link = Nokogiri::HTML(response.body).css('.calendar-event-item').find { |a| a['aria-label'].include?(event.title) }
+      expect(link['aria-label']).to include('Members Only')
+    end
+  end
+
   describe "GET /calendar/embed" do
     let!(:public_event) { create(:event, visibility: 'public', start_time: 1.week.from_now) }
     let!(:private_event) { create(:event, :private, start_time: 2.weeks.from_now) }
