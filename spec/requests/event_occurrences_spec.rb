@@ -26,6 +26,16 @@ RSpec.describe "EventOccurrences", type: :request do
         expect(response.body).to include(public_event.title)
       end
 
+      it "shows who the occurrence is open to" do
+        public_event.update!(open_to: 'public')
+        get event_occurrence_path(public_event.occurrences.first)
+        expect(response.body).to include('Open to All')
+
+        public_event.update!(open_to: 'members')
+        get event_occurrence_path(public_event.occurrences.first)
+        expect(response.body).to include('Members Only')
+      end
+
       it "uses the occurrence banner for link preview images" do
         public_event = create(:event, :with_banner, visibility: 'public')
         public_occurrence = public_event.occurrences.first

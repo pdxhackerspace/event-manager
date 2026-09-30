@@ -45,6 +45,9 @@
                       <i class="bi bi-shield-fill-check" aria-hidden="true"></i>
                       <span class="visually-hidden">Masks required</span>
                     <% end %>
+                    <% open_to = EventsHelper::OPEN_TO_DISPLAY.fetch(occurrence.event.open_to.to_s, EventsHelper::OPEN_TO_DISPLAY['private']) %>
+                    <i class="bi bi-<%= open_to[:icon] %>" aria-hidden="true"></i>
+                    <span class="visually-hidden"><%= open_to[:label] %>:</span>
                     <%= truncate(occurrence.event.title, length: 30) %>
                     <% if occurrence.status == 'postponed' && occurrence.postponed_until %>
                       <%

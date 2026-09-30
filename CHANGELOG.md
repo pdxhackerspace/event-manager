@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Changed
+- Occurrences now show whether they are **Open to All**, **Members Only**, or **Private**: a badge on the occurrence page, the event's upcoming occurrences, and the embedded calendar and event lists, and an icon on the calendar grid
+
 ## [v0.23.1] - 2026-09-29
 
 ### Changed
