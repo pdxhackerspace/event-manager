@@ -6,6 +6,9 @@ RSpec.describe SlackService do
   let(:webhook_url) { 'https://hooks.slack.com/services/test/webhook' }
 
   before do
+    # Let unstubbed keys through: lazily loading routes on first use reads
+    # config files (e.g. cable.yml) that call ENV.fetch with other keys.
+    allow(ENV).to receive(:fetch).and_call_original
     allow(ENV).to receive(:fetch).with('SLACK_WEBHOOK_URL', nil).and_return(webhook_url)
     allow(ENV).to receive(:fetch).with('RAILS_HOST', anything).and_return('example.com')
     allow(ENV).to receive(:fetch).with('RAILS_PROTOCOL', anything).and_return('https')
