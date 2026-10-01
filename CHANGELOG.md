@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.24.0] - 2026-09-30
+
+### Changed
+- Ruby is now **4.0.7** in Docker, CI, and local development
+- Pagination uses **Pagy 43**; out-of-range page links still show the last page of results instead of erroring
+
 ## [v0.23.2] - 2026-09-29
 
 ### Changed
