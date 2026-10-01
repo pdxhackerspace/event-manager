@@ -37,7 +37,8 @@
                 else 'bg-primary text-white'
                 end
               %>
-              <%= link_to event_occurrence_path(occurrence), class: "calendar-event-item text-decoration-none", target: "_blank", rel: "noopener noreferrer", "aria-label": "#{occurrence.event.title} at #{occurrence.occurs_at.strftime('%I:%M %p')}#{occurrence.status != 'active' ? " (#{occurrence.status})" : ''}" do %>
+              <% open_to = EventsHelper::OPEN_TO_DISPLAY.fetch(occurrence.event.open_to.to_s, EventsHelper::OPEN_TO_DISPLAY['private']) %>
+              <%= link_to event_occurrence_path(occurrence), class: "calendar-event-item text-decoration-none", target: "_blank", rel: "noopener noreferrer", "aria-label": "#{occurrence.event.title} at #{occurrence.occurs_at.strftime('%I:%M %p')}, #{open_to[:label]}#{occurrence.status != 'active' ? " (#{occurrence.status})" : ''}" do %>
                 <div class="calendar-event-badge <%= badge_class %>">
                   <div class="event-time <%= 'text-decoration-line-through opacity-75' if occurrence.status == 'postponed' && occurrence.postponed_until %>"><%= occurrence.occurs_at.strftime('%I:%M %p') %></div>
                   <div class="event-title">
@@ -45,6 +46,7 @@
                       <i class="bi bi-shield-fill-check" aria-hidden="true"></i>
                       <span class="visually-hidden">Masks required</span>
                     <% end %>
+                    <i class="bi bi-<%= open_to[:icon] %>" aria-hidden="true"></i>
                     <%= truncate(occurrence.event.title, length: 30) %>
                     <% if occurrence.status == 'postponed' && occurrence.postponed_until %>
                       <%

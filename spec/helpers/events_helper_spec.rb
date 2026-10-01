@@ -3,6 +3,36 @@
 require 'rails_helper'
 
 RSpec.describe EventsHelper, type: :helper do
+  describe '#open_to_badge' do
+    it 'labels public events as open to all' do
+      html = helper.open_to_badge(build(:event, open_to: 'public'))
+
+      expect(html).to include('Open to All')
+      expect(html).to include('bi-door-open')
+    end
+
+    it 'labels members events as members only' do
+      html = helper.open_to_badge(build(:event, open_to: 'members'))
+
+      expect(html).to include('Members Only')
+      expect(html).to include('bi-people-fill')
+    end
+
+    it 'labels private events as private' do
+      expect(helper.open_to_badge(build(:event, open_to: 'private'))).to include('Private')
+    end
+
+    it 'uses the same badge styling for every level' do
+      %w[public members private].each do |level|
+        expect(helper.open_to_badge(build(:event, open_to: level))).to include('badge bg-secondary')
+      end
+    end
+
+    it 'adds extra classes' do
+      expect(helper.open_to_badge(build(:event), extra_class: 'ms-2')).to include('ms-2')
+    end
+  end
+
   describe '#schedule_description' do
     context 'for one-time event' do
       let(:event) { create(:event, recurrence_type: 'once', start_time: Time.zone.parse('2025-06-15 19:00')) }

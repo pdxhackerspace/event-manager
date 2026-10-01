@@ -54,6 +54,7 @@
                     <i class="bi bi-clock"></i> <%= occurrence.occurs_at.strftime('%I:%M %p') %> to <%= (occurrence.occurs_at + occurrence.duration.minutes).strftime('%I:%M %p') %>
                   </p>
                 <% end %>
+                <%= open_to_badge(occurrence.event, extra_class: 'badge-sm mt-1') %>
                 <% if occurrence.event.requires_mask %>
                   <span class="badge bg-info badge-sm mt-1">
                     <i class="bi bi-shield-fill-check"></i> Masks Required

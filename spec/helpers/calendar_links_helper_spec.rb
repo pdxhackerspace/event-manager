@@ -10,6 +10,9 @@ RSpec.describe CalendarLinksHelper, type: :helper do
   end
 
   before do
+    # Let unstubbed keys through: lazily loading routes on first use reads
+    # config files (e.g. cable.yml) that call ENV.fetch with other keys.
+    allow(ENV).to receive(:fetch).and_call_original
     allow(ENV).to receive(:fetch).with('APP_HOST', anything).and_return('example.com')
   end
 

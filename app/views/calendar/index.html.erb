@@ -147,10 +147,7 @@
                   <p class="mb-1"><strong>Reason:</strong> <%= occurrence.cancellation_reason %></p>
                 <% end %>
                 <p class="mb-0">
-                  <span class="badge bg-secondary">
-                    <i class="bi bi-<%= occurrence.event.open_to == 'public' ? 'door-open' : (occurrence.event.open_to == 'members' ? 'people-fill' : 'envelope') %>"></i>
-                    <%= occurrence.event.open_to == 'public' ? 'Open to All' : (occurrence.event.open_to == 'members' ? 'Members Only' : 'Private') %>
-                  </span>
+                  <%= open_to_badge(occurrence.event) %>
                   <% if occurrence.event.requires_mask %>
                     <span class="badge bg-info">
                       <i class="bi bi-shield-fill-check"></i> Masks Required
