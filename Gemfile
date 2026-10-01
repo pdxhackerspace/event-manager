@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby "4.0.6"
+ruby "4.0.7"
 
 # json 3.x breaks ActiveSupport::JSON.decode until Rails adapts to keyword-only options
 gem "json", "< 3"
