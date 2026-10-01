@@ -5,7 +5,7 @@ class UsersController < ApplicationController
 
   def index
     authorize User
-    @pagy, @users = pagy(User.order(created_at: :desc))
+    @pagy, @users = pagy(:offset, User.order(created_at: :desc))
     # One grouped count for the page instead of a COUNT per row in the table.
     @event_counts = Event.where(user_id: @users.map(&:id)).group(:user_id).count
   end
