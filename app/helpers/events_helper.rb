@@ -8,16 +8,16 @@ module EventsHelper
   OCC_NUM_TO_NAME = { 1 => 'first', 2 => 'second', 3 => 'third', 4 => 'fourth', -1 => 'last' }.freeze
 
   OPEN_TO_DISPLAY = {
-    'public' => { label: 'Open to All', icon: 'door-open', css: 'bg-success' },
-    'members' => { label: 'Members Only', icon: 'people-fill', css: 'bg-secondary' },
-    'private' => { label: 'Private', icon: 'envelope', css: 'bg-dark' }
+    'public' => { label: 'Open to All', icon: 'door-open' },
+    'members' => { label: 'Members Only', icon: 'people-fill' },
+    'private' => { label: 'Private', icon: 'envelope' }
   }.freeze
 
   # Badge showing whether an event (and so its occurrences) is open to everyone,
   # members only, or private.
   def open_to_badge(event, extra_class: nil)
     info = OPEN_TO_DISPLAY.fetch(event.open_to.to_s, OPEN_TO_DISPLAY['private'])
-    content_tag(:span, class: ['badge', info[:css], extra_class].compact.join(' ')) do
+    content_tag(:span, class: ['badge bg-secondary', extra_class].compact.join(' ')) do
       safe_join([content_tag(:i, '', class: "bi bi-#{info[:icon]}", 'aria-hidden': 'true'), " #{info[:label]}"])
     end
   end
