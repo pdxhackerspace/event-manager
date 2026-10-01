@@ -55,7 +55,7 @@ RUN SECRET_KEY_BASE=dummy RAILS_ENV=production bundle exec rake assets:precompil
 # ========================================
 # Stage 2: Runtime - Minimal production image
 # ========================================
-FROM ruby:4.0.6-slim AS runtime
+FROM ruby:4.0.7-slim AS runtime
 
 # Updated per deployment protocol: CI passes APP_VERSION; local builds default to dev
 ARG APP_VERSION=dev
