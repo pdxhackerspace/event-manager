@@ -87,7 +87,7 @@
 
   <% if @pagy.pages > 1 %>
     <nav class="mt-4" aria-label="Event pages">
-      <%== pagy_bootstrap_nav(@pagy) %>
+      <%== @pagy.series_nav(:bootstrap) %>
     </nav>
   <% end %>
 <% else %>

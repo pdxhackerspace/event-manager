@@ -183,7 +183,7 @@ class EventsController < ApplicationController
   end
 
   def load_event_page(now)
-    @pagy, @events = pagy(filtered_events.by_next_occurrence(now).preload(:user, :hosts, :location))
+    @pagy, @events = pagy(:offset, filtered_events.by_next_occurrence(now).preload(:user, :hosts, :location))
     @next_occurrence_by_event = next_occurrence_by_event(@events, now)
   end
 

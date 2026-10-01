@@ -1,12 +1,18 @@
 class ApplicationController < ActionController::Base
   include Pundit::Authorization
-  include Pagy::Backend
+  include Pagy::Method
 
   before_action :load_site_config
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_robots_header
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+
+  def pagy(type, collection, **)
+    super
+  rescue Pagy::RangeError => e
+    super(type, collection, **, page: e.pagy.last)
+  end
 
   protected
 

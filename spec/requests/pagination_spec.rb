@@ -1,7 +1,7 @@
 require 'rails_helper'
 
 RSpec.describe 'Pagination', type: :request do
-  let(:per_page) { Pagy::DEFAULT[:limit] }
+  let(:per_page) { Pagy::OPTIONS[:limit] }
 
   describe 'GET /events' do
     # Titles are zero-padded so "Event 002" is never a substring of "Event 020".
