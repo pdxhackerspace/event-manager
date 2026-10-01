@@ -22,6 +22,12 @@ RSpec.describe EventsHelper, type: :helper do
       expect(helper.open_to_badge(build(:event, open_to: 'private'))).to include('Private')
     end
 
+    it 'uses the same badge styling for every level' do
+      %w[public members private].each do |level|
+        expect(helper.open_to_badge(build(:event, open_to: level))).to include('badge bg-secondary')
+      end
+    end
+
     it 'adds extra classes' do
       expect(helper.open_to_badge(build(:event), extra_class: 'ms-2')).to include('ms-2')
     end
