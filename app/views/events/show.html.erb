@@ -117,12 +117,7 @@
                     <%= occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>
                   <% end %>
                   <% if occurrence.status == 'postponed' && occurrence.postponed_until %>
-                    <%
-                      new_occurrence = occurrence.event.occurrences.find_by(
-                        occurs_at: occurrence.postponed_until,
-                        status: 'active'
-                      )
-                    %>
+                    <% new_occurrence = occurrence.replacement_occurrence %>
                     <% if new_occurrence %>
                       <%= link_to event_occurrence_path(new_occurrence), class: "badge bg-warning text-dark ms-2 text-decoration-none" do %>
                         Postponed to <%= occurrence.postponed_until.strftime('%B %d at %I:%M %p') %>
@@ -171,12 +166,7 @@
             <dt class="col-sm-5">Postponed:</dt>
             <dd class="col-sm-7">
               <% postponed_occurrences.each do |occurrence| %>
-                <%
-                  new_occurrence = occurrence.event.occurrences.find_by(
-                    occurs_at: occurrence.postponed_until,
-                    status: 'active'
-                  )
-                %>
+                <% new_occurrence = occurrence.replacement_occurrence %>
                 <div class="mb-2">
                   <span class="text-decoration-line-through text-muted">
                     <%= occurrence.occurs_at.strftime('%B %d') %>

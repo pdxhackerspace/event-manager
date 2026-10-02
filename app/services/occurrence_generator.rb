@@ -115,6 +115,8 @@ class OccurrenceGenerator
     return if occurrence.occurs_at.utc == canonical_time.utc
 
     occurrence.update_column(:occurs_at, canonical_time) # rubocop:disable Rails/SkipsModelValidations
+    occurrence.reload
+    occurrence.propagate_rescheduled_time_to_predecessors!
   end
 
   private

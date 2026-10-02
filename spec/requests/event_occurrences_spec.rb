@@ -428,4 +428,64 @@ RSpec.describe "EventOccurrences", type: :request do
       expect(response.body).not_to include('METHOD:')
     end
   end
+
+  describe 'postponement chain propagation' do
+    before { sign_in user }
+
+    let(:original_time) { 1.week.from_now.change(sec: 0) }
+    let(:first_reschedule) { 2.weeks.from_now.change(sec: 0) }
+    let(:second_reschedule) { 3.weeks.from_now.change(sec: 0) }
+    let(:edited_time) { first_reschedule + 90.minutes }
+    let(:original) { create(:event_occurrence, event: event, occurs_at: original_time) }
+
+    def postpone_and_edit_replacement
+      original.postpone!(first_reschedule, nil, user)
+      replacement = original.reload.postponed_to
+      patch event_occurrence_path(replacement),
+            params: { event_occurrence: { occurs_at: edited_time.strftime('%Y-%m-%dT%H:%M') } }
+    end
+
+    it 'shows the latest time on the original occurrence page' do
+      postpone_and_edit_replacement
+      get event_occurrence_path(original)
+
+      expect(response.body).to include(edited_time.strftime('%B %d, %Y at %I:%M %p'))
+    end
+
+    it 'shows the latest time on the event page' do
+      postpone_and_edit_replacement
+      get event_path(event)
+
+      expect(response.body).to include(edited_time.strftime('%B %d at %I:%M %p'))
+    end
+
+    it 'includes the rescheduled note in the ICS export' do
+      postpone_and_edit_replacement
+      get ical_event_occurrence_path(original, format: :ics)
+
+      normalized = response.body.gsub(/\r\n[ \t]/, '')
+      expect(normalized).to include('Rescheduled to:')
+      expect(normalized).to include(edited_time.strftime('%B %d'))
+      expect(normalized).to include(edited_time.strftime('%I:%M %p'))
+    end
+
+    it 'updates the original when a replacement is postponed again' do
+      original.postpone!(first_reschedule, nil, user)
+      replacement = original.reload.postponed_to
+      post postpone_event_occurrence_path(replacement),
+           params: { postponed_until: second_reschedule, reason: 'Still unavailable' }
+
+      expect(original.reload.postponed_until).to be_within(1.second).of(second_reschedule)
+    end
+
+    it 'exposes the latest postponed_until in the JSON feed' do
+      postpone_and_edit_replacement
+
+      get events_path, headers: { 'Accept' => 'application/json' }
+      json = JSON.parse(response.body)
+      occ = json['occurrences'].find { |o| o['id'] == original.id }
+
+      expect(Time.zone.parse(occ['postponed_until'])).to be_within(1.second).of(edited_time)
+    end
+  end
 end

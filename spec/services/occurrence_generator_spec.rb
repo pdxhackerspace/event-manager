@@ -155,6 +155,27 @@ RSpec.describe OccurrenceGenerator do
         expect(occ.occurs_at.utc_offset).to eq(-7 * 3600)
       end
     end
+
+    context 'when the occurrence is a postponement replacement' do
+      let(:user) { create(:user) }
+      let(:event) { create(:event, recurrence_type: 'once', start_time: la_zone.local(2025, 6, 3, 20, 0, 0)) }
+
+      it 'propagates the new time to postponed predecessors' do
+        original_time = la_zone.local(2025, 6, 3, 20, 0, 0)
+        reschedule_time = la_zone.local(2025, 6, 10, 20, 0, 0)
+        event.occurrences.destroy_all
+        original = event.occurrences.create!(occurs_at: original_time)
+        original.postpone!(reschedule_time, nil, user)
+        replacement = original.reload.postponed_to
+        wrong_time = Time.utc(2025, 6, 10, 12, 0, 0)
+        replacement.update_column(:occurs_at, wrong_time) # rubocop:disable Rails/SkipsModelValidations
+        correct_time = la_zone.local(2025, 6, 10, 20, 0, 0)
+
+        generator.update_occurrence_time_if_needed(replacement.reload, correct_time)
+
+        expect(original.reload.postponed_until.in_time_zone(la_zone).hour).to eq(20)
+      end
+    end
   end
 
   describe '#generate' do
