@@ -37,6 +37,8 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # Occurrences that still belong in public listings. Relocated ones stay
   # listed so a permanently relocated event remains discoverable.
   LISTABLE_STATUSES = %w[active relocated].freeze
+  # Occurrence statuses that can be linked as the live target of a postponement.
+  REPLACEMENT_STATUSES = LISTABLE_STATUSES.freeze
   scope :listable_upcoming, lambda { |at = Time.current|
     where(status: LISTABLE_STATUSES).where(occurs_at: at..)
   }
@@ -172,13 +174,13 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     current.occurs_at
   end
 
-  # Active replacement at the tail of a postponement chain (linked or legacy lookup).
+  # Live replacement at the tail of a postponement chain (linked or legacy lookup).
   def replacement_occurrence
     return nil unless status == 'postponed'
 
-    tail = linked_replacement_tail if postponed_to_id.present?
-    tail ||= legacy_replacement_occurrence
-    tail if tail&.status == 'active'
+    return listable_replacement(linked_replacement_tail) if postponed_to_id.present?
+
+    listable_replacement(legacy_replacement_occurrence)
   end
 
   # Walk backward through postponement links and sync postponed_until on predecessors.
@@ -273,7 +275,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     visited = Set.new
     current = postponed_to
 
-    while current.status != 'active' && current.postponed_to_id.present? && current.postponed_to.present?
+    while current.status == 'postponed' && current.postponed_to_id.present? && current.postponed_to.present?
       break if visited.include?(current.id)
 
       visited.add(current.id)
@@ -286,7 +288,14 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def legacy_replacement_occurrence
     return nil if postponed_until.blank?
 
-    event.occurrences.find_by(occurs_at: postponed_until, status: 'active')
+    event.occurrences.find_by(occurs_at: postponed_until, status: REPLACEMENT_STATUSES)
+  end
+
+  def listable_replacement(occurrence)
+    return nil unless occurrence
+    return nil unless REPLACEMENT_STATUSES.include?(occurrence.status)
+
+    occurrence
   end
 
   def times_equal?(left, right)

@@ -160,6 +160,28 @@ RSpec.describe EventOccurrence do
         expect(original.postponed_to_id).to eq(replacement.id)
         expect(original.replacement_occurrence).to be_nil
       end
+
+      it 'does not fall back to a different active occurrence when the link is broken' do
+        postponed_until = 2.weeks.from_now.change(sec: 0)
+        event.occurrences.destroy_all
+        original = create(:event_occurrence, event: event, occurs_at: 1.week.from_now)
+        replacement = postpone_occurrence(original, postponed_until)
+        decoy = create(:event_occurrence, event: event, occurs_at: postponed_until, status: 'active')
+        replacement.soft_delete
+        original.reload
+
+        expect(original.postponed_to_id).to eq(replacement.id)
+        expect(original.replacement_occurrence).to be_nil
+        expect(decoy).to be_persisted
+      end
+
+      it 'returns a relocated replacement at the tail of the chain' do
+        original = create(:event_occurrence, event: event, occurs_at: 1.week.from_now)
+        replacement = postpone_occurrence(original, 2.weeks.from_now)
+        replacement.relocate!('Across town', nil, user)
+
+        expect(original.replacement_occurrence).to eq(replacement)
+      end
     end
 
     describe 'journal entries' do
