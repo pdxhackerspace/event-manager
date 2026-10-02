@@ -10,6 +10,7 @@ class PostponementChainRepairer
   def initialize(apply: false, io: $stdout)
     @apply = apply
     @io = io
+    @planned_links = {}
     @report = { linked: [], synced: [], ambiguous: [], skipped: [], errors: [] }
   end
 
@@ -25,10 +26,10 @@ class PostponementChainRepairer
     evidence = 'manual'
     if @apply
       postponed.update!(postponed_to: replacement)
-      sync_occurrence(postponed, evidence: evidence)
     else
-      log_link(postponed, replacement, evidence, dry_run: true)
+      record_planned_link(postponed, replacement, evidence)
     end
+    sync_occurrence(postponed, evidence: evidence)
     self
   end
 
@@ -45,9 +46,11 @@ class PostponementChainRepairer
         if @apply
           postponed.update!(postponed_to: candidate)
           claimed_replacement_ids.add(candidate.id)
-          @report[:linked] << { postponed_id: postponed.id, replacement_id: candidate.id, evidence: evidence }
+          record_applied_link(postponed, candidate, evidence)
           log_link(postponed, candidate, evidence, dry_run: false)
         else
+          claimed_replacement_ids.add(candidate.id)
+          record_planned_link(postponed, candidate, evidence)
           log_link(postponed, candidate, evidence, dry_run: true)
         end
       elsif candidates.empty?
@@ -64,27 +67,87 @@ class PostponementChainRepairer
   end
 
   def sync_postponed_until_values
-    EventOccurrence.postponed.where.not(postponed_to_id: nil).find_each do |postponed|
+    ids = postponed_ids_to_sync
+    return if ids.empty?
+
+    EventOccurrence.postponed.where(id: ids).find_each do |postponed|
       sync_occurrence(postponed)
     end
   end
 
   def sync_occurrence(postponed, evidence: nil)
-    latest = postponed.rescheduled_time
+    latest = projected_rescheduled_time(postponed)
     return if times_equal?(postponed.postponed_until, latest)
 
     old_value = postponed.postponed_until
+    entry = {
+      occurrence_id: postponed.id,
+      from: old_value,
+      to: latest,
+      evidence: evidence,
+      dry_run: !@apply
+    }
+
     if @apply
       postponed.update!(postponed_until: latest)
-      @report[:synced] << {
-        occurrence_id: postponed.id,
-        from: old_value,
-        to: latest,
-        evidence: evidence
-      }
+      @report[:synced] << entry
       @io.puts "  Synced ##{postponed.id}: #{old_value} -> #{latest}"
     else
+      @report[:synced] << entry
       @io.puts "  Would sync ##{postponed.id}: #{old_value} -> #{latest}"
+    end
+  end
+
+  def postponed_ids_to_sync
+    db_linked = EventOccurrence.postponed.where.not(postponed_to_id: nil).pluck(:id)
+    (db_linked + @planned_links.keys).uniq
+  end
+
+  def record_applied_link(postponed, replacement, evidence)
+    @report[:linked] << {
+      postponed_id: postponed.id,
+      replacement_id: replacement.id,
+      evidence: evidence,
+      dry_run: false
+    }
+  end
+
+  def record_planned_link(postponed, replacement, evidence)
+    @planned_links[postponed.id] = replacement
+    @report[:linked] << {
+      postponed_id: postponed.id,
+      replacement_id: replacement.id,
+      evidence: evidence,
+      dry_run: true
+    }
+  end
+
+  def projected_rescheduled_time(postponed)
+    visited = Set.new
+    current = postponed
+
+    loop do
+      replacement = replacement_for(current)
+      if replacement
+        break if visited.include?(current.id)
+
+        visited.add(current.id)
+        current = replacement
+      else
+        return current.postponed_until if current.status == 'postponed' && current.postponed_until.present?
+
+        return current.occurs_at
+      end
+    end
+
+    current.occurs_at
+  end
+
+  def replacement_for(occurrence)
+    if occurrence.postponed_to_id.present?
+      occurrence.postponed_to
+    else
+      @planned_links[occurrence.id]
     end
   end
 

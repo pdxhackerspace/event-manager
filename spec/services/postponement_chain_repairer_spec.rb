@@ -128,9 +128,46 @@ RSpec.describe PostponementChainRepairer do
       postponed_until = 2.weeks.from_now.change(sec: 0)
       original, = build_legacy_postponed(1.week.from_now, postponed_until, postponed_until)
 
+      repairer = nil
       expect do
-        described_class.new(apply: false, io: io).run
+        repairer = described_class.new(apply: false, io: io).run
       end.not_to(change { original.reload.postponed_to_id })
+
+      expect(repairer.report[:linked].size).to eq(1)
+      expect(repairer.report[:linked].first[:dry_run]).to be true
+    end
+
+    it 'records planned syncs in dry run when a replacement was edited' do
+      postponed_until = 2.weeks.from_now.change(sec: 0)
+      edited_time = postponed_until + 2.hours
+      original, replacement = build_legacy_postponed(1.week.from_now, postponed_until, edited_time)
+      EventJournal.log_occurrence_change(
+        replacement,
+        user,
+        'updated',
+        { 'occurs_at' => { 'from' => postponed_until, 'to' => edited_time } }
+      )
+
+      repairer = described_class.new(apply: false, io: io).run
+
+      expect(repairer.report[:linked].size).to eq(1)
+      expect(repairer.report[:synced].size).to eq(1)
+      expect(repairer.report[:synced].first[:to]).to be_within(1.second).of(edited_time)
+      expect(repairer.report[:synced].first[:dry_run]).to be true
+    end
+
+    it 'reserves replacements during dry run so only one row claims a target' do
+      postponed_until = 2.weeks.from_now.change(sec: 0)
+      first = create(:event_occurrence, event: event, occurs_at: 1.week.from_now, status: 'postponed',
+                                        postponed_until: postponed_until)
+      create(:event_occurrence, event: event, occurs_at: 1.week.from_now + 1.day, status: 'postponed',
+                                postponed_until: postponed_until)
+      create(:event_occurrence, event: event, occurs_at: postponed_until, status: 'active')
+
+      repairer = described_class.new(apply: false, io: io).run
+
+      expect(repairer.report[:linked].size).to eq(1)
+      expect(repairer.report[:linked].first[:postponed_id]).to eq(first.id)
     end
 
     it 'repairs a multi-level legacy chain' do
