@@ -1,5 +1,14 @@
 # Changelog
 
+## [v0.24.1] - 2026-10-02
+
+### Fixed
+- Postponed occurrences now stay in sync when a rescheduled occurrence is edited or postponed again, so calendars, event pages, feeds, and reminders show the latest date and time
+- Event and calendar links for postponed occurrences now point at the active tail of a postponement chain, not an intermediate postponed occurrence
+- `events:repair_postponement_chains` dry run now reports planned links and syncs and reserves replacement targets like the apply pass
+- Postponement replacement links no longer fall back to the wrong occurrence when a stored link is broken, and still point at relocated replacements
+- Added `events:repair_postponement_chains` (dry run by default; use `APPLY=1` to fix data) and `events:link_postponement` for repairing legacy postponement chains in the database
+
 ## [v0.24.0] - 2026-09-30
 
 ### Changed

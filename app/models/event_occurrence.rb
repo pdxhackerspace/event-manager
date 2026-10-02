@@ -4,6 +4,9 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   belongs_to :event, counter_cache: true
   belongs_to :location, optional: true
   belongs_to :event_image, optional: true
+  belongs_to :postponed_to, class_name: 'EventOccurrence', optional: true, inverse_of: :postponed_from
+  has_one :postponed_from, class_name: 'EventOccurrence', foreign_key: :postponed_to_id,
+                           inverse_of: :postponed_to, dependent: :nullify
   has_many :reminder_postings, dependent: :destroy
 
   # Slugs are stable identifiers; only generate on create.
@@ -34,6 +37,8 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # Occurrences that still belong in public listings. Relocated ones stay
   # listed so a permanently relocated event remains discoverable.
   LISTABLE_STATUSES = %w[active relocated].freeze
+  # Occurrence statuses that can be linked as the live target of a postponement.
+  REPLACEMENT_STATUSES = LISTABLE_STATUSES.freeze
   scope :listable_upcoming, lambda { |at = Time.current|
     where(status: LISTABLE_STATUSES).where(occurs_at: at..)
   }
@@ -115,6 +120,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   after_update :log_update
+  after_update :propagate_rescheduled_time_to_predecessors!, if: :saved_change_to_occurs_at?
   after_save :log_banner_change
 
   attr_accessor :current_user_for_journal
@@ -147,41 +153,88 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     location || event.location
   end
 
+  # Latest scheduled time at the end of this occurrence's postponement chain.
+  def rescheduled_time
+    visited = Set.new
+    current = self
+
+    loop do
+      if current.postponed_to_id.present? && current.postponed_to.present?
+        break if visited.include?(current.id)
+
+        visited.add(current.id)
+        current = current.postponed_to
+      else
+        return current.postponed_until if current.status == 'postponed' && current.postponed_until.present?
+
+        return current.occurs_at
+      end
+    end
+
+    current.occurs_at
+  end
+
+  # Live replacement at the tail of a postponement chain (linked or legacy lookup).
+  def replacement_occurrence
+    return nil unless status == 'postponed'
+
+    return listable_replacement(linked_replacement_tail) if postponed_to_id.present?
+
+    listable_replacement(legacy_replacement_occurrence)
+  end
+
+  # Walk backward through postponement links and sync postponed_until on predecessors.
+  def propagate_rescheduled_time_to_predecessors!
+    latest = rescheduled_time
+    visited = Set.new
+    predecessor = postponed_from
+
+    while predecessor
+      break if visited.include?(predecessor.id)
+
+      visited.add(predecessor.id)
+
+      unless times_equal?(predecessor.postponed_until, latest)
+        predecessor.current_user_for_journal = current_user_for_journal
+        predecessor.update!(postponed_until: latest)
+      end
+
+      predecessor = predecessor.postponed_from
+    end
+  end
+
   # Mark occurrence as postponed
   def postpone!(until_date, reason = nil, user = nil)
     self.current_user_for_journal = user if user
 
     Rails.logger.info "Postponing occurrence ##{id} from #{occurs_at} to #{until_date}"
 
-    result = update(status: 'postponed', postponed_until: until_date, cancellation_reason: reason)
+    success = false
+    transaction do
+      new_occurrence = event.occurrences.create!(
+        occurs_at: until_date,
+        status: 'active'
+      )
 
-    if result
-      Rails.logger.info "Successfully marked occurrence ##{id} as postponed"
-
-      # Create new occurrence at the postponed date/time
-      begin
-        new_occurrence = event.occurrences.create!(
-          occurs_at: until_date,
-          status: 'active'
-        )
-
-        Rails.logger.info "✓ Created new active occurrence ##{new_occurrence.id} at #{until_date} for event ##{event.id}"
-        Rails.logger.info "  - New occurrence status: #{new_occurrence.status}"
-        Rails.logger.info "  - New occurrence occurs_at: #{new_occurrence.occurs_at}"
-        Rails.logger.info "  - Event now has #{event.occurrences.count} total occurrences"
-
-        # Log both the postponement and new occurrence creation
-        log_status_change('postponed', reason, user) if user
-      rescue StandardError => e
-        Rails.logger.error "✗ Failed to create new occurrence: #{e.message}"
-        Rails.logger.error e.backtrace.join("\n")
-        raise
+      unless update(status: 'postponed', postponed_until: until_date, cancellation_reason: reason,
+                    postponed_to: new_occurrence)
+        Rails.logger.error "Failed to mark occurrence ##{id} as postponed: #{errors.full_messages.join(', ')}"
+        raise ActiveRecord::Rollback
       end
-    else
-      Rails.logger.error "Failed to mark occurrence ##{id} as postponed: #{errors.full_messages.join(', ')}"
-    end
 
-    result
+      Rails.logger.info "Successfully marked occurrence ##{id} as postponed"
+      Rails.logger.info "✓ Created new active occurrence ##{new_occurrence.id} at #{until_date} for event ##{event.id}"
+
+      new_occurrence.current_user_for_journal = current_user_for_journal
+      new_occurrence.propagate_rescheduled_time_to_predecessors!
+
+      log_status_change('postponed', reason, user) if user
+      success = true
+    end
+    success
+  rescue ActiveRecord::RecordInvalid => e
+    Rails.logger.error "✗ Failed to postpone occurrence: #{e.message}"
+    false
   end
 
   # Mark occurrence as cancelled
@@ -203,7 +256,8 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # Reactivate occurrence
   def reactivate!(user = nil)
     self.current_user_for_journal = user if user
-    result = update(status: 'active', postponed_until: nil, cancellation_reason: nil, relocated_to: nil)
+    result = update(status: 'active', postponed_until: nil, cancellation_reason: nil, relocated_to: nil,
+                    postponed_to_id: nil)
     log_status_change('reactivated', nil, user) if result && user
     result
   end
@@ -214,6 +268,42 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   private
+
+  def linked_replacement_tail
+    return nil if postponed_to.blank?
+
+    visited = Set.new
+    current = postponed_to
+
+    while current.status == 'postponed' && current.postponed_to_id.present? && current.postponed_to.present?
+      break if visited.include?(current.id)
+
+      visited.add(current.id)
+      current = current.postponed_to
+    end
+
+    current
+  end
+
+  def legacy_replacement_occurrence
+    return nil if postponed_until.blank?
+
+    event.occurrences.find_by(occurs_at: postponed_until, status: REPLACEMENT_STATUSES)
+  end
+
+  def listable_replacement(occurrence)
+    return nil unless occurrence
+    return nil unless REPLACEMENT_STATUSES.include?(occurrence.status)
+
+    occurrence
+  end
+
+  def times_equal?(left, right)
+    return true if left.blank? && right.blank?
+    return false if left.blank? || right.blank?
+
+    left.to_i == right.to_i
+  end
 
   def format_duration_text(minutes)
     hours = minutes / 60

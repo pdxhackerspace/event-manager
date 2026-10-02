@@ -49,12 +49,7 @@
                     <i class="bi bi-<%= open_to[:icon] %>" aria-hidden="true"></i>
                     <%= truncate(occurrence.event.title, length: 30) %>
                     <% if occurrence.status == 'postponed' && occurrence.postponed_until %>
-                      <%
-                        new_occurrence = occurrence.event.occurrences.find_by(
-                          occurs_at: occurrence.postponed_until,
-                          status: 'active'
-                        )
-                      %>
+                      <% new_occurrence = occurrence.replacement_occurrence %>
                       <div class="fw-bold mt-1" style="font-size: 0.65rem;">
                         <% if new_occurrence %>
                           <%= link_to event_occurrence_path(new_occurrence), class: "text-reset", target: "_blank", rel: "noopener noreferrer" do %>

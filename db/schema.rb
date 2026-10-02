@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_18_212131) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -99,12 +99,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_212131) do
     t.string "slug"
     t.string "status", default: "active", null: false
     t.datetime "updated_at", null: false
+    t.bigint "postponed_to_id"
     t.index ["deleted_at"], name: "index_event_occurrences_on_deleted_at"
     t.index ["event_id", "occurs_at"], name: "index_event_occurrences_on_event_id_and_occurs_at"
     t.index ["event_id"], name: "index_event_occurrences_on_event_id"
     t.index ["event_image_id"], name: "index_event_occurrences_on_event_image_id"
     t.index ["location_id"], name: "index_event_occurrences_on_location_id"
     t.index ["occurs_at"], name: "index_event_occurrences_on_occurs_at"
+    t.index ["postponed_to_id"], name: "index_event_occurrences_on_postponed_to_id"
     t.index ["slug"], name: "index_event_occurrences_on_slug", unique: true
     t.index ["status", "occurs_at"], name: "index_event_occurrences_on_status_and_occurs_at"
     t.index ["status"], name: "index_event_occurrences_on_status"
@@ -268,6 +270,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_18_212131) do
   add_foreign_key "event_journals", "events"
   add_foreign_key "event_journals", "users"
   add_foreign_key "event_occurrences", "event_images"
+  add_foreign_key "event_occurrences", "event_occurrences", column: "postponed_to_id", on_delete: :nullify
   add_foreign_key "event_occurrences", "events"
   add_foreign_key "event_occurrences", "locations"
   add_foreign_key "events", "locations"
