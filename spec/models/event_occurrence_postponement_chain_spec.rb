@@ -133,6 +133,15 @@ RSpec.describe EventOccurrence do
         expect(original.replacement_occurrence).to eq(replacement)
       end
 
+      it 'returns the active tail when the link points at another postponed occurrence' do
+        original = create(:event_occurrence, event: event, occurs_at: 1.week.from_now)
+        middle = postpone_occurrence(original, 2.weeks.from_now)
+        final = postpone_occurrence(middle, 3.weeks.from_now)
+
+        expect(original.replacement_occurrence).to eq(final)
+        expect(middle.replacement_occurrence).to eq(final)
+      end
+
       it 'falls back to occurs_at lookup for legacy records' do
         postponed_until = 2.weeks.from_now.change(sec: 0)
         original = create(:event_occurrence, :postponed, event: event, occurs_at: 1.week.from_now,

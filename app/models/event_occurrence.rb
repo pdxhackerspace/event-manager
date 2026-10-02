@@ -172,16 +172,13 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     current.occurs_at
   end
 
-  # Active replacement for a postponed occurrence (linked or legacy lookup).
+  # Active replacement at the tail of a postponement chain (linked or legacy lookup).
   def replacement_occurrence
-    if postponed_to_id.present?
-      return postponed_to if postponed_to.present?
+    return nil unless status == 'postponed'
 
-      return nil
-    end
-    return nil unless status == 'postponed' && postponed_until.present?
-
-    event.occurrences.find_by(occurs_at: postponed_until, status: 'active')
+    tail = linked_replacement_tail if postponed_to_id.present?
+    tail ||= legacy_replacement_occurrence
+    tail if tail&.status == 'active'
   end
 
   # Walk backward through postponement links and sync postponed_until on predecessors.
@@ -269,6 +266,28 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   private
+
+  def linked_replacement_tail
+    return nil if postponed_to.blank?
+
+    visited = Set.new
+    current = postponed_to
+
+    while current.status != 'active' && current.postponed_to_id.present? && current.postponed_to.present?
+      break if visited.include?(current.id)
+
+      visited.add(current.id)
+      current = current.postponed_to
+    end
+
+    current
+  end
+
+  def legacy_replacement_occurrence
+    return nil if postponed_until.blank?
+
+    event.occurrences.find_by(occurs_at: postponed_until, status: 'active')
+  end
 
   def times_equal?(left, right)
     return true if left.blank? && right.blank?
