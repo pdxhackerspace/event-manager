@@ -158,7 +158,7 @@ GEM
       logger
       ostruct
     ice_cube (0.17.0)
-    image_processing (2.1.0)
+    image_processing (2.2.0)
     io-console (0.9.4)
     irb (1.18.0)
       pp (>= 0.6.0)
@@ -476,7 +476,7 @@ DEPENDENCIES
   faker
   icalendar
   ice_cube
-  image_processing (~> 2.1)
+  image_processing (~> 2.2)
   jbuilder
   jsbundling-rails
   json (< 3)
