@@ -1,5 +1,11 @@
 # Changelog
 
+## [v0.24.2] - 2026-10-10
+
+### Fixed
+- Choosing a banner image from the event's pool for a single occurrence now sticks, even if "Choose from pool" wasn't selected first; that image overrides the event's image settings for the occurrence and is used in its Slack and social posts
+- An occurrence's assigned banner image now follows it when it is postponed, instead of a new one being picked from the pool
+
 ## [v0.24.1] - 2026-10-02
 
 ### Fixed
