@@ -191,6 +191,20 @@ RSpec.describe EventOccurrence, type: :model do
       result = occurrence.postpone!(new_date, nil, user)
       expect(result).to be true
     end
+
+    it 'carries an assigned banner to the replacement occurrence' do
+      event = occurrence.event
+      create(:event_image, :with_image, event: event, position: 0)
+      assigned = create(:event_image, :with_image, event: event, position: 1)
+      event.update!(image_selection_mode: 'cycle')
+      occurrence.update!(event_image: assigned, custom_event_image: true)
+
+      occurrence.postpone!(new_date, nil, user)
+
+      replacement = occurrence.reload.postponed_to
+      expect(replacement.event_image).to eq(assigned)
+      expect(replacement.custom_event_image?).to be true
+    end
   end
 
   describe '#cancel!' do

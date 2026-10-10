@@ -15,3 +15,6 @@ application.register("image-settings", ImageSettingsController)
 
 import PendingUploadController from "./pending_upload_controller"
 application.register("pending-upload", PendingUploadController)
+
+import BannerSourceController from "./banner_source_controller"
+application.register("banner-source", BannerSourceController)
