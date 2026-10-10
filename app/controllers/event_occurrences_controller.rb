@@ -218,7 +218,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   end
 
   def handle_image_selection
-    source = params.dig(:event_occurrence, :image_source)
+    source = effective_image_source
     return if source.blank?
 
     case source
@@ -240,6 +240,19 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
       event_image.image.attach(custom_file)
       @occurrence.assign_attributes(event_image: event_image, custom_event_image: true)
     end
+  end
+
+  # Picking a pool image or a file without also switching the source radio
+  # still means "use this image": the pool radios always submit the current
+  # image, so a different id is a deliberate choice.
+  def effective_image_source
+    source = params.dig(:event_occurrence, :image_source)
+    return 'upload' if params.dig(:event_occurrence, :custom_image).present? && source != 'pool'
+
+    chosen_id = params.dig(:event_occurrence, :event_image_id)
+    return 'pool' if chosen_id.present? && chosen_id.to_i != @occurrence.event_image_id
+
+    source
   end
 
   def determine_reminder_type(event, site_config)

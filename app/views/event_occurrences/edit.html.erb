@@ -175,7 +175,7 @@
             </div>
           <% end %>
 
-          <div class="mb-3">
+          <div class="mb-3" data-controller="banner-source">
             <label class="form-label">Banner Image</label>
             <% pooled_images = @event.pooled_images.includes(image_attachment: :blob).to_a %>
             <% current_source = @occurrence.custom_event_image? ? (@occurrence.event_image&.in_pool? ? 'pool' : 'upload') : 'inherit' %>
@@ -186,7 +186,8 @@
             </div>
 
             <div class="form-check">
-              <%= radio_button_tag 'event_occurrence[image_source]', 'pool', current_source == 'pool', class: 'form-check-input', id: 'image_source_pool' %>
+              <%= radio_button_tag 'event_occurrence[image_source]', 'pool', current_source == 'pool', class: 'form-check-input', id: 'image_source_pool',
+                                 data: { banner_source_target: 'pool' } %>
               <%= label_tag 'image_source_pool', 'Choose from pool', class: 'form-check-label' %>
             </div>
 
@@ -196,7 +197,8 @@
                   <div class="form-check">
                     <%= radio_button_tag 'event_occurrence[event_image_id]', event_image.id,
                                          @occurrence.event_image_id == event_image.id,
-                                         class: 'form-check-input', id: "pool_image_#{event_image.id}" %>
+                                         class: 'form-check-input', id: "pool_image_#{event_image.id}",
+                                         data: { action: 'banner-source#selectPool' } %>
                     <%= label_tag "pool_image_#{event_image.id}", class: 'form-check-label d-flex align-items-center gap-2' do %>
                       <%= event_image_thumbnail_tag event_image.image, class: 'img-thumbnail', style: 'width: 80px; height: 40px; object-fit: cover;', alt: 'Pool image' %>
                       <span>Pool image #<%= event_image.position + 1 %></span>
@@ -209,12 +211,14 @@
             <% end %>
 
             <div class="form-check">
-              <%= radio_button_tag 'event_occurrence[image_source]', 'upload', current_source == 'upload', class: 'form-check-input', id: 'image_source_upload' %>
+              <%= radio_button_tag 'event_occurrence[image_source]', 'upload', current_source == 'upload', class: 'form-check-input', id: 'image_source_upload',
+                                 data: { banner_source_target: 'upload' } %>
               <%= label_tag 'image_source_upload', 'Upload custom image', class: 'form-check-label' %>
             </div>
 
             <div class="ms-4 mt-2">
-              <%= file_field_tag 'event_occurrence[custom_image]', class: 'form-control', accept: 'image/*' %>
+              <%= file_field_tag 'event_occurrence[custom_image]', class: 'form-control', accept: 'image/*',
+                                 data: { action: 'banner-source#selectUpload' } %>
               <div class="form-check mt-2">
                 <%= check_box_tag 'event_occurrence[add_custom_image_to_pool]', '1', false, class: 'form-check-input', id: 'add_custom_image_to_pool' %>
                 <%= label_tag 'add_custom_image_to_pool', 'Add uploaded image to event pool', class: 'form-check-label' %>

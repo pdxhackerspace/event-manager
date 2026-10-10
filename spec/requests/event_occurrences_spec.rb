@@ -181,6 +181,44 @@ RSpec.describe "EventOccurrences", type: :request do
         expect(event.image_cycle_index).to eq(3)
       end
 
+      context "when picking a pool image" do
+        let!(:auto_image) { create(:event_image, :with_image, event: event, position: 0) }
+        let!(:chosen_image) { create(:event_image, :with_image, event: event, position: 1) }
+
+        before do
+          event.update!(image_selection_mode: 'cycle', fixed_event_image_id: auto_image.id)
+          occurrence.update!(event_image: auto_image, custom_event_image: false)
+        end
+
+        it "assigns it when the pool source is selected" do
+          patch event_occurrence_path(occurrence),
+                params: { event_occurrence: { status: occurrence.status, image_source: 'pool', event_image_id: chosen_image.id } }
+
+          occurrence.reload
+          expect(occurrence.event_image).to eq(chosen_image)
+          expect(occurrence.custom_event_image?).to be true
+        end
+
+        it "assigns it even if the source radio was left on inherit" do
+          patch event_occurrence_path(occurrence),
+                params: { event_occurrence: { status: occurrence.status, image_source: 'inherit', event_image_id: chosen_image.id } }
+
+          occurrence.reload
+          expect(occurrence.event_image).to eq(chosen_image)
+          expect(occurrence.custom_event_image?).to be true
+          expect(occurrence.banner.blob).to eq(chosen_image.image.blob)
+        end
+
+        it "keeps the auto-assigned image when inherit is submitted with the current image" do
+          patch event_occurrence_path(occurrence),
+                params: { event_occurrence: { status: occurrence.status, image_source: 'inherit', event_image_id: auto_image.id } }
+
+          occurrence.reload
+          expect(occurrence.event_image).to eq(auto_image)
+          expect(occurrence.custom_event_image?).to be false
+        end
+      end
+
       context "when switching from a custom image to inherit in cycle mode" do
         let!(:first_image) { create(:event_image, :with_image, event: event, position: 0) }
         let!(:second_image) { create(:event_image, :with_image, event: event, position: 1) }

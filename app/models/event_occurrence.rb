@@ -211,9 +211,11 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
     success = false
     transaction do
+      # A banner assigned to this occurrence follows it to the new date.
       new_occurrence = event.occurrences.create!(
         occurs_at: until_date,
-        status: 'active'
+        status: 'active',
+        **(custom_event_image? ? { event_image: event_image, custom_event_image: true } : {})
       )
 
       unless update(status: 'postponed', postponed_until: until_date, cancellation_reason: reason,
