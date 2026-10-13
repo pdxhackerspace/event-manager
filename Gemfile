@@ -52,7 +52,7 @@ gem "omniauth-rails_csrf_protection", "~> 2.0"
 gem "pundit"
 
 # Pagination
-gem "pagy", "~> 43.6"
+gem "pagy", "~> 43.7"
 
 # Recurring events
 gem "ice_cube"
