@@ -258,9 +258,9 @@ GEM
     parser (3.3.12.0)
       ast (~> 2.4.1)
       racc
-    pg (1.6.3-aarch64-linux)
-    pg (1.6.3-arm64-darwin)
-    pg (1.6.3-x86_64-linux)
+    pg (1.7.0-aarch64-linux)
+    pg (1.7.0-arm64-darwin)
+    pg (1.7.0-x86_64-linux)
     pp (0.6.4)
       prettyprint
     prettyprint (0.2.0)
@@ -486,7 +486,7 @@ DEPENDENCIES
   omniauth-rails_csrf_protection (~> 2.0)
   pagy (~> 43.7)
   parallel_tests
-  pg (~> 1.6)
+  pg (~> 1.7)
   puma (~> 8.0)
   pundit
   rack-attack
