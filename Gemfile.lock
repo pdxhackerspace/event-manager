@@ -248,7 +248,7 @@ GEM
       omniauth (~> 2.0)
     orm_adapter (0.5.0)
     ostruct (0.6.3)
-    pagy (43.6.3)
+    pagy (43.7.0)
       json
       uri
       yaml
@@ -436,7 +436,7 @@ GEM
     unicode-display_width (3.3.0)
       unicode-emoji (~> 4.3)
     unicode-emoji (4.3.0)
-    uri (1.1.1)
+    uri (1.1.2)
     useragent (0.16.11)
     version_gem (1.1.15)
     warden (1.2.9)
@@ -484,7 +484,7 @@ DEPENDENCIES
   omniauth
   omniauth-oauth2
   omniauth-rails_csrf_protection (~> 2.0)
-  pagy (~> 43.6)
+  pagy (~> 43.7)
   parallel_tests
   pg (~> 1.6)
   puma (~> 8.0)
