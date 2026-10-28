@@ -66,16 +66,19 @@ All RSVP create, cancel, accept, and promote operations run inside `occurrence.w
 - Hosts can promote someone from the wait list manually, skipping offers.
 - Changing the mode while offers are out releases the existing holds, and the new mode applies from then on.
 
-### Privacy
+### What hosts see
 
-- Hosts see attendee **names only**. They never see emails (for guests or account users), including in the CSV export.
-- Admins see names and emails.
+- Hosts see a display name and nothing else. They never see emails (for guests or account users), including in the CSV export.
+- For a member, the display name is their **username** (`users.username`, Authentik's `preferred_username`). The full name is the fallback when the username is blank.
+- For a guest, the display name is the name they typed on the RSVP form.
+- Admins see the display name, the full name, and the email.
+- The username is stored on the user and refreshed from Authentik on every login. Lists look it up from the linked user, so a later username change shows up. Guest RSVPs keep the name that was entered.
 - Attendee names are never shown publicly. Counts are only shown when capacity is set.
 - Guest data retention: a daily job anonymizes guest RSVPs (it clears the name and email and sets `anonymized_at`) after `site_configs.rsvp_guest_retention_days`, which defaults to 30 days after the occurrence. Attendance counts are kept. RSVPs belonging to account users aren't anonymized, because no-show history depends on them.
 
 ### Host notifications
 
-`event_hosts.notify_on_rsvp` is a boolean, off by default. Each host sets it for themselves on each event. When it's on, the host gets one email for each new confirmed RSVP, cancellation, and wait list join. The email shows names only.
+`event_hosts.notify_on_rsvp` is a boolean, off by default. Each host sets it for themselves on each event. When it's on, the host gets one email for each new confirmed RSVP, cancellation, and wait list join. The email shows display names only (username for members, the entered name for guests).
 
 ### Check-in and no-shows
 
@@ -84,6 +87,10 @@ All RSVP create, cancel, accept, and promote operations run inside `occurrence.w
 - No-show history is tracked for account users only. Hosts see a count of recent no-shows (the last 90 days) next to each name on capacity-limited events. For now this is information only, and nobody is blocked from RSVPing.
 
 ## Data model
+
+### Migration: `users`
+
+- `username` string, nullable, indexed. Populated from Authentik `preferred_username` (`auth.info.nickname`) in `User.from_omniauth`, and refreshed on each login.
 
 ### Migration: `events`
 
@@ -141,7 +148,7 @@ Indexes:
 
 ### Models and services
 
-- `Rsvp` model with scopes (`holding_spot`, `waitlisted`, `active`, `guests`) and status predicates.
+- `Rsvp` model with scopes (`holding_spot`, `waitlisted`, `active`, `guests`), status predicates, and `#display_name` (the linked user's username, then their full name, then the guest name).
 - `EventOccurrence#effective_capacity`, `#spots_taken`, `#spots_remaining`, `#full?`, `#rsvp_open?`.
 - `RsvpService` in `app/services/` does all the state changes inside the lock: `create`, `confirm_pending`, `cancel`, `claim`, `promote`, and `fill_open_spots`. The service applies the wait list mode. Controllers and jobs call this service and never update RSVP status directly.
 - Journal entries (`EventJournal`) when hosts or admins cancel, promote, add people, or check people in.
@@ -207,7 +214,7 @@ The schedules go in `config/sidekiq.yml`.
 - Tabs for confirmed, wait list (in order, showing any active hold), pending, and cancelled.
 - Actions: cancel (with an optional reason that is emailed), promote from the wait list, resend confirmation, and add a person manually.
 - Check-in view during the check-in window.
-- CSV export (names, status, attendance; emails only for admins).
+- CSV export (display name, status, attendance; full name and email only for admins).
 - Authorization reuses `Event#hosted_by?` (hosts and admins). The email columns are shown only when `current_user.admin?`.
 
 ### Event form
