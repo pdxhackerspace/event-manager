@@ -10,6 +10,8 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
 
   def show
     @event = @occurrence.event
+    @current_rsvp = current_user && @occurrence.rsvps.active.find_by(user: current_user)
+    store_location_for(:user, event_occurrence_path(@occurrence)) if !current_user && @occurrence.rsvp_open?
   end
 
   # Generate iCal file for a single occurrence (for Apple Calendar, etc.)
@@ -35,6 +37,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
     handle_image_selection
 
     if @occurrence.update(occurrence_params)
+      sync_rsvps_after_update
       redirect_to @occurrence, notice: 'Occurrence was successfully updated.'
     else
       render :edit, status: :unprocessable_content
@@ -209,7 +212,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
 
   def occurrence_params
     p = params.expect(event_occurrence: %i[occurs_at custom_description duration_override status
-                                           location_id
+                                           location_id capacity_override rsvp_disabled
                                            reminder_7d_short reminder_1d_short
                                            reminder_7d_long reminder_1d_long])
     return p if p[:occurs_at].blank?
@@ -253,6 +256,15 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
     return 'pool' if chosen_id.present? && chosen_id.to_i != @occurrence.event_image_id
 
     source
+  end
+
+  def sync_rsvps_after_update
+    if @occurrence.saved_change_to_status? && @occurrence.status == 'cancelled'
+      RsvpLifecycle.cancel_occurrence!(@occurrence)
+    elsif @occurrence.saved_change_to_occurs_at?
+      RsvpLifecycle.notify_changed!(@occurrence, 'rescheduled')
+    end
+    RsvpLifecycle.occurrence_capacity_changed!(@occurrence)
   end
 
   def determine_reminder_type(event, site_config)

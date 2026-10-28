@@ -104,6 +104,9 @@ class EventsController < ApplicationController
 
     if @event.update(event_params)
       log_added_pool_images
+      RsvpLifecycle.event_settings_changed!(@event)
+      warning = RsvpLifecycle.over_capacity_warning(@event)
+      flash[:alert] = warning if warning.present?
       redirect_to @event, notice: 'Event was successfully updated.'
     else
       Rails.logger.error "Event update failed. Errors: #{@event.errors.full_messages.join(', ')}"
@@ -238,6 +241,7 @@ class EventsController < ApplicationController
                             more_info_url max_occurrences
                             image_selection_mode fixed_event_image_id
                             location_id requires_mask draft slack_announce social_reminders
+                            rsvp_enabled capacity waitlist_enabled waitlist_mode rsvp_closes_minutes_before
                             reminder_7d_short reminder_1d_short reminder_7d_long reminder_1d_long
                             sign_feed permanently_cancelled default_to_cancelled
                             permanently_relocated relocated_to])

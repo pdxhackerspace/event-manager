@@ -117,6 +117,12 @@ RSpec.describe User, type: :model do
         user = described_class.from_omniauth(auth)
         expect(user.name).to eq('OAuth User')
       end
+
+      it 'stores the Authentik username when one is sent' do
+        auth.info.nickname = 'oauthuser'
+        user = described_class.from_omniauth(auth)
+        expect(user.username).to eq('oauthuser')
+      end
     end
 
     context 'when user already exists' do

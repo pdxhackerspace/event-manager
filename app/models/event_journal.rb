@@ -46,6 +46,10 @@ class EventJournal < ApplicationRecord
     when 'images_reordered' then 'Reordered image pool'
     when 'images_reassigned' then images_reassigned_summary
     when 'image_updated' then 'Updated pool image settings'
+    when 'rsvp_cancelled' then "Cancelled RSVP for #{change_data['name']}"
+    when 'rsvp_promoted' then "Promoted #{change_data['name']} off the wait list"
+    when 'rsvp_added' then "Added #{change_data['name']} to the RSVP list"
+    when 'rsvp_checked_in' then "Checked in #{change_data['name']}"
     else action.titleize
     end
   end

@@ -1,0 +1,12 @@
+<% if @test_mode %>
+TEST MODE: this message was redirected to the site test address.
+
+<% end %>
+<%= @event.title %>
+<%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>
+<% if @occurrence.event_location %>
+Location: <%= @occurrence.event_location.name %>
+<% end %>
+
+Manage your RSVP:
+<%= @manage_url %>

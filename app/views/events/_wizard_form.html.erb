@@ -260,6 +260,38 @@
   <div class="wizard-panel" data-step="4" style="display: none;">
     <div class="card mb-3">
       <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-person-check"></i> RSVPs</h5>
+      </div>
+      <div class="card-body">
+        <div class="form-check mb-3">
+          <%= f.check_box :rsvp_enabled, class: "form-check-input" %>
+          <%= f.label :rsvp_enabled, "Take RSVPs", class: "form-check-label" %>
+          <div class="form-text">People RSVP to each date separately.</div>
+        </div>
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <%= f.label :capacity, "Capacity", class: "form-label" %>
+            <%= f.number_field :capacity, class: "form-control", min: 1 %>
+            <div class="form-text">Blank means unlimited.</div>
+          </div>
+          <div class="col-md-4 mb-3">
+            <%= f.label :waitlist_mode, "When a spot opens", class: "form-label" %>
+            <%= f.select :waitlist_mode, [['First come, first served', 'first_come'], ['Offer to one person at a time', 'sequential']], {}, class: "form-select" %>
+          </div>
+          <div class="col-md-4 mb-3">
+            <%= f.label :rsvp_closes_minutes_before, "Close RSVPs (minutes before)", class: "form-label" %>
+            <%= f.number_field :rsvp_closes_minutes_before, class: "form-control", min: 0 %>
+          </div>
+        </div>
+        <div class="form-check">
+          <%= f.check_box :waitlist_enabled, class: "form-check-input" %>
+          <%= f.label :waitlist_enabled, "Keep a wait list when full", class: "form-check-label" %>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header">
         <h5 class="mb-0"><i class="bi bi-eye"></i> Visibility & Publishing</h5>
       </div>
       <div class="card-body">

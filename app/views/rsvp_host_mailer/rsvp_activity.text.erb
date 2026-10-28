@@ -1,0 +1,12 @@
+<% if @test_mode %>
+TEST MODE: this message was redirected to the site test address.
+
+<% end %>
+Hi <%= @user.name.presence || @user.username.presence || 'there' %>,
+
+<%= @rsvp.display_name %> <%= @action == 'waitlisted' ? 'joined the wait list for' : (@action == 'cancelled' ? 'cancelled their RSVP for' : 'is confirmed for') %> <%= @event.title %>.
+<%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>
+
+<%= @counts[:confirmed] %> confirmed, <%= @counts[:waitlisted] %> waiting.
+
+<%= event_occurrence_rsvps_url(@occurrence) %>

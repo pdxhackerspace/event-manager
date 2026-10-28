@@ -24,6 +24,18 @@
     cron: '0 10 * * *'  # Daily at 10 AM
     class: SocialMediaReminderJob
     description: "Post social media reminders for upcoming events (1 week/1 day)"
+  rsvp_reminders:
+    cron: '0 * * * *'  # Hourly
+    class: RsvpReminderJob
+    description: "Email RSVP reminders and release-your-spot nags"
+  rsvp_offers:
+    cron: '*/15 * * * *'  # Every 15 minutes
+    class: RsvpOfferJob
+    description: "Release expired RSVP holds and offer open spots"
+  rsvp_cleanup:
+    cron: '30 4 * * *'  # Daily at 4:30 AM
+    class: RsvpCleanupJob
+    description: "Expire unconfirmed RSVPs, record no-shows, and anonymize guests"
   refresh_social_credentials:
     cron: '0 3 * * *'  # Daily at 3 AM
     class: RefreshSocialCredentialsJob

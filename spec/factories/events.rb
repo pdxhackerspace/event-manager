@@ -64,5 +64,12 @@ FactoryBot.define do
     trait :with_more_info do
       more_info_url { Faker::Internet.url }
     end
+
+    trait :rsvp do
+      rsvp_enabled { true }
+      capacity { 2 }
+      waitlist_enabled { true }
+      waitlist_mode { 'first_come' }
+    end
   end
 end

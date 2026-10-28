@@ -29,6 +29,26 @@
 </header>
 
 <div class="row g-4">
+  <% if @my_rsvps.any? %>
+    <section class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <h2 class="h5 mb-0">My RSVPs</h2>
+        </div>
+        <ul class="list-group list-group-flush">
+          <% @my_rsvps.each do |rsvp| %>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>
+                <%= link_to rsvp.event_occurrence.event.title, event_occurrence_path(rsvp.event_occurrence) %>
+                <span class="text-muted"><%= rsvp.event_occurrence.occurs_at.strftime('%b %d, %Y %I:%M %p') %></span>
+              </span>
+              <%= link_to rsvp.status.titleize, manage_rsvp_path(rsvp.manage_token), class: 'btn btn-sm btn-outline-primary' %>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    </section>
+  <% end %>
   <%# Manage Events Section %>
   <section class="col-12" aria-labelledby="manage-events-heading">
     <div class="card shadow-sm">
@@ -175,6 +195,9 @@
                   <tr class="<%= 'table-warning' if is_today %> <%= 'table-light' if is_tomorrow %>">
                     <td>
                       <%= link_to occurrence.event.title, event_path(occurrence.event), class: "fw-semibold text-decoration-none" %>
+                      <% if occurrence.event.rsvp_enabled? %>
+                        <span class="badge bg-primary ms-1"><%= @rsvp_counts[occurrence.id].to_i %> RSVPs</span>
+                      <% end %>
                       <% if occurrence.event.recurring? %>
                         <span class="badge bg-secondary ms-1"><%= occurrence.event.recurrence_type.titleize %></span>
                       <% end %>

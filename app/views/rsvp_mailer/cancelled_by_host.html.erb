@@ -1,0 +1,2 @@
+<%= render 'details' %>
+<p>The host cancelled your RSVP<% if @rsvp.cancellation_reason.present? %>: <%= @rsvp.cancellation_reason %><% end %>.</p>

@@ -9,12 +9,22 @@ class User < ApplicationRecord
   has_many :event_hosts, dependent: :destroy
   has_many :hosted_events, through: :event_hosts, source: :event # Events this user co-hosts
   has_many :event_journals, dependent: :nullify # Audit logs persist after user deletion
+  has_many :rsvps, dependent: :nullify
+
+  validates :username, length: { maximum: 100 }, allow_blank: true
 
   validates :role, inclusion: { in: %w[user admin] }
   validates :email, presence: true, uniqueness: true
 
   def admin?
     role == 'admin'
+  end
+
+  def recent_no_show_count
+    rsvps.where(attended: false)
+         .joins(:event_occurrence)
+         .where(event_occurrences: { occurs_at: 90.days.ago..Time.current })
+         .count
   end
 
   def self.from_omniauth(auth)
@@ -24,6 +34,7 @@ class User < ApplicationRecord
     # Update user info on each login
     user.email = auth.info.email
     user.name = auth.info.name
+    user.username = auth.info.nickname if auth.info.nickname.present?
 
     # Set role and permissions based on Authentik claims
     user.role = determine_role_from_auth(auth)
@@ -33,6 +44,7 @@ class User < ApplicationRecord
     user.password = Devise.friendly_token[0, 20] if user.new_record?
 
     user.save!
+    Rsvp.link_guest_rsvps!(user)
 
     Rails.logger.info "User #{user.email} logged in with role: #{user.role}, can_create_events: #{user.can_create_events}"
 

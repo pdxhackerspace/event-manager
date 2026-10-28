@@ -4,6 +4,7 @@ FactoryBot.define do
     password { "password123" }
     password_confirmation { "password123" }
     sequence(:name) { |n| "User #{n}" }
+    sequence(:username) { |n| "user#{n}" }
     role { "user" }
     can_create_events { false }
 

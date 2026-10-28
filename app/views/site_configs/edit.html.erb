@@ -173,6 +173,28 @@
 
           <div class="mb-3">
             <div class="form-check">
+              <%= f.check_box :rsvps_enabled, class: "form-check-input" %>
+              <%= f.label :rsvps_enabled, "Enable RSVPs", class: "form-check-label" %>
+              <div class="form-text">Site-wide switch. Individual events still choose whether to take RSVPs.</div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <%= f.label :rsvp_offer_hours, "Hours to hold a wait-list offer", class: "form-label" %>
+              <%= f.number_field :rsvp_offer_hours, class: "form-control", min: 1 %>
+            </div>
+            <div class="col-md-4 mb-3">
+              <%= f.label :rsvp_last_call_hours, "Last-call window (hours before start)", class: "form-label" %>
+              <%= f.number_field :rsvp_last_call_hours, class: "form-control", min: 1 %>
+            </div>
+            <div class="col-md-4 mb-3">
+              <%= f.label :rsvp_guest_retention_days, "Days to keep guest RSVP details", class: "form-label" %>
+              <%= f.number_field :rsvp_guest_retention_days, class: "form-control", min: 1 %>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <div class="form-check">
               <%= f.check_box :email_test_mode_enabled, class: "form-check-input", id: "email_test_mode_enabled" %>
               <%= f.label :email_test_mode_enabled, "Email Test Mode", class: "form-check-label" %>
               <div class="form-text">

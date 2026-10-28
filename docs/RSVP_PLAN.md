@@ -1,6 +1,6 @@
 # Plan: Capacity Limits, RSVPs, and Wait Lists
 
-Status: approved for implementation. Target version: **0.25.0** (feature release).
+Status: implemented on `feature/rrsvp`. Target version: **0.25.0** (feature release).
 Branch: `feature/rrsvp`
 
 ## Goals

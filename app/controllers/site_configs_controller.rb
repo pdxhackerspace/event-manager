@@ -61,6 +61,10 @@ class SiteConfigsController < ApplicationController
                       slack_enabled
                       social_reminders_enabled
                       host_email_reminders_enabled
+                      rsvps_enabled
+                      rsvp_offer_hours
+                      rsvp_last_call_hours
+                      rsvp_guest_retention_days
                       email_test_mode_enabled
                       email_test_mode_address
                       ai_url
