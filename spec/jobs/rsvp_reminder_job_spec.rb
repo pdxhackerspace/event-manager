@@ -26,6 +26,16 @@ RSpec.describe RsvpReminderJob, :mail, type: :job do
     expect(confirmed.reload.release_nag_sent_at).to be_present
   end
 
+  it 'skips a deleted event, including a past RSVP the cleanup left behind' do
+    rsvp
+    event.update!(deleted_at: Time.current)
+
+    expect { described_class.perform_now }.not_to have_enqueued_mail(RsvpMailer, :reminder)
+
+    occurrence.update!(occurs_at: 2.days.ago)
+    expect { described_class.perform_now }.not_to raise_error
+  end
+
   it 'skips a postponed series' do
     rsvp
     event.update!(status: 'postponed', postponed_until: 2.weeks.from_now)

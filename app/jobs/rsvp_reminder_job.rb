@@ -11,10 +11,12 @@ class RsvpReminderJob < ApplicationJob
 
   def send_due_reminder(rsvp)
     occurrence = rsvp.event_occurrence
-    event = occurrence.event
-    return unless event.status == 'active' && !event.draft? && !event.deleted?
+    return if occurrence.nil? || occurrence.occurs_at <= Time.current
     return unless %w[active relocated].include?(occurrence.status)
-    return if occurrence.occurs_at <= Time.current
+
+    # Soft-deleted events are hidden by the default scope, so load without it.
+    event = Event.unscoped.find_by(id: occurrence.event_id)
+    return if event.nil? || event.deleted? || event.draft? || event.status != 'active'
 
     if day_of?(occurrence) && rsvp.reminder_day_of_sent_at.nil?
       deliver(rsvp, 'day_of', nag: rsvp.release_nag_sent_at.nil? && nag?(occurrence))
