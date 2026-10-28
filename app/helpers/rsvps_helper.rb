@@ -25,6 +25,10 @@ module RsvpsHelper
     'Full'
   end
 
+  def event_host?(event)
+    current_user.present? && EventHost.exists?(event_id: event.id, user_id: current_user.id)
+  end
+
   def rsvp_login_path(occurrence, on_event_page:)
     return_to = event_path(occurrence.event, anchor: 'rsvp') if on_event_page
     return_to ||= event_occurrence_path(occurrence, anchor: 'rsvp')

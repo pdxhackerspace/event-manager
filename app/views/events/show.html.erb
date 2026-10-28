@@ -146,7 +146,7 @@
                 </div>
                 <div class="btn-group btn-group-sm">
                   <%= link_to "View", event_occurrence_path(occurrence), class: "btn btn-outline-primary" %>
-                  <% if occurrence.rsvp_open? %>
+                  <% if occurrence.rsvp_open? && !event_host?(@event) %>
                     <%= link_to "RSVP", event_occurrence_path(occurrence, anchor: 'rsvp'), class: "btn btn-primary" %>
                   <% end %>
                 </div>

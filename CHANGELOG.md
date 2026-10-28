@@ -5,6 +5,11 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.25.2] - 2026-10-28
+
+### Fixed
+- Event hosts can't RSVP to their own event
+
 ## [v0.25.1] - 2026-10-28
 
 ### Fixed

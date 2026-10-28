@@ -135,7 +135,7 @@
   <footer class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
       <%= link_to "View Details", event_path(event), class: "btn btn-sm btn-outline-primary" %>
-      <% if next_occurrence&.rsvp_open? %>
+      <% if next_occurrence&.rsvp_open? && !event_host?(event) %>
         <%= link_to "RSVP", event_path(event, anchor: 'rsvp'), class: "btn btn-sm btn-primary" %>
       <% end %>
       <% if (safe_more_info_url = safe_url(event.more_info_url)) %>

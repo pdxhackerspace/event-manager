@@ -49,6 +49,20 @@ RSpec.describe 'RSVPs', :mail, type: :request do
       expect(response.body).not_to include('name="email"')
     end
 
+    it 'tells a host they cannot RSVP and does not save one' do
+      sign_in host
+
+      get event_path(event)
+
+      expect(response.body).to include("Hosts can't RSVP")
+      expect(response.body).not_to include(%(action="#{occurrence_rsvp_path(occurrence)}"))
+
+      post occurrence_rsvp_path(occurrence)
+
+      expect(flash[:alert]).to include("Hosts can't RSVP")
+      expect(occurrence.rsvps).to be_empty
+    end
+
     it 'gives a signed-in member a one-click RSVP on the event page' do
       sign_in member
 

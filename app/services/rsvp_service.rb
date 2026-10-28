@@ -18,6 +18,7 @@ class RsvpService
 
       user = account_for(email)
     end
+    return result(false, :host) if host_user?(user)
 
     occurrence.with_lock do
       existing = active_for(user:, email: email.presence || user&.email)
@@ -142,4 +143,8 @@ class RsvpService
   private
 
   attr_reader :occurrence
+
+  def host_user?(user)
+    user.present? && EventHost.exists?(event_id: occurrence.event_id, user_id: user.id)
+  end
 end

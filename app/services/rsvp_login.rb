@@ -42,6 +42,7 @@ class RsvpLogin
     when :pending, :login_required
       [:notice, "Check your email to finish your RSVP. If you already have an account, log in instead."]
     when :duplicate then [:alert, 'You already have an RSVP for this event.']
+    when :host then [:alert, "Hosts can't RSVP to their own event."]
     when :full then [:alert, 'This event is full.']
     when :closed then [:alert, 'RSVPs are closed for this event.']
     else [:alert, 'RSVP could not be saved. Check your name and email.']
