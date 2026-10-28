@@ -1,6 +1,6 @@
 # Plan: Capacity Limits, RSVPs, and Wait Lists
 
-Status: draft for review. Target version: **0.25.0** (feature release).
+Status: approved for implementation. Target version: **0.25.0** (feature release).
 Branch: `feature/rrsvp`
 
 ## Goals
@@ -12,6 +12,13 @@ Branch: `feature/rrsvp`
 - Attendees get reminder emails before the event.
 - For capacity-limited events, reminders nag people to release their spot if they can't make it.
 - When a spot opens, people on the wait list are emailed and offered the spot.
+- Hosts can check people in at the event, and no-shows are tracked.
+
+## Out of scope
+
+- RSVPing to every date of a recurring event at once. Each RSVP is for one occurrence.
+- Plus-ones. Every RSVP is exactly one person.
+- Digest emails for hosts.
 
 ## Key design decisions
 
@@ -27,7 +34,9 @@ Events are recurring, and each date is an `EventOccurrence`. A person RSVPs to a
 | `members`  | Logged-in users only                                                  |
 | `private`  | Logged-in users only. Hosts can also add people manually              |
 
-Guest RSVPs to a capacity-limited event start as `pending` and only take a spot after the guest clicks the link in the confirmation email. That stops typos and bots from filling the event.
+- **Guests with an account must log in.** If the email on a guest RSVP matches an existing `User` (compared case-insensitively), the RSVP is not created. The guest is asked to log in, and is returned to the RSVP after logging in. The response doesn't reveal whether the account exists. It tells the guest to log in if they have an account, and otherwise sends the confirmation email to that address. If the email does match an account, that message tells them to log in instead.
+- **Guests confirm their email.** Guest RSVPs start as `pending` and only hold a spot (or a wait list place) after the guest clicks the link in the confirmation email. That stops typos and bots from filling the event. Pending RSVPs that aren't confirmed within 24 hours, or by the start of the event if that's sooner, are deleted.
+- When a user logs in, any guest RSVPs made with their email are linked to their account.
 
 ### Management link
 
@@ -35,15 +44,44 @@ Each RSVP has a random `manage_token` (`has_secure_token`, unique index). The li
 
 ### Seat allocation and concurrency
 
-All RSVP create, cancel, and promote operations run inside `occurrence.with_lock` (a row lock on the occurrence), so two people can't take the last seat at the same time. A spot counts as taken when the RSVP status is `confirmed`, or when it is `offered` and the offer hasn't expired yet.
+All RSVP create, cancel, accept, and promote operations run inside `occurrence.with_lock` (a row lock on the occurrence), so two people can't take the last seat at the same time. A spot counts as taken when the RSVP status is `confirmed`, or when it has an unexpired held offer (sequential mode only).
 
-### Wait list offers
+### Wait list modes (host's choice per event)
 
-When a spot opens (a cancellation, an expired offer, or an increased capacity), the next person on the wait list gets an **offer** with a deadline. If they accept, they're confirmed. If the offer expires, the spot is offered to the next person.
+`events.waitlist_mode` is either `first_come` (the default) or `sequential`.
 
-- The offer window scales with how close the event is. The default is 24 hours, but it is never more than half the time remaining before the event, with a minimum of 1 hour.
-- Inside a configurable cutoff (default 4 hours before start), there are no individual offers. Every waitlisted person is emailed that a spot is open, and the first one to claim it gets it.
-- Hosts can manually promote someone from the wait list, skipping the offer step.
+**First come, first served (`first_come`)**
+- When a spot opens, every waitlisted person who hasn't already been told about the open spot gets a "spot open" email with a claim link.
+- The first person to claim the spot gets it. Anyone who clicks after it's taken sees "it was taken" and stays on the wait list.
+- No spot is held for anyone.
+
+**Sequential offers (`sequential`)**
+- When a spot opens, it is held for the next person on the wait list who doesn't have an offer, with a deadline. The default deadline is 24 hours. It is never more than half the time remaining before the event, with a minimum of 1 hour.
+- When the deadline passes, the hold is released and the spot is offered to the next person.
+- Inside the last-call window (default 4 hours before the start), there are no more holds. The mode switches to first come, first served for everyone left on the wait list.
+
+**Both modes**
+- **Ignored offers don't remove anyone.** A person stays on the wait list until they accept a spot, cancel, or a host removes them. After their hold expires, their claim link still works if a spot is open and not held for someone else.
+- **One offer reminder.** Each person gets one reminder about an offer they haven't acted on, sent halfway to the deadline in sequential mode, or 12 hours after the "spot open" email in first come mode. It is only sent if a spot is still open, and the RSVP records the time so it is never sent twice.
+- Hosts can promote someone from the wait list manually, skipping offers.
+- Changing the mode while offers are out releases the existing holds, and the new mode applies from then on.
+
+### Privacy
+
+- Hosts see attendee **names only**. They never see emails (for guests or account users), including in the CSV export.
+- Admins see names and emails.
+- Attendee names are never shown publicly. Counts are only shown when capacity is set.
+- Guest data retention: a daily job anonymizes guest RSVPs (it clears the name and email and sets `anonymized_at`) after `site_configs.rsvp_guest_retention_days`, which defaults to 30 days after the occurrence. Attendance counts are kept. RSVPs belonging to account users aren't anonymized, because no-show history depends on them.
+
+### Host notifications
+
+`event_hosts.notify_on_rsvp` is a boolean, off by default. Each host sets it for themselves on each event. When it's on, the host gets one email for each new confirmed RSVP, cancellation, and wait list join. The email shows names only.
+
+### Check-in and no-shows
+
+- During the event (from 1 hour before the start until 12 hours after the end), hosts get a check-in view with a checkbox for each confirmed RSVP. Checking someone in sets `attended = true`.
+- Once the check-in window closes, a job marks confirmed RSVPs that weren't checked in as `attended = false`. This only happens for occurrences where at least one person was checked in, so occurrences where nobody used check-in aren't counted as all no-shows.
+- No-show history is tracked for account users only. Hosts see a count of recent no-shows (the last 90 days) next to each name on capacity-limited events. For now this is information only, and nobody is blocked from RSVPing.
 
 ## Data model
 
@@ -52,19 +90,25 @@ When a spot opens (a cancellation, an expired offer, or an increased capacity), 
 - `rsvp_enabled` boolean, default false
 - `capacity` integer, nullable (null = unlimited)
 - `waitlist_enabled` boolean, default true (only meaningful when `capacity` is set)
-- `max_guests_per_rsvp` integer, default 0 (the number of "+1"s allowed per RSVP)
+- `waitlist_mode` string, default `first_come`, with a check constraint (`first_come`, `sequential`)
 - `rsvp_closes_minutes_before` integer, default 0
 
 ### Migration: `event_occurrences`
 
 - `capacity_override` integer, nullable
 - `rsvp_disabled` boolean, default false (turns RSVPs off for one date)
+- `checkin_finalized_at` datetime
+
+### Migration: `event_hosts`
+
+- `notify_on_rsvp` boolean, default false
 
 ### Migration: `site_configs`
 
 - `rsvps_enabled` boolean, default true (site-wide kill switch)
 - `rsvp_offer_hours` integer, default 24
 - `rsvp_last_call_hours` integer, default 4
+- `rsvp_guest_retention_days` integer, default 30
 
 ### New table: `rsvps`
 
@@ -72,58 +116,75 @@ When a spot opens (a cancellation, an expired offer, or an increased capacity), 
 |-----------------------|-----------------------------------------------------------------------|
 | `event_occurrence_id` | FK, not null                                                          |
 | `user_id`             | FK, nullable (null for guests)                                        |
-| `name`, `email`       | Copied from the user when logged in; required for guests              |
-| `guest_count`         | integer, default 0 (counts against capacity)                          |
-| `status`              | `pending`, `confirmed`, `waitlisted`, `offered`, `cancelled` (check constraint) |
+| `name`, `email`       | Copied from the user when logged in; required for guests; nullable once anonymized |
+| `status`              | `pending`, `confirmed`, `waitlisted`, `cancelled` (check constraint)  |
 | `waitlisted_at`       | Sets wait list order                                                  |
-| `offered_at`, `offer_expires_at` |                                                            |
+| `offer_held_until`    | Set while a sequential-mode hold is active                            |
+| `last_offered_at`     | When the latest "spot open" or offer email was sent                   |
+| `offer_reminder_sent_at` |                                                                    |
 | `confirmed_at`        |                                                                       |
-| `cancelled_at`, `cancelled_by_id`, `cancellation_reason`, `cancelled_via` | `cancelled_via` is `self`, `host`, `admin`, `offer_expired`, or `occurrence_cancelled` |
+| `cancelled_at`, `cancelled_by_id`, `cancellation_reason`, `cancelled_via` | `cancelled_via` is `self`, `host`, `admin`, or `occurrence_cancelled` |
 | `manage_token`        | unique index                                                          |
+| `reminders_opted_out` | boolean, default false                                                |
 | `reminder_7d_sent_at`, `reminder_1d_sent_at`, `reminder_day_of_sent_at`, `release_nag_sent_at` | Make the reminder job idempotent |
-| `attended`            | boolean, nullable (for a later check-in feature)                      |
+| `attended`            | boolean, nullable                                                     |
+| `checked_in_by_id`, `checked_in_at` |                                                         |
+| `anonymized_at`       |                                                                       |
+
+An offer isn't a separate status. A waitlisted RSVP with `offer_held_until` in the future is holding a spot.
 
 Indexes:
 
-- Unique on `(event_occurrence_id, lower(email))` where `status <> 'cancelled'`, so the same person can't RSVP twice.
+- Unique on `(event_occurrence_id, lower(email))` where `status <> 'cancelled'` and `email IS NOT NULL`, so the same person can't RSVP twice.
+- Unique on `(event_occurrence_id, user_id)` where `status <> 'cancelled'` and `user_id IS NOT NULL`.
 - `(event_occurrence_id, status, waitlisted_at)` for wait list ordering.
 
 ### Models and services
 
-- `Rsvp` model with scopes (`holding_spot`, `waitlisted`, `active`) and status predicates.
+- `Rsvp` model with scopes (`holding_spot`, `waitlisted`, `active`, `guests`) and status predicates.
 - `EventOccurrence#effective_capacity`, `#spots_taken`, `#spots_remaining`, `#full?`, `#rsvp_open?`.
-- `RsvpService` in `app/services/` does all the state changes inside the lock: `create`, `confirm_pending`, `cancel`, `accept_offer`, `promote`, and `fill_open_spots`. Controllers and jobs call this service and never update RSVP status directly.
-- Journal entries (`EventJournal`) when hosts or admins cancel, promote, or add people.
+- `RsvpService` in `app/services/` does all the state changes inside the lock: `create`, `confirm_pending`, `cancel`, `claim`, `promote`, and `fill_open_spots`. The service applies the wait list mode. Controllers and jobs call this service and never update RSVP status directly.
+- Journal entries (`EventJournal`) when hosts or admins cancel, promote, add people, or check people in.
 
-## Emails (`RsvpMailer`)
+## Emails
 
 All emails follow the existing email test mode (`SiteConfig#email_test_mode_*`). That logic is currently in `HostReminderNotificationJob#determine_recipient_email`, so it moves into a shared concern first.
 
+### `RsvpMailer` (attendees)
+
 | Email                  | When                                                       | Contents                                         |
 |------------------------|------------------------------------------------------------|--------------------------------------------------|
-| `confirm_email`        | Guest RSVP to a capacity-limited event                     | Link to confirm                                  |
+| `confirm_email`        | Guest RSVP                                                 | Link to confirm                                  |
+| `login_required`       | Guest RSVP whose email matches an existing account         | Link to log in and RSVP                          |
 | `confirmed`            | RSVP confirmed                                             | Details, manage link, `.ics` attachment          |
 | `waitlisted`           | Added to the wait list                                     | Position, manage link                            |
-| `spot_offered`         | Offered a spot from the wait list                          | Accept / decline buttons, deadline               |
-| `last_call`            | Spot open inside the last-call window                      | "First to claim it gets it"                      |
-| `offer_expired`        | Offer lapsed                                               | Back on the wait list or removed (decision below)|
+| `spot_open`            | First come mode, or the last-call window                   | Claim link, "first to claim it gets it"          |
+| `spot_held`            | Sequential mode hold                                       | Accept / decline buttons, deadline               |
+| `offer_reminder`       | Once per person, only while a spot is still open           | Same claim link                                  |
 | `reminder`             | 7 days, 1 day, and the morning of                          | Details, manage link                             |
 | `release_nag`          | Capacity-limited and the event is full or has a wait list | "Can't make it? Release your spot" one-click link |
 | `cancelled_by_host`    | Host or admin cancelled the RSVP                           | Optional reason                                  |
 | `occurrence_changed`   | Occurrence cancelled, relocated, or its time changed       | New details, or the cancellation notice          |
 
-The `release_nag` email is sent about 2 days before the event and combined with the 1-day reminder, so people don't get two emails on the same day.
+The `release_nag` email is combined with the 1-day reminder, so people don't get two emails on the same day.
+
+### `RsvpHostMailer` (hosts who turned on `notify_on_rsvp`)
+
+- `rsvp_activity`: one email for each new confirmed RSVP, cancellation, or wait list join, with the name, the action, and the current counts.
 
 ## Jobs
 
-- `RsvpReminderJob`, run hourly by the scheduler. It finds RSVPs where the reminder hasn't been sent and the reminder time has passed, sends the email, and sets the `*_sent_at` column. Running hourly instead of daily means reminders go out a consistent amount of time before each event.
-- `RsvpOfferExpiryJob`, run every 15 minutes. It expires lapsed offers and calls `RsvpService#fill_open_spots`.
+The schedules go in `config/sidekiq.yml`.
+
+- `RsvpReminderJob`, hourly. It sends attendee reminders and the release nag where the reminder time has passed and the `*_sent_at` column isn't set.
+- `RsvpOfferJob`, every 15 minutes. It releases expired sequential holds, sends offer reminders, and calls `RsvpService#fill_open_spots`.
+- `RsvpCleanupJob`, daily. It deletes unconfirmed pending RSVPs, finalizes check-in (marks no-shows), and anonymizes guest data past the retention period.
 - `RsvpService` calls `fill_open_spots` immediately after any cancellation or capacity increase.
 
 ## Occurrence lifecycle integration
 
 - **Cancelled**: email everyone on the RSVP list and wait list, and mark their RSVPs `cancelled` with `cancelled_via: occurrence_cancelled`. Reactivating the occurrence does not restore them. The email says so.
-- **Postponed**: `postpone!` creates a new occurrence. Move the RSVPs to the new occurrence and email everyone the new date, so their links keep working. Re-check capacity if the new occurrence has a different override.
+- **Postponed**: `postpone!` creates a new occurrence. Move the RSVPs to the new occurrence and email everyone the new date, so their links keep working. Clear any holds and re-check capacity against the new occurrence.
 - **Relocated** or **time edited**: email everyone with the change.
 - **Capacity reduced** below the number of confirmed spots: nobody is bumped. New RSVPs go to the wait list until the count drops. Hosts see a warning.
 - **Capacity increased**: run `fill_open_spots`.
@@ -135,23 +196,24 @@ The `release_nag` email is sent about 2 days before the event and combined with 
 
 - RSVP button that shows the count, for example "RSVP (8 of 20 spots left)", or "Full: join wait list".
 - If the viewer has already RSVP'd: their status, wait list position, and a cancel button.
-- Guest form: name, email, guest count, and a honeypot field. Rate limited with Rails 8 `rate_limit`.
-- Attendee names are never shown publicly. Counts are only shown when capacity is set.
+- Guest form (public events only): name, email, and a honeypot field. Rate limited with Rails 8 `rate_limit`.
 
 ### Management page (`/rsvps/:token`)
 
-- Status, event details, cancel button, accept/decline for an open offer, and a toggle to opt out of reminders.
+- Status, event details, cancel button, claim / decline when a spot is available, and a toggle to opt out of reminders.
 
 ### Host / admin view (on the occurrence page, plus `/occurrences/:slug/rsvps`)
 
-- Tabs for confirmed, wait list (in order), offered (with deadline), pending, and cancelled.
+- Tabs for confirmed, wait list (in order, showing any active hold), pending, and cancelled.
 - Actions: cancel (with an optional reason that is emailed), promote from the wait list, resend confirmation, and add a person manually.
-- CSV export.
-- Authorization reuses `Event#hosted_by?` (hosts and admins).
+- Check-in view during the check-in window.
+- CSV export (names, status, attendance; emails only for admins).
+- Authorization reuses `Event#hosted_by?` (hosts and admins). The email columns are shown only when `current_user.admin?`.
 
 ### Event form
 
-- An "RSVPs" section with the enable toggle, capacity, wait list toggle, guests per RSVP, and the RSVP cutoff. On the occurrence edit form, a capacity override and a toggle to turn RSVPs off for that date.
+- An "RSVPs" section with the enable toggle, capacity, wait list toggle, wait list mode, and the RSVP cutoff. On the occurrence edit form, a capacity override and a toggle to turn RSVPs off for that date.
+- In the host list, each host can toggle "Email me about RSVPs" for themselves.
 
 ### Dashboard
 
@@ -161,20 +223,10 @@ The `release_nag` email is sent about 2 days before the event and combined with 
 ## Phases (each one commits separately with tests)
 
 1. **Schema and models**: migrations, `Rsvp` model, capacity methods on the occurrence, `RsvpService` with locking, and model/service tests (including concurrency on the last seat).
-2. **RSVP flow**: public RSVP and cancel for logged-in users and guests, the management page, the confirmation and wait list emails, and the `.ics` attachment.
-3. **Host / admin lists**: the list view, cancel and promote actions, CSV export, and journal entries.
-4. **Wait list offers**: the offer, accept, and expiry cycle, the last-call broadcast, and the expiry job.
-5. **Reminders and the release nag**: the hourly job, reminder opt-out, and idempotency tests.
+2. **RSVP flow**: public RSVP and cancel for logged-in users and guests, the login requirement for guests who have an account, linking guest RSVPs to an account at login, the management page, the confirmation and wait list emails, and the `.ics` attachment.
+3. **Host / admin lists**: the list view, cancel / promote / add actions, the CSV export, the name-only privacy rule, host RSVP notifications, and journal entries.
+4. **Wait list**: both modes, claiming spots, sequential holds and their expiry, the last-call switch, the one offer reminder, and `RsvpOfferJob`.
+5. **Reminders and the release nag**: `RsvpReminderJob`, reminder opt-out, and idempotency tests.
 6. **Lifecycle integration**: cancellation, postponement, relocation, time change, and capacity changes.
-7. **Polish**: dashboard sections, event form UI, site config settings, the docs update, a CHANGELOG entry, and the version bump to 0.25.0.
-
-## Open questions
-
-1. **Guest RSVPs**: should public events accept RSVPs from people without an Authentik account, or should RSVPs require logging in?
-2. **Wait list offers**: should offers go to one person at a time with a deadline (as planned), or should everyone on the wait list be emailed and the first to claim the spot get it?
-3. **Expired offers**: if someone ignores an offer, do they go back to the end of the wait list, or are they removed?
-4. **Recurring events**: is a "RSVP to every upcoming date" option needed, or is one occurrence at a time enough for now?
-5. **Plus-ones**: should an RSVP be able to include extra guests that count against capacity?
-6. **Host notifications**: should hosts get an email for each new RSVP or cancellation, a daily digest, or nothing?
-7. **No-shows**: is a check-in / attendance feature wanted later, which would track repeat no-shows for capacity-limited events?
-8. **Data retention**: should guest names and emails be purged some number of days after the event?
+7. **Check-in and cleanup**: the check-in view, no-show finalization, the no-show counts in the host list, removing pending RSVPs, guest anonymization, and `RsvpCleanupJob`.
+8. **Polish**: dashboard sections, event form UI, site config settings, the docs update, a CHANGELOG entry, and the version bump to 0.25.0.
