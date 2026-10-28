@@ -146,6 +146,7 @@ class CalendarController < ApplicationController
       status: occ.status,
       duration: occ.duration,
       description: occ.description,
+      description_html: EventDescription.for_display(occ.description_html),
       postponed_until: occ.postponed_until&.iso8601,
       cancellation_reason: occ.cancellation_reason,
       relocated_to: occ.relocated_to,

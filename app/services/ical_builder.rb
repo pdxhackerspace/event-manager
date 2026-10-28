@@ -87,6 +87,11 @@ class IcalBuilder
       e.summary = occurrence.event.title
       e.status = self.class.ical_status(occurrence.status)
       e.description = self.class.description_for(occurrence, page_url: page_url)
+      html = EventDescription.for_display(occurrence.rendered_description_html)
+      if html.present?
+        alt = Icalendar::Values::Text.new(html.to_s, { 'fmttype' => 'text/html' })
+        e.append_custom_property('x-alt-desc', alt)
+      end
       e.location = occurrence.event_location.name if occurrence.event_location
       e.url = page_url if page_url.present?
       e.organizer = organizer if organizer.present?

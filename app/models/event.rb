@@ -14,6 +14,7 @@ class Event < ApplicationRecord
 
   before_validation :generate_slug, on: :create
   before_validation :update_slug_if_title_changed, on: :update
+  before_validation :normalize_description_fields
   before_create :generate_ical_token
   after_create :add_creator_as_host
   after_create :attach_pool_images
@@ -81,6 +82,10 @@ class Event < ApplicationRecord
     msg = "#{title} is happening #{WHEN_PLACEHOLDER} at PDX Hackerspace!"
     msg += " #{description.truncate(400)}" if description.present?
     msg
+  end
+
+  def rendered_description_html
+    description_html.presence
   end
 
   scope :active, -> { where(status: 'active') }
@@ -453,6 +458,13 @@ class Event < ApplicationRecord
   end
 
   private
+
+  def normalize_description_fields
+    self.description_html = EventDescription.sanitize(description_html)
+    return if description.present? || description_html.blank?
+
+    self.description = HtmlToPlainText.call(description_html)
+  end
 
   def attach_pool_images
     files = pool_images

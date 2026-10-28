@@ -29,6 +29,7 @@ class OccurrenceFeedSerializer < FeedSerializer
       event: EventSummarySerializer.new(event, url_for: @url_for, spectra6: @spectra6).as_json,
       location: public_event ? location_json(record.event_location) : nil,
       description: public_event ? record.description : nil,
+      description_html: public_event ? EventDescription.for_display(record.description_html) : nil,
       banner_url: public_event ? banner_url(record.banner) : nil,
       spectra6_banner_url: public_event ? occurrence_spectra6_banner_url : nil
     }

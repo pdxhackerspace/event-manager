@@ -18,3 +18,9 @@ application.register("pending-upload", PendingUploadController)
 
 import BannerSourceController from "./banner_source_controller"
 application.register("banner-source", BannerSourceController)
+
+import DescriptionSyncController from "./description_sync_controller"
+application.register("description-sync", DescriptionSyncController)
+
+import RichEditorController from "./rich_editor_controller"
+application.register("rich-editor", RichEditorController)

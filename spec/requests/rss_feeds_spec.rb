@@ -101,6 +101,16 @@ RSpec.describe "RSS Feeds", type: :request do
         expect(response.body).to include("Main Hall")
       end
 
+      it "escapes formatted description HTML" do
+        event_with_details.update!(description: 'A great event description',
+                                   description_html: '<p>A great event description with <strong>tools</strong></p>')
+
+        get events_rss_path(format: :rss)
+
+        expect(response.body).to include('&lt;strong&gt;tools&lt;/strong&gt;')
+        expect(response.body).not_to include('<strong>tools</strong>')
+      end
+
       it "includes recurrence type category" do
         get events_rss_path(format: :rss)
         expect(response.body).to include("<category>Once</category>")

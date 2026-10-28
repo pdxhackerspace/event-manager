@@ -53,14 +53,14 @@
             </div>
           </div>
 
-          <div class="mb-3">
-            <%= f.label :custom_description, "Custom Description (Optional)", class: "form-label" %>
-            <%= f.text_area :custom_description, class: "form-control", rows: 5, 
-                placeholder: "Leave blank to use the event's default description..." %>
-            <small class="form-text text-muted">
-              Override the event description for this specific occurrence
-            </small>
-          </div>
+          <%= render "events/description_fields",
+                     f: f,
+                     html_field: :custom_description_html,
+                     text_field: :custom_description,
+                     sync_param: :sync_custom_description,
+                     inherit: true,
+                     label: "Custom description",
+                     placeholder: "Leave blank to use the event's description..." %>
 
           <div class="mb-3">
             <%= f.label :duration_override, "Custom Duration (Optional)", class: "form-label" %>

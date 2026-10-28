@@ -5,6 +5,11 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.27.0] - 2026-10-28
+
+### Added
+- Event descriptions can be written with formatting (headings, lists, and links). A plain text copy is kept for calendars, Slack, social posts, and search, and is included alongside the HTML in the JSON and RSS feeds
+
 ## [v0.25.2] - 2026-10-28
 
 ### Fixed

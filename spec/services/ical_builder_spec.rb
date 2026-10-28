@@ -183,6 +183,25 @@ RSpec.describe IcalBuilder do
       expect(unfold(ical)).to include('Weekly security meetup')
     end
 
+    it 'keeps HTML tags out of the plain description' do
+      event.update!(description: 'Hello there', description_html: '<p>Hello <strong>there</strong></p>')
+
+      expect(value_of(ical, 'DESCRIPTION')).to include('Hello there')
+      expect(value_of(ical, 'DESCRIPTION')).not_to include('<')
+    end
+
+    it 'adds an HTML alternative when the description has formatting' do
+      event.update!(description: 'Hello there', description_html: '<p>Hello <strong>there</strong></p>')
+
+      document = unfold(ical)
+      expect(document).to include('X-ALT-DESC;FMTTYPE=text/html')
+      expect(document).to include('<strong>there</strong>')
+    end
+
+    it 'omits the HTML alternative when there is no formatted description' do
+      expect(unfold(ical)).not_to include('X-ALT-DESC')
+    end
+
     it 'prefers a custom occurrence description over the event description' do
       occurrence.update!(custom_description: 'Bring a laptop')
 

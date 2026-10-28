@@ -211,13 +211,19 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   end
 
   def occurrence_params
-    p = params.expect(event_occurrence: %i[occurs_at custom_description duration_override status
-                                           location_id capacity_override rsvp_disabled
-                                           reminder_7d_short reminder_1d_short
-                                           reminder_7d_long reminder_1d_long])
-    return p if p[:occurs_at].blank?
+    attrs = params.expect(event_occurrence: %i[occurs_at custom_description custom_description_html duration_override status
+                                               location_id capacity_override rsvp_disabled
+                                               reminder_7d_short reminder_1d_short
+                                               reminder_7d_long reminder_1d_long]).to_h.stringify_keys
+    EventDescription.assign_pair(
+      attrs,
+      html_key: 'custom_description_html',
+      text_key: 'custom_description',
+      sync: params[:sync_custom_description].present?
+    )
+    return attrs if attrs['occurs_at'].blank?
 
-    p.merge(occurs_at: Time.zone.parse(p[:occurs_at].to_s))
+    attrs.merge('occurs_at' => Time.zone.parse(attrs['occurs_at'].to_s))
   end
 
   def handle_image_selection

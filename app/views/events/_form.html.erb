@@ -20,19 +20,11 @@
         <%= f.text_field :title, class: "form-control", required: true, placeholder: "Weekly Meetup" %>
       </div>
 
-      <div class="mb-3">
-        <%= f.label :description, class: "form-label" %>
-        <div class="alert alert-info py-2 mb-2" role="note">
-          <small>
-            <i class="bi bi-info-circle" aria-hidden="true"></i>
-            <strong>What to include in your description:</strong>
-            Who is invited, what the event is about, any signup or RSVP links, what to bring, 
-            skill level requirements, costs (if any), and other important details that help 
-            people understand if this event is for them.
-          </small>
-        </div>
-        <%= f.text_area :description, class: "form-control", rows: 5, placeholder: "Describe your event...", "aria-describedby": "description-help" %>
-      </div>
+      <%= render "events/description_fields",
+                 f: f,
+                 html_field: :description_html,
+                 text_field: :description,
+                 sync_param: :sync_description %>
 
       <div class="mb-3">
         <%= f.label :more_info_url, "More Info URL (Optional)", class: "form-label" %>
