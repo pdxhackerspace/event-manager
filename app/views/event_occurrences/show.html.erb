@@ -105,6 +105,12 @@
       </div>
     <% end %>
 
+    <% if rsvp_collecting?(@occurrence) %>
+      <p class="mb-3"><%= rsvp_required_badge(extra_class: 'fs-6') %></p>
+    <% end %>
+
+    <%= render 'rsvp_panel', occurrence: @occurrence, current_rsvp: @current_rsvp %>
+
     <section class="card mb-4">
       <div class="card-body">
         <h2 class="card-title h5">Description</h2>
@@ -122,7 +128,6 @@
   </div>
 
   <aside class="col-lg-4">
-    <%= render 'rsvp_panel' %>
     <section class="card mb-3">
       <div class="card-body">
         <h2 class="card-title h5">Occurrence Details</h2>
@@ -169,6 +174,14 @@
           <% if @event.hosts.any? %>
             <dt class="col-sm-5">Hosts:</dt>
             <dd class="col-sm-7"><%= @event.hosts.map { |h| h.name || h.email }.join(', ') %></dd>
+          <% end %>
+
+          <% if rsvp_collecting?(@occurrence) && @occurrence.effective_capacity %>
+            <dt class="col-sm-5">Capacity:</dt>
+            <dd class="col-sm-7">
+              <%= rsvp_capacity_summary(@occurrence) %>
+              <span class="d-block small text-muted"><%= @occurrence.spots_taken %> taken · <%= @occurrence.effective_capacity %> total</span>
+            </dd>
           <% end %>
 
           <dt class="col-sm-5">Open To:</dt>

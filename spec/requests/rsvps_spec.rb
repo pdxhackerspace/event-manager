@@ -8,6 +8,57 @@ RSpec.describe 'RSVPs', :mail, type: :request do
 
   before { SiteConfig.current }
 
+  describe 'finding the RSVP form' do
+    it 'shows the form, that an RSVP is required, and how many spots are left on the event page' do
+      get event_path(event)
+
+      expect(response.body).to include('RSVP required')
+      expect(response.body).to include('2 of 2 spots left')
+      expect(response.body).to include('0 taken')
+      expect(response.body).to include('2 total')
+      expect(response.body).to include('name="name"')
+      expect(response.body).to include('name="email"')
+      expect(response.body).to include(occurrence_rsvp_path(occurrence))
+    end
+
+    it 'shows the same form on the date page, ahead of the other details' do
+      get event_occurrence_path(occurrence)
+
+      expect(response.body.index('RSVP required')).to be < response.body.index('Occurrence Details')
+      expect(response.body).to include('2 of 2 spots left')
+      expect(response.body).to include('name="name"')
+    end
+
+    it 'marks the event on the public list' do
+      event
+
+      get events_path
+
+      expect(response.body).to include(event.title)
+      expect(response.body).to include('RSVP required')
+      expect(response.body).to include('2 of 2 spots left')
+    end
+
+    it 'asks a guest to log in when the event is members only' do
+      event.update!(open_to: 'members')
+
+      get event_path(event)
+
+      expect(response.body).to include('Log in to RSVP')
+      expect(response.body).not_to include('name="email"')
+    end
+
+    it 'gives a signed-in member a one-click RSVP on the event page' do
+      sign_in member
+
+      get event_path(event)
+
+      expect(response.body).to include('RSVP required')
+      expect(response.body).to include(occurrence_rsvp_path(occurrence))
+      expect(response.body).not_to include('name="email"')
+    end
+  end
+
   describe 'POST /occurrences/:id/rsvp' do
     it 'confirms a signed-in member' do
       sign_in member

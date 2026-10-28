@@ -146,8 +146,9 @@
                 <% if occurrence.cancellation_reason.present? %>
                   <p class="mb-1"><strong>Reason:</strong> <%= occurrence.cancellation_reason %></p>
                 <% end %>
-                <p class="mb-0">
+                <p class="mb-0 d-flex align-items-center gap-2 flex-wrap">
                   <%= open_to_badge(occurrence.event) %>
+                  <%= render 'event_occurrences/rsvp_mark', occurrence: occurrence %>
                   <% if occurrence.event.requires_mask %>
                     <span class="badge bg-info">
                       <i class="bi bi-shield-fill-check"></i> Masks Required
@@ -157,7 +158,10 @@
               </div>
               <div class="col-md-3 text-end">
                 <%= link_to "View Event", event_path(occurrence.event), class: "btn btn-sm btn-outline-primary mb-1 w-100" %>
-                <%= link_to "View Occurrence", event_occurrence_path(occurrence), class: "btn btn-sm btn-primary w-100" %>
+                <%= link_to "View Occurrence", event_occurrence_path(occurrence), class: "btn btn-sm btn-outline-primary mb-1 w-100" %>
+                <% if occurrence.rsvp_open? %>
+                  <%= link_to "RSVP", event_occurrence_path(occurrence, anchor: 'rsvp'), class: "btn btn-sm btn-primary w-100" %>
+                <% end %>
               </div>
             </div>
           </div>

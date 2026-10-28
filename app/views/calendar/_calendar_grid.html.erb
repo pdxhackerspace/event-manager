@@ -38,7 +38,9 @@
                 end
               %>
               <% open_to = EventsHelper::OPEN_TO_DISPLAY.fetch(occurrence.event.open_to.to_s, EventsHelper::OPEN_TO_DISPLAY['private']) %>
-              <%= link_to event_occurrence_path(occurrence), class: "calendar-event-item text-decoration-none", target: "_blank", rel: "noopener noreferrer", "aria-label": "#{occurrence.event.title} at #{occurrence.occurs_at.strftime('%I:%M %p')}, #{open_to[:label]}#{occurrence.status != 'active' ? " (#{occurrence.status})" : ''}" do %>
+              <% rsvp_label = rsvp_collecting?(occurrence) ? ', RSVP required' : '' %>
+              <% rsvp_label += ", #{rsvp_capacity_summary(occurrence)}" if rsvp_label.present? && occurrence.effective_capacity %>
+              <%= link_to event_occurrence_path(occurrence, anchor: (occurrence.rsvp_open? ? 'rsvp' : nil)), class: "calendar-event-item text-decoration-none", target: "_blank", rel: "noopener noreferrer", "aria-label": "#{occurrence.event.title} at #{occurrence.occurs_at.strftime('%I:%M %p')}, #{open_to[:label]}#{rsvp_label}#{occurrence.status != 'active' ? " (#{occurrence.status})" : ''}" do %>
                 <div class="calendar-event-badge <%= badge_class %>">
                   <div class="event-time <%= 'text-decoration-line-through opacity-75' if occurrence.status == 'postponed' && occurrence.postponed_until %>"><%= occurrence.occurs_at.strftime('%I:%M %p') %></div>
                   <div class="event-title">
@@ -48,6 +50,9 @@
                     <% end %>
                     <i class="bi bi-<%= open_to[:icon] %>" aria-hidden="true"></i>
                     <%= truncate(occurrence.event.title, length: 30) %>
+                    <% if rsvp_collecting?(occurrence) %>
+                      <div class="fw-bold mt-1" style="font-size: 0.65rem;">RSVP<%= " · #{rsvp_capacity_summary(occurrence)}" if occurrence.effective_capacity %></div>
+                    <% end %>
                     <% if occurrence.status == 'postponed' && occurrence.postponed_until %>
                       <% new_occurrence = occurrence.replacement_occurrence %>
                       <div class="fw-bold mt-1" style="font-size: 0.65rem;">

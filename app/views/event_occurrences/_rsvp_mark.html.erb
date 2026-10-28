@@ -1,0 +1,8 @@
+<% if rsvp_collecting?(occurrence) %>
+  <span class="d-inline-flex align-items-center gap-2 flex-wrap">
+    <%= rsvp_required_badge %>
+    <% if occurrence.effective_capacity %>
+      <span class="small text-body"><%= rsvp_capacity_summary(occurrence) %></span>
+    <% end %>
+  </span>
+<% end %>
