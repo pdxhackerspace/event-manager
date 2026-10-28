@@ -60,6 +60,16 @@ RSpec.describe 'RSVPs', :mail, type: :request do
       expect(occurrence.rsvps.last.reload).to be_cancelled
     end
 
+    it 'does not cancel an RSVP after the event has ended' do
+      rsvp = create(:rsvp, event_occurrence: occurrence, name: 'Grace', email: 'grace@example.com')
+      occurrence.update!(occurs_at: 3.hours.ago)
+
+      post cancel_rsvp_path(rsvp.manage_token)
+
+      expect(rsvp.reload).to be_confirmed
+      expect(flash[:alert]).to include('over')
+    end
+
     it 'says the event is over after it ends' do
       rsvp = create(:rsvp, event_occurrence: occurrence, name: 'Grace', email: 'grace@example.com')
       occurrence.update!(occurs_at: 3.hours.ago)

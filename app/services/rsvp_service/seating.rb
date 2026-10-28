@@ -76,6 +76,10 @@ class RsvpService
       email.present? && User.exists?(['LOWER(email) = ?', email])
     end
 
+    def account_for(email)
+      User.find_by(['LOWER(email) = ?', email])
+    end
+
     def active_for(user:, email:)
       scope = occurrence.rsvps.active
       found = scope.find_by(user_id: user.id) if user

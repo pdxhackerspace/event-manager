@@ -45,6 +45,13 @@ RSpec.describe RsvpLifecycle, :mail do
     expect(occurrence.rsvps.confirmed.count).to eq(1)
   end
 
+  it 'cancels RSVPs when the series is permanently cancelled' do
+    event.update!(permanently_cancelled: true)
+
+    expect(occurrence.reload.status).to eq('cancelled')
+    expect(occurrence.rsvps.first.reload.cancelled_via).to eq('occurrence_cancelled')
+  end
+
   it 'warns when confirmed RSVPs exceed the new capacity' do
     service.create(user: create(:user))
     event.update!(capacity: 1)

@@ -218,5 +218,13 @@ RSpec.describe RsvpService, :mail do
       expect(outcome.code).to eq(:confirmed)
       expect(outcome.rsvp.user).to be_nil
     end
+
+    it 'links an existing account instead of asking them to log in' do
+      outcome = service.create(name: 'Ada', email: member.email, manual: true)
+
+      expect(outcome.code).to eq(:confirmed)
+      expect(outcome.rsvp.user).to eq(member)
+      expect(outcome.rsvp.display_name).to eq('ada')
+    end
   end
 end

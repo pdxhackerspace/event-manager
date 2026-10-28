@@ -11,6 +11,8 @@ class RsvpReminderJob < ApplicationJob
 
   def send_due_reminder(rsvp)
     occurrence = rsvp.event_occurrence
+    event = occurrence.event
+    return unless event.status == 'active' && !event.draft? && !event.deleted?
     return unless %w[active relocated].include?(occurrence.status)
     return if occurrence.occurs_at <= Time.current
 

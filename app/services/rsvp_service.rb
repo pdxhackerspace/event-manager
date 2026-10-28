@@ -12,7 +12,12 @@ class RsvpService
   def create(user: nil, name: nil, email: nil, manual: false)
     email = email.to_s.strip.downcase
     return result(false, :closed) if !manual && !occurrence.rsvp_open?
-    return login_required(email) if user.nil? && account_exists?(email)
+
+    if user.nil? && account_exists?(email)
+      return login_required(email) unless manual
+
+      user = account_for(email)
+    end
 
     occurrence.with_lock do
       existing = active_for(user:, email: email.presence || user&.email)
@@ -25,6 +30,8 @@ class RsvpService
   end
 
   def confirm_pending!(rsvp)
+    return result(false, :closed, rsvp) unless occurrence.manageable_until?
+
     occurrence.with_lock do
       rsvp.reload
       return result(true, :confirmed, rsvp) if rsvp.confirmed?
@@ -37,6 +44,8 @@ class RsvpService
   end
 
   def claim!(rsvp)
+    return result(false, :closed, rsvp) unless occurrence.manageable_until?
+
     occurrence.with_lock do
       rsvp.reload
       return result(true, :confirmed, rsvp) if rsvp.confirmed?
@@ -49,6 +58,8 @@ class RsvpService
   end
 
   def decline!(rsvp)
+    return result(false, :closed, rsvp) unless occurrence.manageable_until?
+
     occurrence.with_lock do
       rsvp.reload
       return result(false, :invalid, rsvp) unless rsvp.waitlisted?
@@ -60,6 +71,8 @@ class RsvpService
   end
 
   def cancel!(rsvp, actor: nil, via: 'self', reason: nil, reopen: true)
+    return result(false, :closed, rsvp) if via == 'self' && !occurrence.manageable_until?
+
     occurrence.with_lock do
       rsvp.reload
       return result(true, :cancelled, rsvp) if rsvp.cancelled?

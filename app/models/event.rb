@@ -531,6 +531,7 @@ class Event < ApplicationRecord
     # Cancel all future active occurrences when event becomes permanently cancelled
     occurrences.where('occurs_at > ?', Time.current).where(status: 'active').find_each do |occ|
       occ.update!(status: 'cancelled', cancellation_reason: 'Event permanently cancelled')
+      RsvpLifecycle.cancel_occurrence!(occ)
     end
   end
 

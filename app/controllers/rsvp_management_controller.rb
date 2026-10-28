@@ -1,5 +1,6 @@
 class RsvpManagementController < ApplicationController
   before_action :set_rsvp
+  before_action :reject_if_over, except: :show
 
   def show; end
 
@@ -30,6 +31,12 @@ class RsvpManagementController < ApplicationController
     @rsvp = Rsvp.find_by!(manage_token: params.expect(:token))
     @occurrence = @rsvp.event_occurrence
     @event = @occurrence.event
+  end
+
+  def reject_if_over
+    return if @occurrence.manageable_until?
+
+    redirect_to manage_rsvp_path(@rsvp.manage_token), alert: 'This event is over.'
   end
 
   def redirect_with(outcome)
