@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Fixed
+- Event hosts can't RSVP to their own event
 - RSVP events now show that an RSVP is required, how many spots are left, and the RSVP form on the event page, the date page, the event list, and the calendar
 
 ### Added

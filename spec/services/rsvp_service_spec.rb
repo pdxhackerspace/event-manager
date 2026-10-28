@@ -9,6 +9,24 @@ RSpec.describe RsvpService, :mail do
   before { SiteConfig.current }
 
   describe '#create' do
+    it 'does not let a host RSVP' do
+      outcome = service.create(user: event.user)
+
+      expect(outcome.code).to eq(:host)
+      expect(Rsvp.count).to eq(0)
+    end
+
+    it 'does not let a host be added by email' do
+      outcome = service.create(name: 'Host', email: event.user.email, manual: true)
+
+      expect(outcome.code).to eq(:host)
+      expect(Rsvp.count).to eq(0)
+    end
+
+    it 'still lets an admin who is not a host RSVP' do
+      expect(service.create(user: create(:user, :admin)).code).to eq(:confirmed)
+    end
+
     it 'confirms a member and prefers their username' do
       outcome = nil
       expect { outcome = service.create(user: member) }.to have_enqueued_mail(RsvpMailer, :confirmed)

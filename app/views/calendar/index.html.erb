@@ -159,7 +159,7 @@
               <div class="col-md-3 text-end">
                 <%= link_to "View Event", event_path(occurrence.event), class: "btn btn-sm btn-outline-primary mb-1 w-100" %>
                 <%= link_to "View Occurrence", event_occurrence_path(occurrence), class: "btn btn-sm btn-outline-primary mb-1 w-100" %>
-                <% if occurrence.rsvp_open? %>
+                <% if occurrence.rsvp_open? && !event_host?(occurrence.event) %>
                   <%= link_to "RSVP", event_occurrence_path(occurrence, anchor: 'rsvp'), class: "btn btn-sm btn-primary w-100" %>
                 <% end %>
               </div>

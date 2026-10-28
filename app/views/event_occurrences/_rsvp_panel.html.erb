@@ -38,6 +38,8 @@
         <% end %>
         <%= button_to 'Cancel RSVP', cancel_rsvp_path(viewer_rsvp.manage_token), method: :post, class: 'btn btn-outline-danger',
                       form: { data: { turbo_confirm: 'Cancel your RSVP?' } } %>
+      <% elsif event_host?(event) %>
+        <p class="mb-0">Hosts can't RSVP to their own event.</p>
       <% elsif occurrence.rsvp_open? %>
         <% if event.open_to == 'public' || current_user %>
           <% if current_user %>
