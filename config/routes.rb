@@ -23,7 +23,8 @@ Rails.application.routes.draw do
   # Users created via Authentik OAuth only (no signup)
   # Skip all registration routes and manually add only edit/update/destroy
   devise_for :users, controllers: {
-    omniauth_callbacks: 'omniauth_callbacks'
+    omniauth_callbacks: 'omniauth_callbacks',
+    sessions: 'users/sessions'
   }, skip: [:registrations]
 
   # Manually add only the registration routes we need (no new/create for sign up)

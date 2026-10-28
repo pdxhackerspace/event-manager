@@ -58,10 +58,10 @@
               </div>
               <button class="btn btn-primary" type="submit"><%= rsvp_action_label(occurrence) %></button>
             <% end %>
-            <p class="form-text mt-2">Already have an account? <%= link_to 'Log in', new_user_session_path %>.</p>
+            <p class="form-text mt-2">Already have an account? <%= link_to 'Log in', rsvp_login_path(occurrence, on_event_page: local_assigns[:show_date]) %>.</p>
           <% end %>
         <% else %>
-          <%= link_to 'Log in to RSVP', new_user_session_path, class: 'btn btn-primary' %>
+          <%= link_to 'Log in to RSVP', rsvp_login_path(occurrence, on_event_page: local_assigns[:show_date]), class: 'btn btn-primary' %>
         <% end %>
       <% else %>
         <p class="text-muted mb-0">RSVPs are closed.</p>

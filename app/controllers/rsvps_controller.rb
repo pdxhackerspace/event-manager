@@ -5,8 +5,13 @@ class RsvpsController < ApplicationController
   rate_limit to: 5, within: 1.minute, only: :create, by: -> { request.remote_ip }
 
   def create
-    store_location_for(:user, event_occurrence_path(@occurrence))
-    return redirect_to(new_user_session_path, alert: 'Log in to RSVP.') unless audience_open?
+    store_location_for(:user, event_path(@occurrence.event, anchor: 'rsvp'))
+    unless audience_open?
+      return redirect_to(
+        new_user_session_path(rsvp_occurrence_id: @occurrence.id, return_to: event_path(@occurrence.event, anchor: 'rsvp')),
+        alert: 'Log in to RSVP.'
+      )
+    end
     return redirect_to(@occurrence, notice: GUEST_NOTICE) if params[:company_website].present?
 
     outcome = RsvpService.new(@occurrence).create(user: current_user, name: params[:name], email: params[:email])
@@ -26,14 +31,7 @@ class RsvpsController < ApplicationController
   end
 
   def flash_for(outcome)
-    case outcome.code
-    when :confirmed then { notice: "You're confirmed for this event." }
-    when :waitlisted then { notice: "You're on the wait list." }
-    when :pending, :login_required then { notice: GUEST_NOTICE }
-    when :duplicate then { alert: 'You already have an RSVP for this event.' }
-    when :full then { alert: 'This event is full.' }
-    when :closed then { alert: 'RSVPs are closed for this event.' }
-    else { alert: 'RSVP could not be saved. Check your name and email.' }
-    end
+    key, message = RsvpLogin.flash_for(outcome)
+    { key => message }
   end
 end

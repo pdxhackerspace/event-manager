@@ -3,7 +3,14 @@
 ## [Unreleased]
 
 ### Fixed
+- Logging in to RSVP returns you to that event and submits the RSVP
+
+## [v0.25.1] - 2026-10-28
+
+### Fixed
 - RSVP events now show that an RSVP is required, how many spots are left, and the RSVP form on the event page, the date page, the event list, and the calendar
+
+## [v0.25.0] - 2026-10-28
 
 ### Added
 - Events can take RSVPs, with an optional capacity and a wait list. Hosts choose whether an open spot goes to the first person who claims it or is offered to one person at a time
