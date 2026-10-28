@@ -1,0 +1,22 @@
+<% if @test_mode %>
+  <p><strong>Test mode.</strong> This email was redirected to the test address.</p>
+<% end %>
+
+<p>
+  The request to keep other events off the calendar during <strong><%= @event.title %></strong>
+  was <strong><%= @event.exclusive_approved? ? 'approved' : 'denied' %></strong>.
+</p>
+
+<% if @event.exclusive_review_note.present? %>
+  <p>Note from the admin: <%= @event.exclusive_review_note %></p>
+<% end %>
+
+<% if @event.exclusive_approved? %>
+  <p>
+    Other events cannot be scheduled during it, or within
+    <%= @event.effective_conflict_buffer_minutes %> minutes before and after.
+    Changing the schedule sends the request back for review.
+  </p>
+<% end %>
+
+<p><%= link_to 'View the event', event_url(@event) %></p>

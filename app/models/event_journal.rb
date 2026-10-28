@@ -50,6 +50,7 @@ class EventJournal < ApplicationRecord
     when 'rsvp_promoted' then "Promoted #{change_data['name']} off the wait list"
     when 'rsvp_added' then "Added #{change_data['name']} to the RSVP list"
     when 'rsvp_checked_in' then "Checked in #{change_data['name']}"
+    when 'exclusive_override' then exclusive_override_summary
     else action.titleize
     end
   end
@@ -64,6 +65,11 @@ class EventJournal < ApplicationRecord
   end
 
   private
+
+  def exclusive_override_summary
+    names = Array(change_data['overlapped']).join(', ')
+    "Scheduled anyway over exclusive event: #{names}"
+  end
 
   def created_summary
     occurrence_id ? "Created occurrence for #{occurrence_date}" : 'Created event'

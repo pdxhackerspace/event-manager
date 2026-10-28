@@ -18,3 +18,6 @@ application.register("pending-upload", PendingUploadController)
 
 import BannerSourceController from "./banner_source_controller"
 application.register("banner-source", BannerSourceController)
+
+import ConflictCheckController from "./conflict_check_controller"
+application.register("conflict-check", ConflictCheckController)

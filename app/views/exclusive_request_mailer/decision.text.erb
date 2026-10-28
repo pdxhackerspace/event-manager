@@ -1,0 +1,17 @@
+<% if @test_mode %>
+*** TEST MODE ***
+This email was redirected to the test address.
+******************
+
+<% end %>
+The request to keep other events off the calendar during <%= @event.title %> was <%= @event.exclusive_approved? ? 'approved' : 'denied' %>.
+<% if @event.exclusive_review_note.present? %>
+
+Note from the admin: <%= @event.exclusive_review_note %>
+<% end %>
+<% if @event.exclusive_approved? %>
+
+Other events cannot be scheduled during it, or within <%= @event.effective_conflict_buffer_minutes %> minutes before and after. Changing the schedule sends the request back for review.
+<% end %>
+
+View the event: <%= event_url(@event) %>

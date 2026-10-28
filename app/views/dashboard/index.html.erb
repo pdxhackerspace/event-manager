@@ -350,6 +350,7 @@
                 <%= label_tag :reason, "Reason (optional):", class: "form-label" %>
                 <%= text_area_tag :reason, nil, class: "form-control", rows: 2, placeholder: "Why is this occurrence being postponed?" %>
               </div>
+              <%= render "shared/exclusive_override_field", prefix: "dashboard_#{occurrence.id}" %>
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

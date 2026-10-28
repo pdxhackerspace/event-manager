@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_28_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_230000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -160,8 +160,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_180000) do
     t.boolean "waitlist_enabled", default: true, null: false
     t.string "waitlist_mode", default: "first_come", null: false
     t.integer "rsvp_closes_minutes_before", default: 0, null: false
+    t.boolean "busy", default: false, null: false
+    t.string "exclusive_status", default: "none", null: false
+    t.datetime "exclusive_requested_at"
+    t.datetime "exclusive_reviewed_at"
+    t.text "exclusive_review_note"
+    t.integer "conflict_buffer_minutes"
+    t.bigint "exclusive_requested_by_id"
+    t.bigint "exclusive_reviewed_by_id"
     t.index ["deleted_at"], name: "index_events_on_deleted_at"
     t.index ["description"], name: "index_events_on_description_trgm", opclass: :gin_trgm_ops, using: :gin
+    t.index ["exclusive_requested_by_id"], name: "index_events_on_exclusive_requested_by_id"
+    t.index ["exclusive_reviewed_by_id"], name: "index_events_on_exclusive_reviewed_by_id"
+    t.index ["exclusive_status"], name: "index_events_on_exclusive_status"
     t.index ["fixed_event_image_id"], name: "index_events_on_fixed_event_image_id"
     t.index ["ical_token"], name: "index_events_on_ical_token", unique: true
     t.index ["location_id"], name: "index_events_on_location_id"
@@ -175,11 +186,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_180000) do
     t.index ["title"], name: "index_events_on_title_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["user_id"], name: "index_events_on_user_id"
     t.index ["visibility"], name: "index_events_on_visibility"
+    t.check_constraint "exclusive_status::text = ANY (ARRAY['none'::character varying, 'pending'::character varying, 'approved'::character varying, 'denied'::character varying]::text[])", name: "events_exclusive_status_check"
     t.check_constraint "open_to::text = ANY (ARRAY['public'::character varying::text, 'members'::character varying::text, 'private'::character varying::text])", name: "events_open_to_check"
     t.check_constraint "recurrence_type::text = ANY (ARRAY['once'::character varying::text, 'weekly'::character varying::text, 'monthly'::character varying::text, 'custom'::character varying::text])", name: "events_recurrence_type_check"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'postponed'::character varying::text, 'cancelled'::character varying::text])", name: "events_status_check"
     t.check_constraint "visibility::text = ANY (ARRAY['public'::character varying::text, 'members'::character varying::text, 'private'::character varying::text])", name: "events_visibility_check"
-    t.check_constraint "waitlist_mode::text = ANY (ARRAY['first_come'::character varying, 'sequential'::character varying]::text[])", name: "events_waitlist_mode_check"
+    t.check_constraint "waitlist_mode::text = ANY (ARRAY['first_come'::character varying::text, 'sequential'::character varying::text])", name: "events_waitlist_mode_check"
   end
 
   create_table "locations", force: :cascade do |t|
@@ -246,8 +258,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_180000) do
     t.index ["event_occurrence_id"], name: "index_rsvps_on_event_occurrence_id"
     t.index ["manage_token"], name: "index_rsvps_on_manage_token", unique: true
     t.index ["user_id"], name: "index_rsvps_on_user_id"
-    t.check_constraint "cancelled_via IS NULL OR (cancelled_via::text = ANY (ARRAY['self'::character varying, 'host'::character varying, 'admin'::character varying, 'occurrence_cancelled'::character varying]::text[]))", name: "rsvps_cancelled_via_check"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'confirmed'::character varying, 'waitlisted'::character varying, 'cancelled'::character varying]::text[])", name: "rsvps_status_check"
+    t.check_constraint "cancelled_via IS NULL OR (cancelled_via::text = ANY (ARRAY['self'::character varying::text, 'host'::character varying::text, 'admin'::character varying::text, 'occurrence_cancelled'::character varying::text]))", name: "rsvps_cancelled_via_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying::text, 'confirmed'::character varying::text, 'waitlisted'::character varying::text, 'cancelled'::character varying::text])", name: "rsvps_status_check"
   end
 
   create_table "site_configs", force: :cascade do |t|
@@ -279,6 +291,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_180000) do
     t.integer "rsvp_offer_hours", default: 24, null: false
     t.integer "rsvp_last_call_hours", default: 4, null: false
     t.integer "rsvp_guest_retention_days", default: 30, null: false
+    t.integer "default_conflict_buffer_minutes", default: 60, null: false
     t.check_constraint "id = 1", name: "site_configs_singleton"
   end
 
@@ -330,6 +343,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_180000) do
   add_foreign_key "event_occurrences", "locations"
   add_foreign_key "events", "locations"
   add_foreign_key "events", "users"
+  add_foreign_key "events", "users", column: "exclusive_requested_by_id", on_delete: :nullify
+  add_foreign_key "events", "users", column: "exclusive_reviewed_by_id", on_delete: :nullify
   add_foreign_key "reminder_postings", "event_occurrences"
   add_foreign_key "reminder_postings", "events"
   add_foreign_key "reminder_postings", "users", column: "deleted_by_id"

@@ -1,0 +1,36 @@
+<%= turbo_frame_tag "schedule_conflict_notice",
+                    data: { conflict_check_target: "frame", action: "turbo:frame-load->conflict-check#frameLoaded" } do %>
+  <% if result&.blocks&.any? %>
+    <div class="alert alert-danger" role="alert" data-exclusive-block="true">
+      <h3 class="alert-heading h6"><i class="bi bi-slash-circle" aria-hidden="true"></i> This time is reserved</h3>
+      <ul class="mb-0">
+        <% result.blocks.each do |conflict| %>
+          <li><%= link_to SchedulingCopy.exclusive_sentence(conflict), event_path(conflict.event), class: "alert-link" %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if result&.cautions&.any? %>
+    <div class="alert alert-warning" role="status">
+      <h3 class="alert-heading h6"><i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Scheduling caution</h3>
+      <ul class="mb-0">
+        <% result.cautions.each do |conflict| %>
+          <li><%= link_to SchedulingCopy.sentence(conflict), event_path(conflict.event), class: "alert-link" %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% if result&.nearby&.any? %>
+    <div class="alert alert-secondary" role="status">
+      <h3 class="alert-heading h6"><i class="bi bi-calendar2-week" aria-hidden="true"></i> Nearby events</h3>
+      <p class="mb-1">These start within 15 minutes. They don't block you.</p>
+      <ul class="mb-0">
+        <% result.nearby.each do |conflict| %>
+          <li><%= link_to SchedulingCopy.sentence(conflict), event_path(conflict.event), class: "alert-link" %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+<% end %>

@@ -1,4 +1,6 @@
 class EventsController < ApplicationController
+  include SchedulingFlashes
+
   before_action :authenticate_user!, except: %i[index show embed]
   before_action :set_event, only: %i[show embed edit update destroy postpone cancel reactivate generate_ai_reminder]
   before_action :authorize_event, only: %i[edit update destroy postpone cancel reactivate]
@@ -79,15 +81,9 @@ class EventsController < ApplicationController
       @event.recurrence_rule = schedule.to_yaml
     end
 
+    prepare_scheduling
     if @event.save
-      conflicts = @event.check_conflicts
-
-      if conflicts.any?
-        flash[:conflict] = conflict_warning(conflicts)
-        redirect_to @event
-      else
-        redirect_to @event, notice: 'Event was successfully created.'
-      end
+      redirect_after_scheduling_save('Event was successfully created.')
     else
       render :new, status: :unprocessable_content
     end
@@ -96,6 +92,7 @@ class EventsController < ApplicationController
   def update
     @event.current_user_for_journal = current_user
     @event.pool_images = params.dig(:event, :pool_images)
+    prepare_scheduling
 
     if recurrence_params.rebuild_schedule?
       schedule = Event.build_schedule(recurrence_params.start_time, recurrence_params.recurrence_type, recurrence_params.to_h)
@@ -107,7 +104,7 @@ class EventsController < ApplicationController
       RsvpLifecycle.event_settings_changed!(@event)
       warning = RsvpLifecycle.over_capacity_warning(@event)
       flash[:alert] = warning if warning.present?
-      redirect_to @event, notice: 'Event was successfully updated.'
+      redirect_after_scheduling_save('Event was successfully updated.')
     else
       Rails.logger.error "Event update failed. Errors: #{@event.errors.full_messages.join(', ')}"
       render :edit, status: :unprocessable_content
@@ -145,6 +142,11 @@ class EventsController < ApplicationController
     else
       redirect_to @event, alert: 'Failed to reactivate event.'
     end
+  end
+
+  def conflict_check
+    @result = scheduling_preview_result
+    render partial: 'events/conflict_notice', locals: { result: @result }
   end
 
   def generate_ai_reminder
@@ -216,23 +218,17 @@ class EventsController < ApplicationController
     EventJournal.log_event_change(@event, current_user, 'images_added', { 'count' => count })
   end
 
-  def conflict_warning(conflicts)
-    conflict_links = conflicts.map do |conflict|
-      event = conflict[:event]
-      occ = conflict[:occurrence]
-      location_text = event.location ? " at #{event.location.name}" : ""
-
-      view_context.link_to(
-        "#{event.title} (#{occ.occurs_at.strftime('%B %d at %I:%M %p')}#{location_text})",
-        view_context.event_path(event),
-        class: 'text-white text-decoration-underline'
-      )
+  def scheduling_preview_result
+    preview = SchedulingPreview.new(params, user: current_user)
+    if params[:occurrence_id].present?
+      occurrence, result = preview.occurrence_result
+      authorize occurrence.event, :update?
+      result
+    else
+      event = preview.event
+      authorize event, params[:event_id].present? ? :update? : :create?
+      ScheduleConflictChecker.for_event(event)
     end
-
-    view_context.safe_join(
-      ['Event created successfully, but scheduling conflicts detected with:', view_context.tag.br] + conflict_links,
-      view_context.tag.br
-    )
   end
 
   def event_params
@@ -240,7 +236,8 @@ class EventsController < ApplicationController
                             recurrence_type status visibility open_to
                             more_info_url max_occurrences
                             image_selection_mode fixed_event_image_id
-                            location_id requires_mask draft slack_announce social_reminders
+                            location_id requires_mask busy conflict_buffer_minutes request_exclusive
+                            draft slack_announce social_reminders
                             rsvp_enabled capacity waitlist_enabled waitlist_mode rsvp_closes_minutes_before
                             reminder_7d_short reminder_1d_short reminder_7d_long reminder_1d_long
                             sign_feed permanently_cancelled default_to_cancelled

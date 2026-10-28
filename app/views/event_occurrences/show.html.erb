@@ -56,6 +56,17 @@
       <% end %>
     </header>
 
+    <% if @exclusive_conflicts&.any? %>
+      <div class="alert alert-danger" role="alert">
+        <h2 class="alert-heading h6"><i class="bi bi-slash-circle" aria-hidden="true"></i> Conflicts with an exclusive event</h2>
+        <ul class="mb-0">
+          <% @exclusive_conflicts.each do |conflict| %>
+            <li><%= link_to SchedulingCopy.exclusive_sentence(conflict), event_path(conflict.event), class: "alert-link" %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
     <p class="h5 text-muted mb-4" itemprop="startDate" content="<%= (@occurrence.postponed_until || @occurrence.occurs_at).iso8601 %>">
       <% if @occurrence.status == 'postponed' && @occurrence.postponed_until %>
         <span class="text-decoration-line-through"><%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %></span>
@@ -305,6 +316,7 @@
             <label for="postpone_reason" class="form-label">Reason (Optional)</label>
             <textarea class="form-control" id="postpone_reason" name="reason" rows="3"></textarea>
           </div>
+          <%= render "shared/exclusive_override_field", prefix: "occurrence_#{@occurrence.id}" %>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
