@@ -1,0 +1,5 @@
+<%= render 'details' %>
+<p>This is your <%= @kind == 'day_of' ? 'day-of' : (@kind == '7d' ? 'one week' : 'one day') %> reminder.</p>
+<% if @nag %>
+  <p>If you can't make it, cancel from your RSVP page so someone else can have the spot.</p>
+<% end %>

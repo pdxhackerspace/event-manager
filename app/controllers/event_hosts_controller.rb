@@ -20,6 +20,18 @@ class EventHostsController < ApplicationController
     end
   end
 
+  def update
+    membership = @event.event_hosts.find_by!(user_id: params.expect(:id))
+    unless membership.user_id == current_user.id
+      redirect_to @event, alert: 'You can only change your own RSVP emails.'
+      return
+    end
+
+    membership.update!(notify_on_rsvp: params[:notify_on_rsvp] == '1')
+    notice = membership.notify_on_rsvp? ? 'You will be emailed about each RSVP.' : 'RSVP emails are off.'
+    redirect_to @event, notice: notice
+  end
+
   def destroy
     @host = User.find(params.expect(:id))
     host_name = @host.name || @host.email

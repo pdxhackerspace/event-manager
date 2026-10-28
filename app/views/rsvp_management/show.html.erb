@@ -1,0 +1,43 @@
+<div class="row">
+  <div class="col-lg-7 mx-auto">
+    <h1 class="h3"><%= @event.title %></h1>
+    <p class="text-muted"><%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %></p>
+
+    <% unless @occurrence.manageable_until? %>
+      <div class="alert alert-secondary">This event is over. This link no longer changes your RSVP.</div>
+    <% end %>
+
+    <div class="card">
+      <div class="card-body">
+        <p class="mb-3"><%= rsvp_status_label(@rsvp) %></p>
+        <% if @rsvp.holding_offer? %>
+          <p>A spot is held for you until <%= @rsvp.offer_held_until.strftime('%B %d at %I:%M %p') %>.</p>
+        <% end %>
+
+        <% if @occurrence.manageable_until? && !@rsvp.cancelled? && !@rsvp.anonymized? %>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <% if @rsvp.pending? %>
+              <%= button_to 'Confirm my email and RSVP', confirm_rsvp_path(@rsvp.manage_token), method: :post, class: 'btn btn-primary' %>
+            <% end %>
+            <% if @rsvp.waitlisted? && (@rsvp.holding_offer? || @occurrence.spots_remaining.nil? || @occurrence.spots_remaining.positive?) %>
+              <%= button_to(@rsvp.holding_offer? ? 'Accept spot' : 'Claim spot', claim_rsvp_path(@rsvp.manage_token), method: :post, class: 'btn btn-primary') %>
+            <% end %>
+            <% if @rsvp.holding_offer? %>
+              <%= button_to 'Decline and stay on the wait list', decline_rsvp_path(@rsvp.manage_token), method: :post, class: 'btn btn-outline-secondary' %>
+            <% end %>
+            <%= button_to 'Cancel RSVP', cancel_rsvp_path(@rsvp.manage_token), method: :post, class: 'btn btn-outline-danger' %>
+          </div>
+
+          <%= form_with url: rsvp_reminders_path(@rsvp.manage_token), method: :patch do %>
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="reminders_opted_out" id="reminders_opted_out" value="1" <%= 'checked' if @rsvp.reminders_opted_out? %>>
+              <label class="form-check-label" for="reminders_opted_out">Don't email me reminders</label>
+            </div>
+            <button class="btn btn-sm btn-outline-secondary mt-2" type="submit">Save</button>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+    <p class="mt-3"><%= link_to 'View the event', event_occurrence_path(@occurrence) %></p>
+  </div>
+</div>

@@ -19,5 +19,12 @@ class DashboardController < ApplicationController
                             .includes(event: %i[hosts location])
                             .order(occurs_at: :asc)
                             .limit(20)
+
+    @my_rsvps = Rsvp.active.where(user: current_user)
+                    .joins(:event_occurrence)
+                    .where(event_occurrences: { occurs_at: Time.current.. })
+                    .includes(event_occurrence: :event)
+                    .order('event_occurrences.occurs_at')
+    @rsvp_counts = Rsvp.confirmed.where(event_occurrence_id: @upcoming_occurrences.map(&:id)).group(:event_occurrence_id).count
   end
 end

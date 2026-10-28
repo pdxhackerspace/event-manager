@@ -68,7 +68,7 @@ Rails.application.routes.draw do
     end
 
     # Host management
-    resources :event_hosts, only: %i[create destroy]
+    resources :event_hosts, only: %i[create update destroy]
 
     resources :event_images, only: %i[create update destroy], path: 'images' do
       collection do
@@ -80,6 +80,19 @@ Rails.application.routes.draw do
 
   # Event Occurrences routes
   resources :event_occurrences, only: %i[show edit update destroy], path: 'occurrences' do
+    resources :rsvps, only: [:index], controller: 'occurrence_rsvps' do
+      collection do
+        get :export
+        post :add
+      end
+      member do
+        post :cancel
+        post :promote
+        post :resend
+        patch :check_in
+      end
+    end
+
     member do
       post :postpone
       post :cancel
@@ -92,6 +105,14 @@ Rails.application.routes.draw do
       get :ical, defaults: { format: 'ics' }
     end
   end
+
+  post 'occurrences/:event_occurrence_id/rsvp', to: 'rsvps#create', as: :occurrence_rsvp
+  get 'rsvps/:token', to: 'rsvp_management#show', as: :manage_rsvp
+  post 'rsvps/:token/confirm', to: 'rsvp_management#confirm', as: :confirm_rsvp
+  post 'rsvps/:token/cancel', to: 'rsvp_management#cancel', as: :cancel_rsvp
+  post 'rsvps/:token/claim', to: 'rsvp_management#claim', as: :claim_rsvp
+  post 'rsvps/:token/decline', to: 'rsvp_management#decline', as: :decline_rsvp
+  patch 'rsvps/:token/reminders', to: 'rsvp_management#update_reminders', as: :rsvp_reminders
 
   # Site-wide public iCal feed
   get 'calendar.ics', to: 'calendar#ical', as: 'calendar_ical'

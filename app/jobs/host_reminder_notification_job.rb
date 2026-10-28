@@ -108,11 +108,7 @@ class HostReminderNotificationJob < ApplicationJob
   end
 
   def determine_recipient_email(host)
-    if @site_config.email_test_mode_enabled? && @site_config.email_test_mode_address.present?
-      @site_config.email_test_mode_address
-    else
-      host.email
-    end
+    EmailTestMode.recipient_for(host.email)
   end
 
   def log_test_mode_status

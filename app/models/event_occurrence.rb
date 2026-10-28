@@ -1,5 +1,6 @@
 class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   include SoftDeletable
+  include OccurrenceRsvp
 
   belongs_to :event, counter_cache: true
   belongs_to :location, optional: true
@@ -8,6 +9,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   has_one :postponed_from, class_name: 'EventOccurrence', foreign_key: :postponed_to_id,
                            inverse_of: :postponed_to, dependent: :nullify
   has_many :reminder_postings, dependent: :destroy
+  has_many :rsvps, dependent: :destroy
 
   # Slugs are stable identifiers; only generate on create.
   before_validation :generate_slug, on: :create
@@ -17,6 +19,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   validates :status, inclusion: { in: %w[active postponed cancelled relocated] }
   validates :slug, presence: true, uniqueness: true
   validates :relocated_to, presence: true, if: -> { status == 'relocated' }
+  validates :capacity_override, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
 
   # Allow finding by slug or ID
   def self.friendly_find(param)
@@ -231,6 +234,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
       new_occurrence.propagate_rescheduled_time_to_predecessors!
 
       log_status_change('postponed', reason, user) if user
+      RsvpLifecycle.transfer!(self, new_occurrence)
       success = true
     end
     success
@@ -243,7 +247,10 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def cancel!(reason = nil, user = nil)
     self.current_user_for_journal = user if user
     result = update(status: 'cancelled', cancellation_reason: reason)
-    log_status_change('cancelled', reason, user) if result && user
+    if result
+      log_status_change('cancelled', reason, user) if user
+      RsvpLifecycle.cancel_occurrence!(self)
+    end
     result
   end
 
@@ -251,7 +258,10 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def relocate!(new_location, reason = nil, user = nil)
     self.current_user_for_journal = user if user
     result = update(status: 'relocated', relocated_to: new_location, cancellation_reason: reason)
-    log_status_change('relocated', reason, user) if result && user
+    if result
+      log_status_change('relocated', reason, user) if user
+      RsvpLifecycle.notify_changed!(self, 'relocated')
+    end
     result
   end
 
@@ -267,6 +277,11 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # Display name for this occurrence
   def name
     "#{event.title} - #{occurs_at.strftime('%B %d, %Y')}"
+  end
+
+  def soft_delete
+    RsvpLifecycle.cancel_occurrence!(self)
+    super
   end
 
   private

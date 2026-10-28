@@ -204,6 +204,13 @@
                 <div class="d-flex justify-content-between align-items-center mb-1">
                   <span>
                     <%= host.name || host.email %>
+                    <% if user_signed_in? && host == current_user && @event.rsvp_enabled? %>
+                      <% membership = @event.event_hosts.find_by(user_id: host.id) %>
+                      <%= button_to(membership.notify_on_rsvp? ? 'Stop RSVP emails' : 'Email me about RSVPs',
+                                    event_event_host_path(@event, host), method: :patch,
+                                    params: { notify_on_rsvp: membership.notify_on_rsvp? ? '0' : '1' },
+                                    class: 'btn btn-sm btn-outline-secondary ms-2') %>
+                    <% end %>
                   </span>
                   <% if user_signed_in? && (current_user.admin? || @event.hosted_by?(current_user)) %>
                     <% can_remove = @event.hosts.count > 1 %>

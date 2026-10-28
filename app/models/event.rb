@@ -37,6 +37,9 @@ class Event < ApplicationRecord
   validates :status, inclusion: { in: %w[active postponed cancelled] }
   validates :visibility, inclusion: { in: %w[public members private] }
   validates :open_to, inclusion: { in: %w[public members private] }
+  validates :capacity, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
+  validates :waitlist_mode, inclusion: { in: %w[first_come sequential] }
+  validates :rsvp_closes_minutes_before, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validates :more_info_url,
             format: { with: URI::DEFAULT_PARSER.make_regexp(%w[http https]), message: "must be a valid URL" }, allow_blank: true
   validates :slug, presence: true, uniqueness: true
@@ -143,7 +146,14 @@ class Event < ApplicationRecord
 
   # Mark event as cancelled
   def cancel!(reason = nil)
-    update(status: 'cancelled', cancellation_reason: reason)
+    result = update(status: 'cancelled', cancellation_reason: reason)
+    RsvpLifecycle.cancel_event!(self) if result
+    result
+  end
+
+  def soft_delete
+    RsvpLifecycle.cancel_event!(self)
+    super
   end
 
   # Reactivate event
@@ -521,6 +531,7 @@ class Event < ApplicationRecord
     # Cancel all future active occurrences when event becomes permanently cancelled
     occurrences.where('occurs_at > ?', Time.current).where(status: 'active').find_each do |occ|
       occ.update!(status: 'cancelled', cancellation_reason: 'Event permanently cancelled')
+      RsvpLifecycle.cancel_occurrence!(occ)
     end
   end
 

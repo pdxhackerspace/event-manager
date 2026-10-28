@@ -1,0 +1,101 @@
+<div class="row">
+  <div class="col-lg-8 mx-auto">
+    <h1 class="h3">RSVPs for <%= @event.title %></h1>
+    <p class="text-muted"><%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %></p>
+    <% if @occurrence.effective_capacity && @occurrence.rsvps.confirmed.count > @occurrence.effective_capacity %>
+      <div class="alert alert-warning">Confirmed RSVPs are over the current capacity. Nobody was removed.</div>
+    <% end %>
+
+    <ul class="nav nav-tabs mb-3">
+      <% %w[confirmed waitlisted pending cancelled].each do |status| %>
+        <li class="nav-item">
+          <%= link_to status.titleize, event_occurrence_rsvps_path(@occurrence, status: status),
+                      class: "nav-link #{'active' if @status == status}" %>
+        </li>
+      <% end %>
+    </ul>
+
+    <div class="d-flex justify-content-between mb-3">
+      <%= link_to 'Download CSV', export_event_occurrence_rsvps_path(@occurrence), class: 'btn btn-outline-secondary btn-sm' %>
+      <%= link_to 'Back to occurrence', event_occurrence_path(@occurrence), class: 'btn btn-link btn-sm' %>
+    </div>
+
+    <% if @occurrence.checkin_open? && @status == 'confirmed' %>
+      <p class="small text-muted">Check-in is open from an hour before the start until 12 hours after it ends.</p>
+    <% end %>
+
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <% if current_user.admin? %>
+              <th>Full name</th>
+              <th>Email</th>
+            <% end %>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% @rsvps.each do |rsvp| %>
+            <tr>
+              <td>
+                <%= rsvp.display_name %>
+                <% if rsvp.holding_offer? %>
+                  <span class="badge bg-info text-dark">Held until <%= rsvp.offer_held_until.strftime('%b %d %I:%M %p') %></span>
+                <% end %>
+                <% if @event.capacity && rsvp.user&.recent_no_show_count.to_i.positive? %>
+                  <span class="badge bg-secondary"><%= rsvp.user.recent_no_show_count %> no-shows</span>
+                <% end %>
+              </td>
+              <% if current_user.admin? %>
+                <td><%= rsvp.user&.name || rsvp.name %></td>
+                <td><%= rsvp.email %></td>
+              <% end %>
+              <td><%= rsvp.status.titleize %></td>
+              <td class="text-end">
+                <% if @occurrence.checkin_open? && rsvp.confirmed? %>
+                  <%= button_to(rsvp.attended? ? 'Undo check-in' : 'Check in',
+                                check_in_event_occurrence_rsvp_path(@occurrence, rsvp),
+                                method: :patch, params: { attended: rsvp.attended? ? '0' : '1' },
+                                class: 'btn btn-sm btn-outline-success') %>
+                <% end %>
+                <% if rsvp.waitlisted? %>
+                  <%= button_to 'Promote', promote_event_occurrence_rsvp_path(@occurrence, rsvp), method: :post, class: 'btn btn-sm btn-outline-primary' %>
+                <% end %>
+                <% unless rsvp.cancelled? %>
+                  <%= button_to 'Resend email', resend_event_occurrence_rsvp_path(@occurrence, rsvp), method: :post, class: 'btn btn-sm btn-outline-secondary' %>
+                  <%= form_with url: cancel_event_occurrence_rsvp_path(@occurrence, rsvp), method: :post, class: 'd-inline' do %>
+                    <input type="text" name="reason" class="form-control form-control-sm d-inline w-auto" placeholder="Reason (optional)" aria-label="Cancellation reason">
+                    <button class="btn btn-sm btn-outline-danger" type="submit">Cancel</button>
+                  <% end %>
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+
+    <section class="card">
+      <div class="card-body">
+        <h2 class="h6">Add someone</h2>
+        <%= form_with url: add_event_occurrence_rsvps_path(@occurrence), method: :post, class: 'row g-2' do %>
+          <div class="col-md-4">
+            <label class="form-label" for="add_name">Name</label>
+            <input class="form-control" id="add_name" name="name" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="add_email">Email</label>
+            <input class="form-control" id="add_email" name="email" type="email" required>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <button class="btn btn-primary" type="submit">Add</button>
+          </div>
+        <% end %>
+        <p class="form-text mb-0">Hosts see names only. Emails are used to send the RSVP link and are visible to admins.</p>
+      </div>
+    </section>
+  </div>
+</div>

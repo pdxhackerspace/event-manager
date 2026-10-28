@@ -1,0 +1,9 @@
+<% if @test_mode %>
+<p><strong>Test mode.</strong> This message was redirected to the site test address.</p>
+<% end %>
+<p><%= @event.title %></p>
+<p>
+  <%= @occurrence.occurs_at.strftime('%A, %B %d, %Y at %I:%M %p') %>
+  <% if @occurrence.event_location %>at <%= @occurrence.event_location.name %><% end %>
+</p>
+<p>Manage your RSVP: <%= link_to 'Open your RSVP', @manage_url %></p>

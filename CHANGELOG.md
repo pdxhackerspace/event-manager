@@ -1,5 +1,15 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Events can take RSVPs, with an optional capacity and a wait list. Hosts choose whether an open spot goes to the first person who claims it or is offered to one person at a time
+- Guests can RSVP to public events with a name and email. The link in the confirmation email works until the event is over, and someone who already has an account is asked to log in
+- Hosts and admins can see the RSVP and wait lists, cancel or promote people, check people in, and download a CSV. Hosts see names only; member names prefer the username
+- Confirmed people get reminder emails, and a note to give up their spot when a capacity-limited event is full or has a wait list. Wait-listed people are emailed when a spot opens
+- Hosts can opt in to an email for each new RSVP, cancellation, and wait-list join
+- Guest names and emails are removed after the event (30 days by default). No-shows are recorded when a host actually used check-in
+
 ## [v0.24.4] - 2026-10-28
 
 ### Changed

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_180000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -48,6 +48,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
     t.bigint "event_id", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.boolean "notify_on_rsvp", default: false, null: false
     t.index ["event_id", "user_id"], name: "index_event_hosts_on_event_id_and_user_id", unique: true
     t.index ["event_id"], name: "index_event_hosts_on_event_id"
     t.index ["user_id"], name: "index_event_hosts_on_user_id"
@@ -100,6 +101,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
     t.string "status", default: "active", null: false
     t.datetime "updated_at", null: false
     t.bigint "postponed_to_id"
+    t.integer "capacity_override"
+    t.boolean "rsvp_disabled", default: false, null: false
+    t.datetime "checkin_finalized_at"
     t.index ["deleted_at"], name: "index_event_occurrences_on_deleted_at"
     t.index ["event_id", "occurs_at"], name: "index_event_occurrences_on_event_id_and_occurs_at"
     t.index ["event_id"], name: "index_event_occurrences_on_event_id"
@@ -151,6 +155,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.string "visibility", default: "public", null: false
+    t.boolean "rsvp_enabled", default: false, null: false
+    t.integer "capacity"
+    t.boolean "waitlist_enabled", default: true, null: false
+    t.string "waitlist_mode", default: "first_come", null: false
+    t.integer "rsvp_closes_minutes_before", default: 0, null: false
     t.index ["deleted_at"], name: "index_events_on_deleted_at"
     t.index ["description"], name: "index_events_on_description_trgm", opclass: :gin_trgm_ops, using: :gin
     t.index ["fixed_event_image_id"], name: "index_events_on_fixed_event_image_id"
@@ -170,6 +179,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
     t.check_constraint "recurrence_type::text = ANY (ARRAY['once'::character varying::text, 'weekly'::character varying::text, 'monthly'::character varying::text, 'custom'::character varying::text])", name: "events_recurrence_type_check"
     t.check_constraint "status::text = ANY (ARRAY['active'::character varying::text, 'postponed'::character varying::text, 'cancelled'::character varying::text])", name: "events_status_check"
     t.check_constraint "visibility::text = ANY (ARRAY['public'::character varying::text, 'members'::character varying::text, 'private'::character varying::text])", name: "events_visibility_check"
+    t.check_constraint "waitlist_mode::text = ANY (ARRAY['first_come'::character varying, 'sequential'::character varying]::text[])", name: "events_waitlist_mode_check"
   end
 
   create_table "locations", force: :cascade do |t|
@@ -201,6 +211,45 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
     t.index ["posted_at"], name: "index_reminder_postings_on_posted_at"
   end
 
+  create_table "rsvps", force: :cascade do |t|
+    t.bigint "event_occurrence_id", null: false
+    t.bigint "user_id"
+    t.string "name"
+    t.string "email"
+    t.string "status", default: "pending", null: false
+    t.datetime "waitlisted_at"
+    t.datetime "offer_held_until"
+    t.datetime "last_offered_at"
+    t.datetime "offer_reminder_sent_at"
+    t.datetime "confirmed_at"
+    t.datetime "cancelled_at"
+    t.bigint "cancelled_by_id"
+    t.string "cancellation_reason"
+    t.string "cancelled_via"
+    t.string "manage_token", null: false
+    t.boolean "reminders_opted_out", default: false, null: false
+    t.datetime "reminder_7d_sent_at"
+    t.datetime "reminder_1d_sent_at"
+    t.datetime "reminder_day_of_sent_at"
+    t.datetime "release_nag_sent_at"
+    t.boolean "attended"
+    t.bigint "checked_in_by_id"
+    t.datetime "checked_in_at"
+    t.datetime "anonymized_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index "event_occurrence_id, lower((email)::text)", name: "index_rsvps_on_occurrence_and_lower_email", unique: true, where: "(((status)::text <> 'cancelled'::text) AND (email IS NOT NULL))"
+    t.index ["cancelled_by_id"], name: "index_rsvps_on_cancelled_by_id"
+    t.index ["checked_in_by_id"], name: "index_rsvps_on_checked_in_by_id"
+    t.index ["event_occurrence_id", "status", "waitlisted_at"], name: "index_rsvps_on_occurrence_status_and_waitlisted_at"
+    t.index ["event_occurrence_id", "user_id"], name: "index_rsvps_on_occurrence_and_user", unique: true, where: "(((status)::text <> 'cancelled'::text) AND (user_id IS NOT NULL))"
+    t.index ["event_occurrence_id"], name: "index_rsvps_on_event_occurrence_id"
+    t.index ["manage_token"], name: "index_rsvps_on_manage_token", unique: true
+    t.index ["user_id"], name: "index_rsvps_on_user_id"
+    t.check_constraint "cancelled_via IS NULL OR (cancelled_via::text = ANY (ARRAY['self'::character varying, 'host'::character varying, 'admin'::character varying, 'occurrence_cancelled'::character varying]::text[]))", name: "rsvps_cancelled_via_check"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'confirmed'::character varying, 'waitlisted'::character varying, 'cancelled'::character varying]::text[])", name: "rsvps_status_check"
+  end
+
   create_table "site_configs", force: :cascade do |t|
     t.string "address"
     t.text "ai_key"
@@ -226,6 +275,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
     t.boolean "social_reminders_enabled", default: false, null: false
     t.datetime "updated_at", null: false
     t.string "website_url"
+    t.boolean "rsvps_enabled", default: true, null: false
+    t.integer "rsvp_offer_hours", default: 24, null: false
+    t.integer "rsvp_last_call_hours", default: 4, null: false
+    t.integer "rsvp_guest_retention_days", default: 30, null: false
     t.check_constraint "id = 1", name: "site_configs_singleton"
   end
 
@@ -254,10 +307,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
     t.string "role", default: "user", null: false
     t.string "uid"
     t.datetime "updated_at", null: false
+    t.string "username"
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["provider", "uid"], name: "index_users_on_provider_and_uid", unique: true, where: "((provider IS NOT NULL) AND (uid IS NOT NULL))"
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
     t.index ["role"], name: "index_users_on_role"
+    t.index ["username"], name: "index_users_on_username"
     t.check_constraint "role::text = ANY (ARRAY['user'::character varying::text, 'admin'::character varying::text])", name: "users_role_check"
   end
 
@@ -278,4 +333,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_02_120000) do
   add_foreign_key "reminder_postings", "event_occurrences"
   add_foreign_key "reminder_postings", "events"
   add_foreign_key "reminder_postings", "users", column: "deleted_by_id"
+  add_foreign_key "rsvps", "event_occurrences"
+  add_foreign_key "rsvps", "users"
+  add_foreign_key "rsvps", "users", column: "cancelled_by_id", on_delete: :nullify
+  add_foreign_key "rsvps", "users", column: "checked_in_by_id", on_delete: :nullify
 end
