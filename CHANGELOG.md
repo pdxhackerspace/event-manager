@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- RSVP events now show that an RSVP is required, how many spots are left, and the RSVP form on the event page, the date page, the event list, and the calendar
+
 ### Added
 - Events can take RSVPs, with an optional capacity and a wait list. Hosts choose whether an open spot goes to the first person who claims it or is offered to one person at a time
 - Guests can RSVP to public events with a name and email. The link in the confirmation email works until the event is over, and someone who already has an account is asked to log in

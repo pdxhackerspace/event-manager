@@ -70,7 +70,10 @@
                     <span class="text-muted fw-normal">(rescheduled)</span>
                   </p>
                 <% end %>
-                <%= open_to_badge(occurrence.event, extra_class: 'badge-sm') %>
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <%= open_to_badge(occurrence.event, extra_class: 'badge-sm') %>
+                  <%= render 'event_occurrences/rsvp_mark', occurrence: occurrence %>
+                </div>
                 <% if occurrence.event.requires_mask %>
                   <span class="badge bg-info badge-sm">
                     <i class="bi bi-shield-fill-check"></i> Masks Required

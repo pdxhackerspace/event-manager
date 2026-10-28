@@ -43,6 +43,9 @@
             <%= @event.status.titleize %>
           </span>
         <% end %>
+        <% if @event.rsvp_enabled? && SiteConfig.current.rsvps_enabled? %>
+          <%= rsvp_required_badge(extra_class: 'fs-6') %>
+        <% end %>
       </div>
     </header>
 
@@ -87,6 +90,12 @@
       </div>
     <% end %>
 
+    <% upcoming_occurrences = @event.occurrences.upcoming.limit(10).to_a %>
+    <% next_rsvp = upcoming_occurrences.find { |occurrence| rsvp_collecting?(occurrence) } %>
+    <% if next_rsvp %>
+      <%= render 'event_occurrences/rsvp_panel', occurrence: next_rsvp, show_date: true %>
+    <% end %>
+
     <section class="card mb-4">
       <div class="card-body">
         <h2 class="card-title h5">Description</h2>
@@ -102,12 +111,12 @@
       </div>
     </section>
 
-    <% if @event.occurrences.upcoming.any? %>
+    <% if upcoming_occurrences.any? %>
       <section class="card mb-4">
         <div class="card-body">
           <h2 class="card-title h5">Upcoming Occurrences</h2>
           <div class="list-group list-group-flush">
-            <% @event.occurrences.upcoming.limit(10).each do |occurrence| %>
+            <% upcoming_occurrences.each do |occurrence| %>
               <div class="list-group-item d-flex justify-content-between align-items-center">
                 <div>
                   <% if occurrence.status == 'postponed' %>
@@ -133,9 +142,13 @@
                     </span>
                   <% end %>
                   <%= open_to_badge(occurrence.event, extra_class: 'ms-2') %>
+                  <div class="mt-1"><%= render 'event_occurrences/rsvp_mark', occurrence: occurrence %></div>
                 </div>
                 <div class="btn-group btn-group-sm">
                   <%= link_to "View", event_occurrence_path(occurrence), class: "btn btn-outline-primary" %>
+                  <% if occurrence.rsvp_open? %>
+                    <%= link_to "RSVP", event_occurrence_path(occurrence, anchor: 'rsvp'), class: "btn btn-primary" %>
+                  <% end %>
                 </div>
               </div>
             <% end %>

@@ -1,14 +1,28 @@
 module RsvpsHelper
+  def rsvp_collecting?(occurrence)
+    return false if occurrence.nil? || occurrence.rsvp_disabled?
+
+    occurrence.event.rsvp_enabled? && SiteConfig.current.rsvps_enabled?
+  end
+
+  def rsvp_required_badge(extra_class: nil)
+    tag.span('RSVP required', class: ['badge bg-primary', extra_class].compact.join(' '))
+  end
+
+  def rsvp_capacity_summary(occurrence)
+    capacity = occurrence.effective_capacity
+    return 'No capacity limit' if capacity.nil?
+
+    left = occurrence.spots_remaining
+    "#{left} of #{capacity} #{'spot'.pluralize(capacity)} left"
+  end
+
   def rsvp_action_label(occurrence)
     remaining = occurrence.spots_remaining
-    return 'RSVP' if remaining.nil?
-    return 'Full' if remaining.zero? && !occurrence.event.waitlist_enabled?
+    return 'RSVP' if remaining.nil? || remaining.positive?
+    return 'Join the wait list' if occurrence.event.waitlist_enabled?
 
-    if remaining.zero?
-      'Full: join the wait list'
-    else
-      "RSVP (#{remaining} of #{occurrence.effective_capacity} #{"spot".pluralize(occurrence.effective_capacity)} left)"
-    end
+    'Full'
   end
 
   def rsvp_status_label(rsvp)

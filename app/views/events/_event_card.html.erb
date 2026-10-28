@@ -113,6 +113,14 @@
           <%= event.recurrence_type.titleize %>
         </p>
       <% end %>
+      <% if event.rsvp_enabled? && SiteConfig.current.rsvps_enabled? %>
+        <p class="mb-1 d-flex align-items-center gap-2 flex-wrap">
+          <%= rsvp_required_badge %>
+          <% if next_occurrence && rsvp_collecting?(next_occurrence) && next_occurrence.effective_capacity %>
+            <span><%= rsvp_capacity_summary(next_occurrence) %></span>
+          <% end %>
+        </p>
+      <% end %>
       <p class="mb-0">
         <%= open_to_badge(event) %>
         <% if event.requires_mask %>
@@ -126,7 +134,10 @@
   
   <footer class="card-footer d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
-      <%= link_to "View Details", event_path(event), class: "btn btn-sm btn-primary" %>
+      <%= link_to "View Details", event_path(event), class: "btn btn-sm btn-outline-primary" %>
+      <% if next_occurrence&.rsvp_open? %>
+        <%= link_to "RSVP", event_path(event, anchor: 'rsvp'), class: "btn btn-sm btn-primary" %>
+      <% end %>
       <% if (safe_more_info_url = safe_url(event.more_info_url)) %>
         <%= link_to safe_more_info_url, target: "_blank", rel: "noopener noreferrer", class: "btn btn-sm btn-outline-info", "aria-label": "Learn more about #{event.title} (opens in new tab)" do %>
           <i class="bi bi-link-45deg" aria-hidden="true"></i>
