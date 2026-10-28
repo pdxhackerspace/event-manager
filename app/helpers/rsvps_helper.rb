@@ -25,6 +25,10 @@ module RsvpsHelper
     'Full'
   end
 
+  def event_host?(event)
+    current_user.present? && EventHost.exists?(event_id: event.id, user_id: current_user.id)
+  end
+
   def rsvp_status_label(rsvp)
     case rsvp.status
     when 'confirmed' then 'You are confirmed'

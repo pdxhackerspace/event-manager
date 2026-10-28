@@ -75,6 +75,7 @@ class OccurrenceRsvpsController < ApplicationController
     when :checked_in then { notice: 'Check-in saved.' }
     when :full then { alert: 'There is no open spot.' }
     when :duplicate then { alert: 'That person already has an RSVP.' }
+    when :host then { alert: "Hosts can't RSVP to their own event." }
     else { alert: 'RSVP could not be saved.' }
     end
   end
