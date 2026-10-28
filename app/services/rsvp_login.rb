@@ -11,7 +11,11 @@ class RsvpLogin
 
     controller.session[OCCURRENCE_KEY] = occurrence_id
     return_to = controller.url_from(controller.params[:return_to])
-    controller.session[RETURN_KEY] = return_to if return_to
+    if return_to
+      controller.session[RETURN_KEY] = return_to
+    else
+      controller.session.delete(RETURN_KEY)
+    end
   end
 
   def self.finish(controller, user)
