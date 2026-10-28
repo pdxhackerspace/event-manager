@@ -29,6 +29,12 @@ module RsvpsHelper
     current_user.present? && EventHost.exists?(event_id: event.id, user_id: current_user.id)
   end
 
+  def rsvp_login_path(occurrence, on_event_page:)
+    return_to = event_path(occurrence.event, anchor: 'rsvp') if on_event_page
+    return_to ||= event_occurrence_path(occurrence, anchor: 'rsvp')
+    new_user_session_path(rsvp_occurrence_id: occurrence.id, return_to: return_to)
+  end
+
   def rsvp_status_label(rsvp)
     case rsvp.status
     when 'confirmed' then 'You are confirmed'

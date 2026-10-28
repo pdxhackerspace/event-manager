@@ -45,6 +45,7 @@ RSpec.describe 'RSVPs', :mail, type: :request do
       get event_path(event)
 
       expect(response.body).to include('Log in to RSVP')
+      expect(response.body).to include("rsvp_occurrence_id=#{occurrence.id}")
       expect(response.body).not_to include('name="email"')
     end
 
@@ -70,6 +71,44 @@ RSpec.describe 'RSVPs', :mail, type: :request do
       expect(response.body).to include('RSVP required')
       expect(response.body).to include(occurrence_rsvp_path(occurrence))
       expect(response.body).not_to include('name="email"')
+    end
+  end
+
+  describe 'logging in to RSVP' do
+    it 'returns to the event and submits the RSVP' do
+      get new_user_session_path(rsvp_occurrence_id: occurrence.id, return_to: event_path(event, anchor: 'rsvp'))
+
+      post user_session_path, params: { user: { email: member.email, password: 'password123' } }
+
+      expect(response).to redirect_to(event_path(event, anchor: 'rsvp'))
+      expect(flash[:notice]).to include('confirmed')
+      follow_redirect!
+      expect(response.body).to include('You are confirmed')
+      expect(occurrence.rsvps.find_by(user: member)).to be_confirmed
+    end
+
+    it 'does not return to an earlier event when the new login has no safe return path' do
+      other = create(:event, :rsvp, user: host, start_time: 6.days.from_now, open_to: 'public')
+      other_occurrence = other.occurrences.order(:occurs_at).first
+
+      get new_user_session_path(rsvp_occurrence_id: occurrence.id, return_to: event_path(event, anchor: 'rsvp'))
+      get new_user_session_path(rsvp_occurrence_id: other_occurrence.id, return_to: 'https://evil.example/phish')
+
+      post user_session_path, params: { user: { email: member.email, password: 'password123' } }
+
+      expect(response).to redirect_to(event_path(other, anchor: 'rsvp'))
+      expect(other_occurrence.rsvps.find_by(user: member)).to be_confirmed
+      expect(occurrence.rsvps).to be_empty
+    end
+
+    it 'does not submit an RSVP from the ordinary sign-in page' do
+      get new_user_session_path(rsvp_occurrence_id: occurrence.id, return_to: event_path(event, anchor: 'rsvp'))
+      get new_user_session_path
+
+      post user_session_path, params: { user: { email: member.email, password: 'password123' } }
+
+      expect(Rsvp.count).to eq(0)
+      expect(response).not_to redirect_to(event_path(event, anchor: 'rsvp'))
     end
   end
 
@@ -108,7 +147,9 @@ RSpec.describe 'RSVPs', :mail, type: :request do
 
       post occurrence_rsvp_path(occurrence), params: { name: 'Grace', email: 'grace@example.com' }
 
-      expect(response).to redirect_to(new_user_session_path)
+      expect(response).to redirect_to(
+        new_user_session_path(rsvp_occurrence_id: occurrence.id, return_to: event_path(event, anchor: 'rsvp'))
+      )
       expect(Rsvp.count).to eq(0)
     end
   end
