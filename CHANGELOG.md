@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.24.4] - 2026-10-28
+
+### Changed
+- Ruby is now **4.0.8** in Docker, CI, and local development
+- Pagination is **Pagy 43.8.1**
+- Sign-in uses **OmniAuth 2.3.1** and **omniauth-oauth2 1.10.0**
+- CSS build tools are **PostCSS 8.5.32** and **Sass 1.106.1**
+
+### Security
+- HTML sanitizing now uses **crass 1.0.8**, which closes a CSS sanitizer bypass (GHSA-pq4g-8rxf-4g29)
+
 ## [v0.24.2] - 2026-10-10
 
 ### Fixed
