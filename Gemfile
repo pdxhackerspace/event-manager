@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-ruby "4.0.7"
+ruby "4.0.8"
 
 # json 3.x breaks ActiveSupport::JSON.decode until Rails adapts to keyword-only options
 gem "json", "< 3"
@@ -52,7 +52,7 @@ gem "omniauth-rails_csrf_protection", "~> 2.0"
 gem "pundit"
 
 # Pagination
-gem "pagy", "~> 43.7"
+gem "pagy", "~> 43.8"
 
 # Recurring events
 gem "ice_cube"
