@@ -50,25 +50,27 @@
       </div>
     </header>
 
-    <% if @event.exclusive_approved? %>
-      <div class="alert alert-danger" role="status">
-        No other events can be scheduled during this one, or within
-        <%= @event.effective_conflict_buffer_minutes %> minutes before and after.
-      </div>
-    <% elsif @event.exclusive_pending? %>
-      <div class="alert alert-warning" role="status">
-        A request to reserve this time is waiting for an admin. Until it's approved, other events are only cautioned.
-      </div>
-    <% elsif @event.busy? %>
-      <div class="alert alert-warning" role="status">
-        This event is expected to be very busy. Scheduling something else during it, or within
-        <%= @event.effective_conflict_buffer_minutes %> minutes, shows a caution.
-      </div>
-    <% end %>
-    <% if policy(@event).update? && @event.exclusive_denied? && @event.exclusive_review_note.present? %>
-      <div class="alert alert-secondary" role="status">
-        Exclusive request denied: <%= @event.exclusive_review_note %>
-      </div>
+    <% if policy(@event).update? %>
+      <% if @event.exclusive_approved? %>
+        <div class="alert alert-danger" role="status">
+          No other events can be scheduled during this one, or within
+          <%= @event.effective_conflict_buffer_minutes %> minutes before and after.
+        </div>
+      <% elsif @event.exclusive_pending? %>
+        <div class="alert alert-warning" role="status">
+          A request to reserve this time is waiting for an admin. Until it's approved, other events are only cautioned.
+        </div>
+      <% elsif @event.busy? %>
+        <div class="alert alert-warning" role="status">
+          This event is expected to be very busy. Scheduling something else during it, or within
+          <%= @event.effective_conflict_buffer_minutes %> minutes, shows a caution.
+        </div>
+      <% end %>
+      <% if @event.exclusive_denied? && @event.exclusive_review_note.present? %>
+        <div class="alert alert-secondary" role="status">
+          Exclusive request denied: <%= @event.exclusive_review_note %>
+        </div>
+      <% end %>
     <% end %>
 
     <% if @event.status == 'postponed' && @event.postponed_until %>
