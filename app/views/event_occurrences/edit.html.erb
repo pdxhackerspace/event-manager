@@ -14,7 +14,11 @@
 
     <div class="card">
       <div class="card-body">
-        <%= form_with(model: @occurrence, url: event_occurrence_path(@occurrence), method: :patch, local: true, html: { multipart: true }) do |f| %>
+        <%= form_with(model: @occurrence, url: event_occurrence_path(@occurrence), method: :patch, local: true,
+                      html: { multipart: true,
+                              data: { controller: "conflict-check",
+                                      conflict_check_url_value: conflict_check_events_path,
+                                      conflict_check_occurrence_id_value: @occurrence.id } }) do |f| %>
           <% if @occurrence.errors.any? %>
             <div class="alert alert-danger">
               <h4><%= pluralize(@occurrence.errors.count, "error") %> prohibited this occurrence from being saved:</h4>
@@ -70,6 +74,9 @@
               Override the event duration for this occurrence (in minutes)
             </small>
           </div>
+
+          <%= render "events/conflict_notice", result: nil %>
+          <%= render "shared/exclusive_override_field", prefix: "edit_#{@occurrence.id}" %>
 
           <div class="mb-3">
             <%= f.label :location_id, "Location Override (Optional)", class: "form-label" %>

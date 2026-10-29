@@ -59,6 +59,10 @@ Rails.application.routes.draw do
   get 'events/rss', to: 'event_feeds#rss', as: 'events_rss', defaults: { format: 'rss' }
   get 'events/eink', to: 'event_feeds#eink', as: 'events_eink', defaults: { format: 'json' }
   resources :events do
+    collection do
+      get :conflict_check
+    end
+
     member do
       post :postpone
       post :cancel
@@ -140,6 +144,14 @@ Rails.application.routes.draw do
 
   # Activity journal (admin only)
   resources :event_journals, only: [:index]
+
+  # Exclusive scheduling requests (admin review)
+  resources :exclusive_requests, only: %i[index show] do
+    member do
+      post :approve
+      post :deny
+    end
+  end
 
   # Location information page (public)
   get 'location', to: 'site_configs#location', as: 'location_info'

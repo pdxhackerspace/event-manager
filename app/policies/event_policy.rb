@@ -41,6 +41,10 @@ class EventPolicy < ApplicationPolicy
     update?
   end
 
+  def review_exclusive?
+    user.present? && user.admin?
+  end
+
   class Scope < Scope
     def resolve
       # Not signed in - only published public events

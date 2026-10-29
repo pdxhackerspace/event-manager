@@ -137,6 +137,22 @@
 
           <div class="card mb-4 shadow-sm">
             <div class="card-header">
+              <h5 class="mb-0"><i class="bi bi-calendar-range"></i> Scheduling</h5>
+            </div>
+            <div class="card-body">
+              <div class="mb-0">
+                <%= f.label :default_conflict_buffer_minutes, "Default buffer around busy and exclusive events (minutes)", class: "form-label" %>
+                <%= f.number_field :default_conflict_buffer_minutes, class: "form-control", min: 0, step: 15, style: "max-width: 12rem;" %>
+                <div class="form-text">
+                  Time before and after a busy or exclusive event that is also protected, for setup, teardown, and crowds.
+                  An event can set its own buffer. 60 minutes is the starting point.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header">
               <h5 class="mb-0">Notifications & AI</h5>
             </div>
             <div class="card-body">

@@ -3,6 +3,8 @@ class Event < ApplicationRecord
 
   belongs_to :user # Original creator
   belongs_to :location, optional: true
+  belongs_to :exclusive_requested_by, class_name: 'User', optional: true
+  belongs_to :exclusive_reviewed_by, class_name: 'User', optional: true
   has_many :event_hosts, dependent: :destroy
   has_many :hosts, through: :event_hosts, source: :user
   has_many :event_occurrences, dependent: :destroy
@@ -12,6 +14,7 @@ class Event < ApplicationRecord
   has_many :event_images, -> { order(:position, :id) }, dependent: :destroy, inverse_of: :event
   belongs_to :fixed_event_image, class_name: 'EventImage', optional: true
 
+  before_validation :apply_exclusive_request
   before_validation :generate_slug, on: :create
   before_validation :update_slug_if_title_changed, on: :update
   before_validation :normalize_description_fields
@@ -28,12 +31,16 @@ class Event < ApplicationRecord
   after_update :cancel_future_occurrences_if_permanently_cancelled
   after_update :reactivate_relocated_occurrences_if_no_longer_relocated
 
-  attr_accessor :current_user_for_journal, :pool_images
+  attr_accessor :current_user_for_journal, :pool_images, :exclusive_actor, :override_exclusive_conflict,
+                :exclusive_review_notification
+  attr_writer :request_exclusive
   attr_reader :pool_images_attached_count
 
   validates :title, presence: true
   validates :start_time, presence: true
   validates :duration, numericality: { greater_than: 0 }
+  validates :exclusive_status, inclusion: { in: %w[none pending approved denied] }
+  validates :conflict_buffer_minutes, numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :recurrence_type, inclusion: { in: %w[once weekly monthly custom] }
   validates :status, inclusion: { in: %w[active postponed cancelled] }
   validates :visibility, inclusion: { in: %w[public members private] }
@@ -48,6 +55,7 @@ class Event < ApplicationRecord
                            if: :permanently_relocated?
   validates :image_selection_mode, inclusion: { in: %w[fixed random cycle] }
   validate :fixed_event_image_belongs_to_event
+  validate :reject_exclusive_overlaps
 
   # Full-text search using pg_trgm (trigram matching)
   # Searches title and description with fuzzy matching
@@ -232,52 +240,50 @@ class Event < ApplicationRecord
     occurrences.upcoming.active.limit(limit)
   end
 
-  # Check for conflicts with other events
-  def check_conflicts(limit = 5)
-    return [] if persisted? && occurrences.empty?
-
-    # Get the first few occurrences to check
-    times_to_check = if persisted?
-                       occurrences.limit(limit).pluck(:occurs_at)
-                     elsif recurrence_type == 'once'
-                       [start_time]
-                     elsif recurrence_rule.present?
-                       schedule = IceCube::Schedule.from_yaml(recurrence_rule)
-                       schedule.occurrences_between(start_time, 1.year.from_now).first(limit)
-                     else
-                       [start_time]
-                     end
-
-    return [] if times_to_check.empty?
-
-    # Find overlapping occurrences from other events
-    conflicting_occurrences = EventOccurrence
-                              .joins(:event)
-                              .where(events: { status: 'active' })
-
-    conflicting_occurrences = conflicting_occurrences.where.not(event_id: id) if persisted?
-
-    conflicts = []
-    times_to_check.each do |occurrence_time|
-      # Check for events that overlap (within 15 minutes before or after)
-      range_start = occurrence_time - 15.minutes
-      range_end = occurrence_time + duration.minutes + 15.minutes
-
-      overlapping = conflicting_occurrences
-                    .where('event_occurrences.occurs_at >= ? AND event_occurrences.occurs_at <= ?', range_start, range_end)
-                    .includes(event: :location)
-                    .limit(3) # Limit to 3 conflicts per time slot
-
-      overlapping.each do |occ|
-        conflicts << {
-          event: occ.event,
-          occurrence: occ,
-          overlap_time: occurrence_time
-        }
-      end
+  # Check for conflicts with other events. Kept for callers that want a flat list;
+  # scheduling decisions use ScheduleConflictChecker directly.
+  def check_conflicts(_limit = 5)
+    ScheduleConflictChecker.for_event(self).conflicts.map do |conflict|
+      {
+        event: conflict.event,
+        occurrence: conflict.occurrence,
+        overlap_time: conflict.candidate_starts_at
+      }
     end
+  end
 
-    conflicts.uniq { |c| c[:event].id }.first(5) # Return up to 5 unique conflicting events
+  # The checkbox on the event form. Nil until the form submits it, so other
+  # updates don't withdraw or re-request exclusive scheduling.
+  def request_exclusive
+    return @request_exclusive unless @request_exclusive.nil?
+
+    exclusive_pending? || exclusive_approved?
+  end
+
+  def exclusive_pending?
+    exclusive_status == 'pending'
+  end
+
+  def exclusive_approved?
+    exclusive_status == 'approved'
+  end
+
+  def exclusive_denied?
+    exclusive_status == 'denied'
+  end
+
+  def effective_conflict_buffer_minutes
+    conflict_buffer_minutes || SiteConfig.current.default_conflict_buffer_minutes
+  end
+
+  # True when the times this event occupies are about to change. Rewriting the
+  # recurrence rule to an equivalent schedule does not count.
+  def schedule_fields_changing?
+    will_save_change_to_start_time? ||
+      will_save_change_to_duration? ||
+      will_save_change_to_conflict_buffer_minutes? ||
+      will_save_change_to_recurrence_type? ||
+      recurrence_rule_changing?
   end
 
   # Regenerate occurrences (useful after recurrence rule changes)
@@ -473,6 +479,37 @@ class Event < ApplicationRecord
     # Cleared so a later save can't attach the same uploads twice.
     self.pool_images = nil
     @pool_images_attached_count = attach_pool_images_from_uploads(files)
+  end
+
+  def apply_exclusive_request
+    return if @request_exclusive.nil?
+
+    ExclusiveRequest.new(self, actor: exclusive_actor).apply(@request_exclusive)
+  end
+
+  def reject_exclusive_overlaps
+    return unless new_record? || schedule_fields_changing?
+    return if ActiveModel::Type::Boolean.new.cast(override_exclusive_conflict) && exclusive_actor&.admin?
+
+    blocks = ScheduleConflictChecker.for_event(self).blocks
+    return if blocks.empty?
+
+    errors.add(:base, SchedulingCopy.exclusive_block_text(blocks))
+  end
+
+  def recurrence_rule_changing?
+    return false unless will_save_change_to_recurrence_rule?
+
+    old_rule, new_rule = recurrence_rule_change_to_be_saved
+    schedule_times(old_rule) != schedule_times(new_rule)
+  end
+
+  def schedule_times(rule)
+    return [] if rule.blank? || start_time.blank?
+
+    IceCube::Schedule.from_yaml(rule).occurrences_between(start_time, 1.year.from_now).map(&:to_i)
+  rescue StandardError
+    [rule.to_s]
   end
 
   def fixed_event_image_belongs_to_event

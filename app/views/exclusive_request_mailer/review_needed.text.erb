@@ -1,0 +1,18 @@
+<% if @test_mode %>
+*** TEST MODE ***
+This email was redirected to the test address.
+******************
+
+<% end %>
+<%= @requester&.name || @requester&.email || 'A host' %> asked to reserve the space so no other event can be scheduled during <%= @event.title %>, including <%= @event.effective_conflict_buffer_minutes %> minutes before and after.
+
+Review this request: <%= exclusive_request_url(@event) %>
+
+<% if @covered.any? %>
+These events already fall inside that window:
+<% @covered.each do |conflict| %>
+- <%= conflict.event.title %> (<%= conflict.occurrence.occurs_at.strftime('%b %d, %I:%M %p') %>)
+<% end %>
+<% else %>
+Nothing else is currently scheduled in that window.
+<% end %>

@@ -1,0 +1,74 @@
+<div class="row">
+  <div class="col-lg-10 mx-auto">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><%= link_to "Exclusive requests", exclusive_requests_path %></li>
+        <li class="breadcrumb-item active" aria-current="page"><%= @event.title %></li>
+      </ol>
+    </nav>
+
+    <h1 class="mb-2"><%= link_to @event.title, event_path(@event), class: "text-decoration-none" %></h1>
+    <p>
+      <span class="badge <%= @event.exclusive_approved? ? 'bg-danger' : (@event.exclusive_pending? ? 'bg-warning text-dark' : 'bg-secondary') %>">
+        <%= @event.exclusive_status.titleize %>
+      </span>
+    </p>
+
+    <dl class="row">
+      <dt class="col-sm-3">Requested by</dt>
+      <dd class="col-sm-9"><%= @event.exclusive_requested_by&.name || @event.exclusive_requested_by&.email || @event.user.name %></dd>
+      <dt class="col-sm-3">Schedule</dt>
+      <dd class="col-sm-9"><%= schedule_description(@event) %>, <%= @event.duration %> minutes</dd>
+      <dt class="col-sm-3">Buffer</dt>
+      <dd class="col-sm-9"><%= @event.effective_conflict_buffer_minutes %> minutes before and after</dd>
+      <% if @event.exclusive_review_note.present? %>
+        <dt class="col-sm-3">Review note</dt>
+        <dd class="col-sm-9"><%= @event.exclusive_review_note %></dd>
+      <% end %>
+    </dl>
+
+    <h2 class="h5">Events already in this window</h2>
+    <% if @covered.any? %>
+      <% @covered.each do |starts_at, conflicts| %>
+        <h3 class="h6 mt-3"><%= starts_at.in_time_zone.strftime('%A, %B %d, %Y at %I:%M %p') %></h3>
+        <ul>
+          <% conflicts.each do |conflict| %>
+            <li>
+              <%= link_to conflict.event.title, event_path(conflict.event) %>
+              <span class="text-muted">
+                <%= conflict.occurrence.occurs_at.strftime('%b %d, %I:%M %p') %>
+                (<%= conflict.occurrence.duration %> minutes)
+              </span>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+      <p class="text-muted">Approving leaves these events in place. Their dates show a conflict notice.</p>
+    <% else %>
+      <p>Nothing else is scheduled in the protected window.</p>
+    <% end %>
+
+    <% if @event.exclusive_pending? %>
+      <div class="row mt-4">
+        <div class="col-md-6">
+          <%= form_with url: approve_exclusive_request_path(@event), method: :post do %>
+            <div class="mb-3">
+              <%= label_tag :approve_note, "Note (optional)", class: "form-label" %>
+              <%= text_area_tag :note, nil, class: "form-control", rows: 2, id: "approve_note" %>
+            </div>
+            <%= submit_tag "Approve", class: "btn btn-danger" %>
+          <% end %>
+        </div>
+        <div class="col-md-6">
+          <%= form_with url: deny_exclusive_request_path(@event), method: :post do %>
+            <div class="mb-3">
+              <%= label_tag :deny_note, "Note (optional)", class: "form-label" %>
+              <%= text_area_tag :note, nil, class: "form-control", rows: 2, id: "deny_note" %>
+            </div>
+            <%= submit_tag "Deny", class: "btn btn-outline-secondary" %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
