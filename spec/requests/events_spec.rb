@@ -64,6 +64,27 @@ RSpec.describe "Events", type: :request do
           expect(response.body).to include(event.title)
         end
 
+        it "renders formatted description and drops unsafe HTML" do
+          # Bypass the save-time sanitizer so the page has to clean this itself.
+          event.update_columns(description_html: '<p>Bring a <strong>laptop</strong></p><script>alert(1)</script><p><a href="https://example.com">site</a></p>') # rubocop:disable Rails/SkipsModelValidations
+
+          get event_path(event)
+
+          expect(response.body).to include('<strong>laptop</strong>')
+          expect(response.body).to include('rel="noopener nofollow"')
+          expect(response.body).not_to include('<script>')
+          expect(response.body).not_to include('alert(1)')
+        end
+
+        it "renders a plain description when the event has no HTML" do
+          event.update!(description: "Line one\n\nLine two", description_html: nil)
+
+          get event_path(event)
+
+          expect(response.body).to include('Line one')
+          expect(response.body).to include('Line two')
+        end
+
         it "uses the event banner for link preview images" do
           event = create(:event, :with_banner, visibility: 'public')
 
@@ -181,6 +202,8 @@ RSpec.describe "Events", type: :request do
         get new_event_path
         expect(response).to have_http_status(:success)
         expect(response.body).to include("New Event")
+        expect(response.body).to include("tinymce")
+        expect(response.body).to include("Keep in sync with HTML")
       end
     end
 
@@ -253,6 +276,31 @@ RSpec.describe "Events", type: :request do
         it "redirects to the event" do
           post events_path, params: event_params
           expect(response).to redirect_to(event_path(Event.last))
+        end
+
+        it "stores sanitized HTML and regenerates the plain text when sync is on" do
+          post events_path, params: event_params.deep_merge(
+            event: {
+              description: 'stale',
+              description_html: '<p>Fresh <a href="https://example.com">link</a></p><script>alert(1)</script>'
+            },
+            sync_description: '1'
+          )
+
+          created = Event.last
+          expect(created.description).to eq("Fresh link\n\nhttps://example.com")
+          expect(created.description_html).to include('https://example.com')
+          expect(created.description_html).not_to include('script')
+        end
+
+        it "keeps hand-edited plain text when sync is off" do
+          post events_path, params: event_params.deep_merge(
+            event: { description: 'Hand edited', description_html: '<p>Formatted</p>' }
+          )
+
+          created = Event.last
+          expect(created.description).to eq('Hand edited')
+          expect(created.description_html).to include('Formatted')
         end
       end
 

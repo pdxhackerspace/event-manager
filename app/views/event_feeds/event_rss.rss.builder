@@ -36,7 +36,8 @@ xml.rss version: "2.0", "xmlns:atom" => "http://www.w3.org/2005/Atom" do
         if occurrence.status == 'postponed' && occurrence.postponed_until.present?
           desc_parts << "<p><strong>Rescheduled to:</strong> #{occurrence.postponed_until.strftime('%B %d, %Y at %I:%M %p')}</p>"
         end
-        desc_parts << "<p>#{h(occurrence.description.truncate(500))}</p>" if occurrence.description.present?
+        markup = rss_description_markup(occurrence)
+        desc_parts << markup if markup.present?
         desc_parts << "<p><a href=\"#{@event.more_info_url}\">More information</a></p>" if @event.more_info_url.present?
         xml.description desc_parts.join
 

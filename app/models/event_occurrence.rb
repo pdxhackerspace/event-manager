@@ -13,6 +13,7 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
 
   # Slugs are stable identifiers; only generate on create.
   before_validation :generate_slug, on: :create
+  before_validation :normalize_custom_description_fields
   before_create :assign_pool_image, unless: :event_image_id?
 
   validates :occurs_at, presence: true
@@ -131,6 +132,19 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   # Get the actual description (custom or inherited from event)
   def description
     custom_description.presence || event.description
+  end
+
+  # Formatted description for this date. A plain-text-only override hides the
+  # event HTML so the page does not show formatting the plain text replaced.
+  def description_html
+    return custom_description_html if custom_description_html.present?
+    return if custom_description.present?
+
+    event.description_html
+  end
+
+  def rendered_description_html
+    description_html.presence
   end
 
   # Get the actual duration (override or inherited from event)
@@ -285,6 +299,13 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   end
 
   private
+
+  def normalize_custom_description_fields
+    self.custom_description_html = EventDescription.sanitize(custom_description_html)
+    return if custom_description.present? || custom_description_html.blank?
+
+    self.custom_description = HtmlToPlainText.call(custom_description_html)
+  end
 
   def linked_replacement_tail
     return nil if postponed_to.blank?

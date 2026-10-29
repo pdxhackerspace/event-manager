@@ -125,7 +125,7 @@
     <section class="card mb-4">
       <div class="card-body">
         <h2 class="card-title h5">Description</h2>
-        <div class="card-text" itemprop="description"><%= simple_format(@occurrence.description) %></div>
+        <div class="card-text" itemprop="description"><%= formatted_event_description(@occurrence) %></div>
         
         <% if (safe_more_info_url = safe_url(@event.more_info_url)) %>
           <div class="mt-3">

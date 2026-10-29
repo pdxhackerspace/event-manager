@@ -118,6 +118,39 @@ RSpec.describe EventOccurrence, type: :model do
     end
   end
 
+  describe '#description_html' do
+    let(:event) { create(:event, description: 'Series', description_html: '<p>Series</p>') }
+
+    it 'uses the event HTML when this date has no override' do
+      occurrence = create(:event_occurrence, event: event)
+
+      expect(occurrence.description_html).to include('Series')
+    end
+
+    it 'hides the event HTML when only the plain text is overridden' do
+      occurrence = create(:event_occurrence, event: event, custom_description: 'Just this date')
+
+      expect(occurrence.description_html).to be_nil
+      expect(occurrence.description).to eq('Just this date')
+    end
+
+    it 'fills plain text from custom HTML when the plain text is blank' do
+      occurrence = create(:event_occurrence, event: event, custom_description: '',
+                                             custom_description_html: '<p>Custom <em>night</em></p>')
+
+      expect(occurrence.custom_description).to eq('Custom night')
+      expect(occurrence.description_html).to include('<em>night</em>')
+    end
+
+    it 'strips unsafe markup from a custom description' do
+      occurrence = create(:event_occurrence, event: event, custom_description: 'Hi',
+                                             custom_description_html: '<p>Hi</p><script>alert(1)</script>')
+
+      expect(occurrence.custom_description_html).not_to include('script')
+      expect(occurrence.custom_description).to eq('Hi')
+    end
+  end
+
   describe '#duration' do
     let(:event) { create(:event, duration: 120) }
 

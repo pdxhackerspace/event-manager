@@ -1,0 +1,55 @@
+<%# locals: (f:, html_field:, text_field:, sync_param:, inherit: false, placeholder: "Describe your event...", label: "Description", plain_label: "Plain text") %>
+<% unless content_for?(:rich_text_editor_assets) %>
+  <% content_for :rich_text_editor_assets, flush: true do %>loaded<% end %>
+  <script id="tinymce-script" src="https://cdn.jsdelivr.net/npm/tinymce@6.8.5/tinymce.min.js" referrerpolicy="origin"></script>
+<% end %>
+
+<div class="mb-3"
+     data-controller="rich-editor description-sync"
+     data-rich-editor-valid-elements-value="<%= EventDescription::TINYMCE_VALID_ELEMENTS %>"
+     data-rich-editor-placeholder-value="<%= placeholder %>">
+  <%= f.label html_field, label, class: "form-label" %>
+  <div class="alert alert-info py-2 mb-2" role="note">
+    <small>
+      <i class="bi bi-info-circle" aria-hidden="true"></i>
+      <% if inherit %>
+        Leave both fields blank to use the event's description.
+      <% else %>
+        <strong>What to include:</strong>
+        who is invited, what the event is about, signup or RSVP links, what to bring, skill level, and cost.
+      <% end %>
+      The plain text version is what calendars, Slack, and social posts use.
+    </small>
+  </div>
+  <%= f.text_area html_field,
+                  class: "form-control",
+                  rows: 8,
+                  placeholder: placeholder,
+                  data: {
+                    rich_editor_target: "editor",
+                    description_sync_target: "bodyHtml",
+                    action: "input->description-sync#syncFromHtml rich-editor:change->description-sync#syncFromHtml"
+                  } %>
+  <div class="form-text">Use the toolbar to format, or the source button (&lt;&gt;) to edit the HTML.</div>
+
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3 mb-2">
+    <%= f.label text_field, plain_label, class: "form-label mb-0" %>
+    <div class="form-check mb-0">
+      <%= check_box_tag sync_param,
+                        "1",
+                        description_text_in_sync?(f.object.public_send(html_field), f.object.public_send(text_field)),
+                        class: "form-check-input",
+                        data: {
+                          description_sync_target: "sync",
+                          action: "change->description-sync#syncFromHtml"
+                        } %>
+      <%= label_tag sync_param, "Keep in sync with HTML", class: "form-check-label" %>
+    </div>
+  </div>
+  <%= f.text_area text_field,
+                  class: "form-control font-monospace",
+                  rows: 6,
+                  placeholder: placeholder,
+                  data: { description_sync_target: "bodyText" } %>
+  <div class="form-text">Uncheck to edit the plain text on its own. While this is checked, saving replaces the plain text from the HTML above.</div>
+</div>

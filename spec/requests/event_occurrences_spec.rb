@@ -26,6 +26,14 @@ RSpec.describe "EventOccurrences", type: :request do
         expect(response.body).to include(public_event.title)
       end
 
+      it "renders a formatted custom description" do
+        public_occurrence.update!(custom_description: 'Bring tools', custom_description_html: '<p>Bring <strong>tools</strong></p>')
+
+        get event_occurrence_path(public_occurrence)
+
+        expect(response.body).to include('<strong>tools</strong>')
+      end
+
       it "shows who the occurrence is open to" do
         public_event.update!(open_to: 'public')
         get event_occurrence_path(public_event.occurrences.first)
@@ -129,6 +137,33 @@ RSpec.describe "EventOccurrences", type: :request do
         patch event_occurrence_path(occurrence), params: update_params
         occurrence.reload
         expect(occurrence.custom_description).to eq("Custom description for this occurrence")
+      end
+
+      it "regenerates the plain text from custom HTML when sync is on" do
+        patch event_occurrence_path(occurrence), params: {
+          event_occurrence: {
+            custom_description: 'stale',
+            custom_description_html: '<p>Fresh <strong>notes</strong></p>'
+          },
+          sync_custom_description: '1'
+        }
+
+        occurrence.reload
+        expect(occurrence.custom_description).to eq('Fresh notes')
+        expect(occurrence.custom_description_html).to include('<strong>notes</strong>')
+      end
+
+      it "keeps hand-edited plain text when sync is off" do
+        patch event_occurrence_path(occurrence), params: {
+          event_occurrence: {
+            custom_description: 'Hand edited',
+            custom_description_html: '<p>Formatted</p>'
+          }
+        }
+
+        occurrence.reload
+        expect(occurrence.custom_description).to eq('Hand edited')
+        expect(occurrence.custom_description_html).to include('Formatted')
       end
 
       it "redirects to the occurrence" do

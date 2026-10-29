@@ -31,7 +31,8 @@ xml.rss version: "2.0", "xmlns:atom" => "http://www.w3.org/2005/Atom" do
         next_occurrence = @next_occurrence_by_event[event.id]
         desc_parts << "<p><strong>Next:</strong> #{next_occurrence.occurs_at.strftime('%B %d, %Y at %I:%M %p')}</p>" if next_occurrence
         desc_parts << "<p><strong>Location:</strong> #{event.location.name}</p>" if event.location.present?
-        desc_parts << "<p>#{h(event.description.truncate(500))}</p>" if event.description.present?
+        markup = rss_description_markup(event)
+        desc_parts << markup if markup.present?
         desc_parts << "<p><a href=\"#{event.more_info_url}\">More information</a></p>" if event.more_info_url.present?
         xml.description desc_parts.join
 

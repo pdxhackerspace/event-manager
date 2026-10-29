@@ -42,7 +42,32 @@ class IcalBuilder
       parts.compact_blank.join("\n\n")
     end
 
+    # Same notes as the plain description, so a client that shows the HTML
+    # alternative still includes cancellations, the more-info link, and the
+    # event page.
+    def html_description_for(occurrence, page_url: nil)
+      body = EventDescription.for_display(occurrence.rendered_description_html)
+      return if body.blank?
+
+      parts = [String.new(body.to_s)]
+      status_notes(occurrence).each { |note| parts << html_paragraph(note) }
+      parts << html_link_paragraph('More info', occurrence.event.more_info_url)
+      parts << html_link_paragraph('Event page', page_url)
+      String.new(parts.compact.join)
+    end
+
     private
+
+    def html_paragraph(text)
+      "<p>#{ERB::Util.html_escape(text)}</p>"
+    end
+
+    def html_link_paragraph(label, url)
+      return if url.blank?
+
+      escaped = ERB::Util.html_escape(url)
+      "<p>#{ERB::Util.html_escape(label)}: <a href=\"#{escaped}\">#{escaped}</a></p>"
+    end
 
     def status_notes(occurrence)
       [cancellation_note(occurrence), reschedule_note(occurrence), relocation_note(occurrence)].compact
@@ -87,6 +112,11 @@ class IcalBuilder
       e.summary = occurrence.event.title
       e.status = self.class.ical_status(occurrence.status)
       e.description = self.class.description_for(occurrence, page_url: page_url)
+      html = self.class.html_description_for(occurrence, page_url: page_url)
+      if html.present?
+        alt = Icalendar::Values::Text.new(html, { 'fmttype' => 'text/html' })
+        e.append_custom_property('x-alt-desc', alt)
+      end
       e.location = occurrence.event_location.name if occurrence.event_location
       e.url = page_url if page_url.present?
       e.organizer = organizer if organizer.present?

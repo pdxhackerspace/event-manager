@@ -21,3 +21,9 @@ application.register("banner-source", BannerSourceController)
 
 import ConflictCheckController from "./conflict_check_controller"
 application.register("conflict-check", ConflictCheckController)
+
+import DescriptionSyncController from "./description_sync_controller"
+application.register("description-sync", DescriptionSyncController)
+
+import RichEditorController from "./rich_editor_controller"
+application.register("rich-editor", RichEditorController)

@@ -5,6 +5,23 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.27.2] - 2026-10-28
+
+### Fixed
+- Calendar apps that show the formatted description also get the cancellation, reschedule, and location notes, plus the more-info and event-page links
+- A link used as a heading is kept in the plain-text description, including its address
+
+## [v0.27.1] - 2026-10-28
+
+### Fixed
+- A plain-text event description that contains HTML tags is escaped in the RSS feed, so feed readers do not treat it as markup
+- The description editor waits for its script to finish loading, including after navigating with Turbo, and saving no longer clears a plain-text description when that editor has not loaded
+
+## [v0.27.0] - 2026-10-28
+
+### Added
+- Event descriptions can be written with formatting (headings, lists, and links). A plain text copy is kept for calendars, Slack, social posts, and search, and is included alongside the HTML in the JSON and RSS feeds
+
 ## [v0.26.1] - 2026-10-28
 
 ### Fixed

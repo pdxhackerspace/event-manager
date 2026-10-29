@@ -12,6 +12,7 @@ class EventFeedSerializer < FeedSerializer
       slug: record.slug,
       title: public_event ? record.title : 'Private Event',
       description: public_event ? record.description : nil,
+      description_html: public_event ? EventDescription.for_display(record.description_html) : nil,
       more_info_url: public_event ? record.more_info_url : nil,
       visibility: record.visibility,
       open_to: public_event ? record.open_to : nil,

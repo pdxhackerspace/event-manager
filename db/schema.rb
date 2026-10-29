@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_28_230000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_235000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pg_trgm"
@@ -104,6 +104,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_230000) do
     t.integer "capacity_override"
     t.boolean "rsvp_disabled", default: false, null: false
     t.datetime "checkin_finalized_at"
+    t.text "custom_description_html"
     t.index ["deleted_at"], name: "index_event_occurrences_on_deleted_at"
     t.index ["event_id", "occurs_at"], name: "index_event_occurrences_on_event_id_and_occurs_at"
     t.index ["event_id"], name: "index_event_occurrences_on_event_id"
@@ -160,6 +161,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_230000) do
     t.boolean "waitlist_enabled", default: true, null: false
     t.string "waitlist_mode", default: "first_come", null: false
     t.integer "rsvp_closes_minutes_before", default: 0, null: false
+    t.text "description_html"
     t.boolean "busy", default: false, null: false
     t.string "exclusive_status", default: "none", null: false
     t.datetime "exclusive_requested_at"

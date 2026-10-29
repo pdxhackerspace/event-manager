@@ -57,6 +57,8 @@ RSpec.describe "JSON API", type: :request do
 
       private_occ = json['occurrences'].find { |o| o['event']['title'] == 'Private Event' }
       expect(private_occ['event']['description']).to be_nil
+      expect(private_occ['event']['description_html']).to be_nil
+      expect(private_occ['description_html']).to be_nil
       expect(private_occ['event']['hosts']).to eq([])
       expect(private_occ['event']['location']).to be_nil
       expect(private_occ['event']['banner_url']).to be_nil
@@ -151,6 +153,20 @@ RSpec.describe "JSON API", type: :request do
       expect(json).to have_key('occurrence_count')
     end
 
+    it "includes HTML descriptions for public events" do
+      public_event.update!(description: 'Hello', description_html: '<p>Hello <strong>there</strong></p>')
+
+      get events_path, headers: { 'Accept' => 'application/json' }
+      json = JSON.parse(response.body)
+      event_json = json['events'].find { |event| event['title'] == 'Public Event' }
+      occurrence_json = json['occurrences'].find { |occurrence| occurrence['event']['title'] == 'Public Event' }
+
+      expect(event_json['description']).to eq('Hello')
+      expect(event_json['description_html']).to include('<strong>there</strong>')
+      expect(occurrence_json['description_html']).to include('<strong>there</strong>')
+      expect(occurrence_json['event']['description_html']).to include('<strong>there</strong>')
+    end
+
     it "includes standard occurrence details" do
       get events_path, headers: { 'Accept' => 'application/json' }
       json = JSON.parse(response.body)
@@ -164,6 +180,7 @@ RSpec.describe "JSON API", type: :request do
       expect(occ).to have_key('event')
       expect(occ).to have_key('location')
       expect(occ).to have_key('description')
+      expect(occ).to have_key('description_html')
     end
 
     it "includes status and progress flags" do
@@ -356,6 +373,7 @@ RSpec.describe "JSON API", type: :request do
       expect(occurrence).to have_key('status')
       expect(occurrence).to have_key('duration')
       expect(occurrence).to have_key('description')
+      expect(occurrence).to have_key('description_html')
       expect(occurrence).to have_key('in_progress')
       expect(occurrence).to have_key('open_to')
       expect(occurrence).to have_key('event')

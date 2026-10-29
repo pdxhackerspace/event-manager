@@ -469,6 +469,34 @@ RSpec.describe Event, type: :model do
     end
   end
 
+  describe 'description HTML' do
+    it 'fills the plain description from HTML when the plain text is blank' do
+      event = build(:event, description: '', description_html: '<p>Hello <strong>there</strong></p>')
+
+      event.validate
+
+      expect(event.description).to eq('Hello there')
+      expect(event.description_html).to include('<strong>there</strong>')
+    end
+
+    it 'does not replace plain text that was already written' do
+      event = build(:event, description: 'Hand edited', description_html: '<p>Formatted</p>')
+
+      event.validate
+
+      expect(event.description).to eq('Hand edited')
+    end
+
+    it 'does not rewrite the HTML on a later save' do
+      event = create(:event, description: 'Hi', description_html: '<p>Hi</p>')
+      html = event.description_html
+
+      event.update!(requires_mask: true)
+
+      expect(event.description_html).to eq(html)
+    end
+  end
+
   describe 'more_info_url validation' do
     it 'accepts valid URLs' do
       event = build(:event, more_info_url: 'https://example.com')
