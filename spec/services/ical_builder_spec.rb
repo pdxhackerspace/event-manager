@@ -198,6 +198,24 @@ RSpec.describe IcalBuilder do
       expect(document).to include('<strong>there</strong>')
     end
 
+    it 'includes status notes and links in the HTML alternative' do
+      event.update!(
+        description: 'Hello there',
+        description_html: '<p>Hello <strong>there</strong></p>',
+        more_info_url: 'https://example.com/info'
+      )
+      occurrence.update!(status: 'cancelled', cancellation_reason: 'Snow')
+      document = described_class.new(host: 'events.example.org')
+                                .add_occurrence(occurrence, page_url: 'https://example.org/o/1')
+                                .to_ical
+
+      html = value_of(unfold(document), 'X-ALT-DESC')
+      expect(html).to include('<strong>there</strong>')
+      expect(html).to include('Cancelled: Snow')
+      expect(html).to include('https://example.com/info')
+      expect(html).to include('https://example.org/o/1')
+    end
+
     it 'omits the HTML alternative when there is no formatted description' do
       expect(unfold(ical)).not_to include('X-ALT-DESC')
     end

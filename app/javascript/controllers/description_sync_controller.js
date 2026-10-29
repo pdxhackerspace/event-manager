@@ -58,7 +58,7 @@ export default class extends Controller {
       if (element.textContent.trim().length > 0) element.prepend("- ")
     })
 
-    container.querySelectorAll("p, li, blockquote").forEach((element) => {
+    container.querySelectorAll("p, li, blockquote, h1, h2, h3, h4, h5, h6").forEach((element) => {
       const urls = Array.from(element.querySelectorAll("a[href]"))
         .map((link) => link.getAttribute("href"))
         .filter((url) => url && url.trim().length > 0 && !element.textContent.includes(url))

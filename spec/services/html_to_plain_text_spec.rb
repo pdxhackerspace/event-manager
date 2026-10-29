@@ -33,6 +33,10 @@ RSpec.describe HtmlToPlainText do
     expect(text('<h2>Title</h2><p>Body</p>')).to eq("Title\n\nBody")
   end
 
+  it 'keeps a link URL when the heading itself is the link' do
+    expect(text('<h2><a href="https://example.com/workshop">Workshop</a></h2>')).to eq("Workshop\n\nhttps://example.com/workshop")
+  end
+
   it 'turns non-breaking spaces into spaces' do
     expect(text('<p>Hello&nbsp;there</p>')).to eq('Hello there')
   end

@@ -5,6 +5,12 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.27.2] - 2026-10-28
+
+### Fixed
+- Calendar apps that show the formatted description also get the cancellation, reschedule, and location notes, plus the more-info and event-page links
+- A link used as a heading is kept in the plain-text description, including its address
+
 ## [v0.27.1] - 2026-10-28
 
 ### Fixed

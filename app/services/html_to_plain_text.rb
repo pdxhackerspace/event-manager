@@ -6,7 +6,7 @@
 class HtmlToPlainText
   BLOCK_TAGS = %w[div li tr ul ol].freeze
   BLANK_LINE_TAGS = %w[p blockquote h1 h2 h3 h4 h5 h6].freeze
-  LINK_URL_TAGS = %w[p li blockquote].freeze
+  LINK_URL_TAGS = %w[p li blockquote h1 h2 h3 h4 h5 h6].freeze
   SPACED_TAGS = %w[td th].freeze
 
   def self.call(html)
