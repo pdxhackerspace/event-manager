@@ -1,5 +1,6 @@
 class EventOccurrencesController < ApplicationController # rubocop:disable Metrics/ClassLength
   include ReminderMessageBuilder
+  include SchedulingFlashes
 
   before_action :set_occurrence, only: %i[show edit update destroy postpone cancel relocate reactivate
                                           post_slack_reminder post_social_reminder generate_ai_reminder
@@ -10,6 +11,7 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
 
   def show
     @event = @occurrence.event
+    @exclusive_conflicts = ScheduleConflictChecker.for_occurrence(@occurrence).blocks
     @current_rsvp = current_user && @occurrence.rsvps.active.find_by(user: current_user)
     store_location_for(:user, event_occurrence_path(@occurrence)) if !current_user && @occurrence.rsvp_open?
   end
@@ -33,11 +35,23 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   end
 
   def update
+    @event = @occurrence.event
     @occurrence.current_user_for_journal = current_user
+    @occurrence.assign_attributes(occurrence_params)
     handle_image_selection
 
-    if @occurrence.update(occurrence_params)
+    blocks = exclusive_blocks_for(@occurrence)
+    if blocks.any?
+      @occurrence.errors.add(:base, SchedulingCopy.exclusive_block_text(blocks))
+      render :edit, status: :unprocessable_content
+      return
+    end
+
+    if @occurrence.save
       sync_rsvps_after_update
+      result = ScheduleConflictChecker.for_occurrence(@occurrence)
+      record_exclusive_override(@event, result.blocks)
+      assign_scheduling_flashes(result)
       redirect_to @occurrence, notice: 'Occurrence was successfully updated.'
     else
       render :edit, status: :unprocessable_content
@@ -52,7 +66,16 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
 
   def postpone
     postponed_until = params[:postponed_until] ? Time.zone.parse(params[:postponed_until]) : 1.week.from_now
+    preview = EventOccurrence.new(event: @occurrence.event, occurs_at: postponed_until, status: 'active')
+    blocks = ScheduleConflictChecker.for_occurrence(preview).blocks
+    if blocks.any? && !exclusive_override_requested?
+      redirect_back_or_to @occurrence, alert: SchedulingCopy.exclusive_block_text(blocks)
+      return
+    end
+
     if @occurrence.postpone!(postponed_until, params[:reason], current_user)
+      record_exclusive_override(@occurrence.event, blocks)
+      assign_scheduling_flashes(ScheduleConflictChecker.for_occurrence(@occurrence.postponed_to)) if @occurrence.postponed_to
       redirect_back_or_to @occurrence.event, notice: 'Occurrence was postponed. A new occurrence has been created at the rescheduled date.'
     else
       redirect_back_or_to @occurrence, alert: 'Failed to postpone occurrence.'
@@ -81,7 +104,15 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   end
 
   def reactivate
+    blocks = ScheduleConflictChecker.for_occurrence(@occurrence).blocks
+    if blocks.any? && !exclusive_override_requested?
+      redirect_to @occurrence, alert: SchedulingCopy.exclusive_block_text(blocks)
+      return
+    end
+
     if @occurrence.reactivate!(current_user)
+      record_exclusive_override(@occurrence.event, blocks)
+      assign_scheduling_flashes(ScheduleConflictChecker.for_occurrence(@occurrence))
       redirect_to @occurrence, notice: 'Occurrence was reactivated.'
     else
       redirect_to @occurrence, alert: 'Failed to reactivate occurrence.'
@@ -256,6 +287,15 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
     return 'pool' if chosen_id.present? && chosen_id.to_i != @occurrence.event_image_id
 
     source
+  end
+
+  def exclusive_blocks_for(occurrence)
+    return [] unless occurrence.will_save_change_to_occurs_at? || occurrence.will_save_change_to_duration_override?
+
+    blocks = ScheduleConflictChecker.for_occurrence(occurrence).blocks
+    return [] if blocks.empty? || exclusive_override_requested?
+
+    blocks
   end
 
   def sync_rsvps_after_update

@@ -1,0 +1,9 @@
+<% if current_user&.admin? %>
+  <div class="form-check mb-3">
+    <%= check_box_tag :override_exclusive_conflict, "1", false,
+                      id: "override_exclusive_conflict_#{prefix}", class: "form-check-input" %>
+    <%= label_tag "override_exclusive_conflict_#{prefix}",
+                  "Schedule anyway if this overlaps an exclusive event", class: "form-check-label" %>
+    <div class="form-text">An admin override is recorded in the event journal.</div>
+  </div>
+<% end %>

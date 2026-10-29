@@ -124,6 +124,15 @@
                 <%= link_to "Reminder Postings", reminder_postings_path, class: "nav-link" %>
               </li>
               <li class="nav-item">
+                <%= link_to exclusive_requests_path, class: "nav-link" do %>
+                  Exclusive Requests
+                  <% pending_exclusive = Event.where(exclusive_status: 'pending').count %>
+                  <% if pending_exclusive.positive? %>
+                    <span class="badge bg-warning text-dark"><%= pending_exclusive %></span>
+                  <% end %>
+                <% end %>
+              </li>
+              <li class="nav-item">
                 <%= link_to "Journal", event_journals_path, class: "nav-link" %>
               </li>
               <li class="nav-item">
@@ -170,11 +179,19 @@
         </div>
       <% end %>
 
-      <% if flash[:conflict] %>
-        <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive" style="background-color: #dc3545; color: white; border-color: #dc3545;">
-          <h2 class="alert-heading h5"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> Scheduling Conflict Warning</h2>
-          <%= flash[:conflict].html_safe %>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close warning"></button>
+      <% if flash[:busy_conflict] %>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" aria-live="assertive">
+          <h2 class="alert-heading h5"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i> Scheduling caution</h2>
+          <%= flash[:busy_conflict].html_safe %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close caution"></button>
+        </div>
+      <% end %>
+
+      <% if flash[:nearby] %>
+        <div class="alert alert-secondary alert-dismissible fade show" role="alert">
+          <h2 class="alert-heading h5"><i class="bi bi-calendar2-week" aria-hidden="true"></i> Nearby events</h2>
+          <%= flash[:nearby].html_safe %>
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close nearby events"></button>
         </div>
       <% end %>
 

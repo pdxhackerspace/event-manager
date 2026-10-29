@@ -76,7 +76,8 @@ class SiteConfigsController < ApplicationController
                       matomo_enabled
                       matomo_url
                       matomo_site_id
-                      disallow_robots]
+                      disallow_robots
+                      default_conflict_buffer_minutes]
     )
   end
 

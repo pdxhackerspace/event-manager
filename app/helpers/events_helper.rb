@@ -22,6 +22,17 @@ module EventsHelper
     end
   end
 
+  def scheduling_badges(event, extra_class: nil)
+    badges = []
+    badges << scheduling_badge('people-fill', 'Busy', 'bg-warning text-dark', extra_class) if event.busy?
+    if event.exclusive_approved?
+      badges << scheduling_badge('slash-circle', 'No overlap', 'bg-danger', extra_class)
+    elsif event.exclusive_pending?
+      badges << scheduling_badge('hourglass-split', 'Exclusive pending', 'bg-warning text-dark', extra_class)
+    end
+    safe_join(badges, ' ')
+  end
+
   def schedule_description(event)
     case event.recurrence_type
     when 'once' then event.start_time.strftime('%A, %B %d, %Y')
@@ -53,6 +64,12 @@ module EventsHelper
   end
 
   private
+
+  def scheduling_badge(icon, label, style, extra_class)
+    content_tag(:span, class: ['badge', style, extra_class].compact.join(' ')) do
+      safe_join([content_tag(:i, '', class: "bi bi-#{icon}", 'aria-hidden': 'true'), " #{label}"])
+    end
+  end
 
   def default_monthly_result
     { occurrences: [], except_occurrences: [], day: nil }

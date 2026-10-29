@@ -1,0 +1,53 @@
+<div class="row">
+  <div class="col-lg-10 mx-auto">
+    <h1 class="mb-4">Exclusive scheduling requests</h1>
+    <p class="text-muted">
+      These events asked to keep the calendar clear during their time, including the buffer around them.
+      Approving does not move events that already overlap. Those hosts see a conflict notice on each overlapping date.
+    </p>
+
+    <h2 class="h4">Waiting for review</h2>
+    <% if @pending.any? %>
+      <div class="list-group mb-3">
+        <% @pending.each do |event| %>
+          <%= link_to exclusive_request_path(event), class: "list-group-item list-group-item-action" do %>
+            <div class="d-flex justify-content-between">
+              <strong><%= event.title %></strong>
+              <span class="text-muted"><%= time_ago_in_words(event.exclusive_requested_at || event.updated_at) %> ago</span>
+            </div>
+            <div class="small text-muted">
+              <%= event.exclusive_requested_by&.name || event.exclusive_requested_by&.email || event.user.name %>
+              · <%= schedule_description(event) %>
+              · buffer <%= event.effective_conflict_buffer_minutes %> minutes
+            </div>
+          <% end %>
+        <% end %>
+      </div>
+      <%== @pagy.series_nav(:bootstrap) if @pagy.pages > 1 %>
+    <% else %>
+      <p>No requests are waiting.</p>
+    <% end %>
+
+    <h2 class="h4 mt-4">Recent decisions</h2>
+    <% if @decided.any? %>
+      <ul class="list-unstyled">
+        <% @decided.each do |event| %>
+          <li class="mb-2">
+            <%= link_to event.title, exclusive_request_path(event) %>
+            <span class="badge <%= event.exclusive_approved? ? 'bg-danger' : 'bg-secondary' %>">
+              <%= event.exclusive_status.titleize %>
+            </span>
+            <span class="text-muted small">
+              <%= event.exclusive_reviewed_at&.strftime('%b %d, %Y') %>
+              <% if event.exclusive_reviewed_by %>
+                by <%= event.exclusive_reviewed_by.name || event.exclusive_reviewed_by.email %>
+              <% end %>
+            </span>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-muted">None yet.</p>
+    <% end %>
+  </div>
+</div>

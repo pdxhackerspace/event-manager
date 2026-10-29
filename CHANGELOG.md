@@ -5,6 +5,18 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.26.1] - 2026-10-28
+
+### Fixed
+- A long busy or exclusive event still blocks times later in its run, and reactivating a cancelled date is refused when that time is reserved
+
+## [v0.26.0] - 2026-10-28
+
+### Added
+- Events can be marked busy, which cautions anyone scheduling during that event or within a buffer around it (one hour by default, changeable per event or in site settings)
+- Hosts can request that no other event be scheduled at the same time. An admin has to approve it before it blocks the calendar, and admins are emailed when a review is needed. Changing the schedule of an approved event sends it back for review
+- The event form warns about busy times and nearby events while the date is being chosen, and refuses a time that overlaps an approved exclusive event. Admins can override that block, and the override is recorded in the event journal
+
 ## [v0.25.2] - 2026-10-28
 
 ### Fixed

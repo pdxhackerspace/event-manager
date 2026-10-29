@@ -18,7 +18,7 @@ class OccurrenceGenerator
 
     if event.recurrence_type == 'once'
       occ = find_or_create_occurrence_by_date(event.start_time, occurrence_status)
-      occ.save! if occ.changed?
+      save_occurrence(occ)
     elsif event.recurrence_rule.present?
       schedule = IceCube::Schedule.from_yaml(event.recurrence_rule)
       future_dates = schedule.occurrences_between(
@@ -28,7 +28,7 @@ class OccurrenceGenerator
 
       future_dates.each do |date|
         occ = find_or_create_occurrence_by_date(date, occurrence_status)
-        occ.save! if occ.changed?
+        save_occurrence(occ)
       end
     end
   end
@@ -60,7 +60,7 @@ class OccurrenceGenerator
         # and only normalize wall-clock time for active scheduled occurrences.
         update_occurrence_time_if_needed(existing, scheduled_time) if existing.status == 'active'
       else
-        event.occurrences.create!(occurs_at: canonicalize_time(scheduled_time), status: occurrence_status)
+        save_occurrence(event.occurrences.build(occurs_at: canonicalize_time(scheduled_time), status: occurrence_status))
       end
     end
 
@@ -120,6 +120,29 @@ class OccurrenceGenerator
   end
 
   private
+
+  def save_occurrence(occurrence)
+    return occurrence unless occurrence.changed? || occurrence.new_record?
+
+    occurrence.save!
+    note_exclusive_conflict(occurrence)
+    occurrence
+  end
+
+  # Background generation can't ask anyone to pick another time, so an overlap
+  # with an exclusive event is logged and left for the hosts to see on the
+  # occurrence page.
+  def note_exclusive_conflict(occurrence)
+    return unless occurrence.status == 'active'
+
+    blocks = ScheduleConflictChecker.for_occurrence(occurrence).blocks
+    return if blocks.empty?
+
+    names = blocks.map { |conflict| conflict.event.title }.uniq.join(', ')
+    Rails.logger.warn(
+      "Occurrence #{occurrence.id} (#{event.title} at #{occurrence.occurs_at}) overlaps exclusive event(s): #{names}"
+    )
+  end
 
   # Canonicalize to the schedule's intended local wall-clock time for the date.
   # This keeps local times stable across DST boundaries regardless of offsets

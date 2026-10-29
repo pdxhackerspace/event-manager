@@ -1,0 +1,58 @@
+<hr class="my-4">
+
+<h6 class="text-muted mb-3">Scheduling impact</h6>
+
+<div class="mb-3">
+  <div class="form-check">
+    <%= f.check_box :busy, class: "form-check-input" %>
+    <%= f.label :busy, "Busy event", class: "form-check-label" %>
+    <div class="form-text">
+      Expect a crowd, or the space will be noisy or crowded. Anyone scheduling an event during this one,
+      or within the buffer around it, is cautioned and encouraged to pick another time. They can still go ahead.
+    </div>
+  </div>
+</div>
+
+<div class="mb-3">
+  <div class="form-check">
+    <%= f.check_box :request_exclusive, class: "form-check-input" %>
+    <%= f.label :request_exclusive, "Request no other events at the same time", class: "form-check-label" %>
+    <div class="form-text">
+      Reserves the whole space. Nothing else can be scheduled during this event or within the buffer around it.
+      An admin has to approve this before it takes effect. Until then, other people only get a caution.
+      Use this for open houses, fundraisers, or anything that takes over the space.
+    </div>
+    <% if event.exclusive_pending? %>
+      <div class="form-text">Waiting for an admin to review this request.</div>
+    <% elsif event.exclusive_approved? %>
+      <div class="form-text">
+        Approved. Changing the start time, duration, recurrence, or buffer sends it back for review.
+      </div>
+    <% elsif event.exclusive_denied? %>
+      <div class="form-text text-danger">
+        An admin denied the last request<%= ": #{event.exclusive_review_note}" if event.exclusive_review_note.present? %>.
+        Check the box again to ask for another review.
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<div class="mb-3" data-conflict-check-target="buffer" <%= 'hidden' unless event.busy? || event.exclusive_pending? || event.exclusive_approved? %>>
+  <%= f.label :conflict_buffer_minutes, "Buffer (minutes)", class: "form-label" %>
+  <%= f.number_field :conflict_buffer_minutes, class: "form-control", min: 0, step: 15,
+                     placeholder: SiteConfig.current.default_conflict_buffer_minutes, style: "max-width: 12rem;" %>
+  <div class="form-text">
+    Time before and after this event that is also protected, for setup, teardown, and crowds arriving or leaving.
+    Leave blank to use the site default (<%= SiteConfig.current.default_conflict_buffer_minutes %> minutes).
+  </div>
+</div>
+
+<%= render "events/conflict_notice", result: nil %>
+
+<% if current_user&.admin? %>
+  <div class="form-check mt-3" data-conflict-check-target="override" hidden>
+    <%= check_box_tag :override_exclusive_conflict, "1", false, class: "form-check-input", id: "override_exclusive_conflict" %>
+    <%= label_tag :override_exclusive_conflict, "Schedule anyway", class: "form-check-label" %>
+    <div class="form-text">An admin override is recorded in the event journal, including which exclusive event was overlapped.</div>
+  </div>
+<% end %>
