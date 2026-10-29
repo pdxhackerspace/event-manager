@@ -64,6 +64,17 @@ RSpec.describe "Events", type: :request do
           expect(response.body).to include(event.title)
         end
 
+        it "hides busy and exclusive scheduling banners" do
+          busy = create(:event, visibility: 'public', busy: true, start_time: 3.weeks.from_now)
+          reserved = create(:event, visibility: 'public', exclusive_status: 'approved', start_time: 4.weeks.from_now)
+
+          get event_path(busy)
+          expect(response.body).not_to include('expected to be very busy')
+
+          get event_path(reserved)
+          expect(response.body).not_to include('No other events can be scheduled')
+        end
+
         it "renders formatted description and drops unsafe HTML" do
           # Bypass the save-time sanitizer so the page has to clean this itself.
           event.update_columns(description_html: '<p>Bring a <strong>laptop</strong></p><script>alert(1)</script><p><a href="https://example.com">site</a></p>') # rubocop:disable Rails/SkipsModelValidations
@@ -114,6 +125,35 @@ RSpec.describe "Events", type: :request do
       it "shows the event" do
         get event_path(event)
         expect(response).to have_http_status(:success)
+      end
+
+      it "hides busy and exclusive scheduling banners from someone who is not a host" do
+        busy = create(:event, visibility: 'public', busy: true, start_time: 3.weeks.from_now)
+        reserved = create(:event, visibility: 'public', exclusive_status: 'approved', start_time: 4.weeks.from_now)
+
+        get event_path(busy)
+        expect(response.body).not_to include('expected to be very busy')
+
+        get event_path(reserved)
+        expect(response.body).not_to include('No other events can be scheduled')
+      end
+    end
+
+    context "as a host" do
+      let(:host) { create(:user, :can_create_events) }
+
+      before { sign_in host }
+
+      it "shows busy and exclusive scheduling banners" do
+        busy = create(:event, user: host, visibility: 'public', busy: true, start_time: 3.weeks.from_now)
+        reserved = create(:event, user: host, visibility: 'public', exclusive_status: 'approved',
+                                  start_time: 4.weeks.from_now)
+
+        get event_path(busy)
+        expect(response.body).to include('expected to be very busy')
+
+        get event_path(reserved)
+        expect(response.body).to include('No other events can be scheduled')
       end
     end
 

@@ -5,6 +5,11 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.28.1] - 2026-10-28
+
+### Fixed
+- The busy and exclusive scheduling notices on an event page are shown only to that event's hosts
+
 ## [v0.28.0] - 2026-10-28
 
 ### Added
