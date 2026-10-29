@@ -71,6 +71,15 @@ RSpec.describe EventDescription do
       expect(attrs['description']).to eq('Hello')
     end
 
+    it 'does not wipe plain text when synced HTML is blank' do
+      attrs = { 'description_html' => '', 'description' => 'Keep me' }
+
+      described_class.assign_pair(attrs, html_key: 'description_html', text_key: 'description', sync: true)
+
+      expect(attrs['description']).to eq('Keep me')
+      expect(attrs['description_html']).to be_nil
+    end
+
     it 'leaves the hash alone when the HTML key was not submitted' do
       attrs = { 'description' => 'Keep me' }
 

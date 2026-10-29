@@ -18,8 +18,16 @@ export default class extends Controller {
 
   syncFromHtml() {
     if (!this.shouldSync() || !this.hasBodyTextTarget) return
+    // Without a live editor, an empty HTML field would erase plain text the
+    // host already typed. The server keeps that text when the HTML is blank.
+    if (!this.editorReady()) return
 
     this.bodyTextTarget.value = this.htmlToPlainText(this.currentHtml())
+  }
+
+  editorReady() {
+    const textarea = this.bodyHtmlTarget
+    return typeof tinymce !== "undefined" && textarea.id && tinymce.get(textarea.id)
   }
 
   shouldSync() {

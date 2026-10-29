@@ -12,17 +12,28 @@ export default class extends Controller {
   connect() {
     this.beforeCache = () => this.removeEditor()
     document.addEventListener("turbo:before-cache", this.beforeCache)
+    this.attempt = 0
     this.initEditor()
   }
 
   disconnect() {
+    this.stopWaiting()
     document.removeEventListener("turbo:before-cache", this.beforeCache)
     this.removeEditor()
   }
 
   initEditor() {
-    const textarea = this.editorTarget
-    if (typeof tinymce === "undefined" || !textarea.id) return
+    if (!this.element.isConnected || this.editor || this.initializing) return
+
+    const textarea = this.hasEditorTarget ? this.editorTarget : null
+    if (!textarea?.id) return
+    if (typeof tinymce === "undefined") {
+      this.waitForTinyMce()
+      return
+    }
+
+    this.stopWaiting()
+    this.initializing = true
 
     const existing = tinymce.get(textarea.id)
     if (existing) existing.remove()
@@ -52,6 +63,12 @@ export default class extends Controller {
       link_target_list: false,
       link_title: false,
       setup(editor) {
+        controller.initializing = false
+        if (!controller.element.isConnected) {
+          editor.remove()
+          return
+        }
+
         controller.editor = editor
         const syncTextarea = () => {
           editor.save()
@@ -69,7 +86,42 @@ export default class extends Controller {
     })
   }
 
+  // Turbo connects this controller before a script tag in the new body has
+  // finished loading, so wait until tinymce appears instead of giving up.
+  waitForTinyMce() {
+    if (this.waiting) return
+
+    this.waiting = true
+    const script = document.getElementById("tinymce-script")
+    if (script) {
+      this.onScriptLoad = () => this.initEditor()
+      script.addEventListener("load", this.onScriptLoad)
+    }
+
+    this.loadTimer = window.setInterval(() => {
+      this.attempt += 1
+      if (typeof tinymce !== "undefined") {
+        this.initEditor()
+      } else if (this.attempt > 50) {
+        this.stopWaiting()
+      }
+    }, 100)
+  }
+
+  stopWaiting() {
+    this.waiting = false
+    if (this.loadTimer) {
+      window.clearInterval(this.loadTimer)
+      this.loadTimer = null
+    }
+
+    const script = document.getElementById("tinymce-script")
+    if (script && this.onScriptLoad) script.removeEventListener("load", this.onScriptLoad)
+    this.onScriptLoad = null
+  }
+
   removeEditor() {
+    this.initializing = false
     const textarea = this.hasEditorTarget ? this.editorTarget : null
     const form = textarea?.closest("form")
     if (form && this.onFormSubmit) form.removeEventListener("submit", this.onFormSubmit)

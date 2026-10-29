@@ -38,12 +38,17 @@ module EventDescription
     end
 
     # Rewrites the HTML key in place. When +sync+ is set, or the plain text is
-    # blank, the plain text is regenerated from the sanitized HTML.
+    # blank, the plain text is regenerated from the sanitized HTML. Blank HTML
+    # does not wipe plain text that was already written: the editor may not
+    # have loaded, and the text the host typed should survive the save.
     def assign_pair(attrs, html_key:, text_key:, sync:)
       return attrs unless attrs.key?(html_key)
 
       attrs[html_key] = sanitize(attrs[html_key])
-      attrs[text_key] = HtmlToPlainText.call(attrs[html_key]) if sync || attrs[text_key].blank?
+      return attrs unless sync || attrs[text_key].blank?
+
+      plain = HtmlToPlainText.call(attrs[html_key])
+      attrs[text_key] = plain if plain.present? || attrs[text_key].blank?
       attrs
     end
 

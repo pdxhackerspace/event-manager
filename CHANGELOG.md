@@ -5,6 +5,12 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.27.1] - 2026-10-28
+
+### Fixed
+- A plain-text event description that contains HTML tags is escaped in the RSS feed, so feed readers do not treat it as markup
+- The description editor waits for its script to finish loading, including after navigating with Turbo, and saving no longer clears a plain-text description when that editor has not loaded
+
 ## [v0.27.0] - 2026-10-28
 
 ### Added

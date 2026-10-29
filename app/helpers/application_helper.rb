@@ -19,13 +19,16 @@ module ApplicationHelper
   end
 
   # A plain String, so the RSS builder escapes the markup once. for_display
-  # returns a safe buffer, and String.new drops that flag.
+  # returns a safe buffer, and String.new drops that flag. Plain text is
+  # escaped first so a description that contains tags is not rendered as HTML
+  # after a reader unescapes the feed.
   def rss_description_markup(source)
     html = EventDescription.for_display(source.rendered_description_html)
     return String.new(html.to_s) if html.present?
     return if source.description.blank?
 
-    "<p>#{source.description.truncate(500)}</p>"
+    escaped = String.new(ERB::Util.html_escape(source.description.truncate(500)))
+    "<p>#{escaped}</p>"
   end
 
   def description_text_in_sync?(html, text)

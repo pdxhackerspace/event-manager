@@ -1,7 +1,7 @@
 <%# locals: (f:, html_field:, text_field:, sync_param:, inherit: false, placeholder: "Describe your event...", label: "Description", plain_label: "Plain text") %>
 <% unless content_for?(:rich_text_editor_assets) %>
   <% content_for :rich_text_editor_assets, flush: true do %>loaded<% end %>
-  <script src="https://cdn.jsdelivr.net/npm/tinymce@6.8.5/tinymce.min.js" referrerpolicy="origin"></script>
+  <script id="tinymce-script" src="https://cdn.jsdelivr.net/npm/tinymce@6.8.5/tinymce.min.js" referrerpolicy="origin"></script>
 <% end %>
 
 <div class="mb-3"
