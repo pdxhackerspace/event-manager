@@ -231,9 +231,10 @@
                 Cancel This Occurrence
               </button>
             <% else %>
-              <%= button_to "Reactivate", reactivate_event_occurrence_path(@occurrence), 
-                  method: :post, 
-                  class: "btn btn-success" %>
+              <%= form_with url: reactivate_event_occurrence_path(@occurrence), method: :post do %>
+                <%= render "shared/exclusive_override_field", prefix: "reactivate_#{@occurrence.id}" %>
+                <%= submit_tag "Reactivate", class: "btn btn-success" %>
+              <% end %>
             <% end %>
             
             <%= button_to "Delete This Occurrence", event_occurrence_path(@occurrence), 

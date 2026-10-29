@@ -71,6 +71,14 @@ RSpec.describe ScheduleConflictChecker do
 
   end
 
+  it 'blocks a booking inside a long exclusive event that started before the search pad' do
+    create(:event, title: 'Build Out', start_time: start_time - 2.days, duration: 3 * 24 * 60,
+                   exclusive_status: 'approved', conflict_buffer_minutes: 60)
+    candidate = build(:event, start_time: start_time, duration: 60)
+
+    expect(result_for(candidate).blocks.map { |conflict| conflict.event.title }).to eq(['Build Out'])
+  end
+
   it 'lists ordinary events a new exclusive event would cover without blocking that exclusive event' do
     ordinary = create(:event, title: 'Workshop', start_time: start_time, duration: 60)
     candidate = build(:event, start_time: start_time, duration: 60, exclusive_status: 'approved',

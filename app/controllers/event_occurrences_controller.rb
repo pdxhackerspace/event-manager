@@ -104,7 +104,15 @@ class EventOccurrencesController < ApplicationController # rubocop:disable Metri
   end
 
   def reactivate
+    blocks = ScheduleConflictChecker.for_occurrence(@occurrence).blocks
+    if blocks.any? && !exclusive_override_requested?
+      redirect_to @occurrence, alert: SchedulingCopy.exclusive_block_text(blocks)
+      return
+    end
+
     if @occurrence.reactivate!(current_user)
+      record_exclusive_override(@occurrence.event, blocks)
+      assign_scheduling_flashes(ScheduleConflictChecker.for_occurrence(@occurrence))
       redirect_to @occurrence, notice: 'Occurrence was reactivated.'
     else
       redirect_to @occurrence, alert: 'Failed to reactivate occurrence.'

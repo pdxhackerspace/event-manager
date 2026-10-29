@@ -93,6 +93,19 @@ RSpec.describe 'Scheduling conflicts', :mail, type: :request do
       expect(occurrence.reload.occurs_at).to be_within(1.minute).of(event.start_time)
     end
 
+    it 'refuses reactivating a cancelled date inside an exclusive window' do
+      overlapping = build(:event, user: host, start_time: start_time, duration: 60)
+      overlapping.save!(validate: false)
+      cancelled = overlapping.occurrences.first
+      cancelled.update!(status: 'cancelled', cancellation_reason: 'Called off')
+
+      post reactivate_event_occurrence_path(cancelled)
+
+      expect(response).to redirect_to(event_occurrence_path(cancelled))
+      expect(flash[:alert]).to include('Fundraiser')
+      expect(cancelled.reload.status).to eq('cancelled')
+    end
+
     it 'refuses postponing into an exclusive window' do
       post postpone_event_occurrence_path(occurrence), params: { postponed_until: start_time.strftime('%Y-%m-%dT%H:%M') }
 

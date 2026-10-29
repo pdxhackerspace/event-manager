@@ -86,13 +86,18 @@ class ScheduleConflictChecker
 
   private
 
+  # Include events that started before the window but are still going. Filtering
+  # only on occurs_at drops a long exclusive event whose start is outside the pad.
   def candidates
     earliest = @windows.min_by { |window| window[:starts_at] }[:starts_at]
     latest = @windows.max_by { |window| window[:ends_at] }[:ends_at]
     pad = [max_known_buffer, @buffer_minutes.to_i].max.minutes + 1.day
+    range_start = earliest - pad
+    range_end = latest + pad
 
     scope = EventOccurrence.active.joins(:event).merge(Event.active.published)
-                           .where(occurs_at: (earliest - pad)..(latest + pad))
+                           .where(occurs_at: ..range_end)
+                           .where("#{EventOccurrence::END_TIME_SQL} >= ?", range_start)
                            .includes(:event)
     scope = scope.where.not(event_id: @exclude_event_id) if @exclude_event_id
     scope

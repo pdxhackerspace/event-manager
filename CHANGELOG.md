@@ -5,6 +5,11 @@
 ### Fixed
 - Logging in to RSVP returns you to that event and submits the RSVP
 
+## [v0.26.1] - 2026-10-28
+
+### Fixed
+- A long busy or exclusive event still blocks times later in its run, and reactivating a cancelled date is refused when that time is reserved
+
 ## [v0.26.0] - 2026-10-28
 
 ### Added
