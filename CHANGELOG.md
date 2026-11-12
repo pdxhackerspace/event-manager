@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [v0.32.1] - 2026-11-11
+
+### Fixed
+- Clicking "Log in to follow" while signed out goes to the sign-in page instead of "Content missing" (#324). After signing in, with a password or through Authentik, the follow is completed and the visitor returns to the page they started on
+- Signed-out follow buttons on a date say whether they follow this date or every date
+
+## [v0.32.0] - 2026-11-10
+
 ### Added
 - Signed-in users can follow an event or a single date. Followed dates show on the dashboard
 - Followers get an email when a followed event changes, including the description, banner, title, time, place, cancellation, or postponement. Several edits close together are one email
