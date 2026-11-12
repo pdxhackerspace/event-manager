@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [v0.32.1] - 2026-11-11
+## [v0.33.0] - 2026-11-11
 
 ### Fixed
 - Clicking "Log in to follow" while signed out goes to the sign-in page instead of "Content missing" (#324). After signing in, with a password or through Authentik, the follow is completed and the visitor returns to the page they started on
