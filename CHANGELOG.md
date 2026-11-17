@@ -2,8 +2,16 @@
 
 ## [Unreleased]
 
+## [v0.34.0] - 2026-11-17
+
 ### Added
 - Prometheus `/metrics` endpoint, secured by a bearer token (`METRICS_TOKEN`; disabled when unset). Reports users, events, occurrences, RSVPs, favorites, Sidekiq queues, servers, retry/dead jobs by class, and per-job-class run counts, failures and durations. See docs/METRICS.md
+
+### Changed
+- Dependency updates: puma 8.1.2 (security advisories), rspec-rails 8.1.0, pagy 43.8.2, bootstrap 5.3.9, sass 1.108.2
+
+### Fixed
+- Specs that hardcoded November 2026 dates now use relative dates
 
 ## [v0.33.0] - 2026-11-11
 
