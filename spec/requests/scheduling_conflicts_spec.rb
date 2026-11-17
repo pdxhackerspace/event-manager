@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe 'Scheduling conflicts', :mail, type: :request do
   let(:host) { create(:user, :can_create_events) }
   let(:admin) { create(:user, :admin) }
-  let(:start_time) { Time.zone.parse('2026-11-14 18:00') }
+  let(:start_time) { 14.days.from_now.change(hour: 18) }
   let!(:exclusive) do
     create(:event, title: 'Fundraiser', user: admin, start_time: start_time, duration: 120,
                    exclusive_status: 'approved', conflict_buffer_minutes: 60)
