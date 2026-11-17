@@ -51,8 +51,8 @@ All names are prefixed `event_manager_`.
 | Database | `db_pool_connections{state}`, `db_query_seconds` |
 | Sidekiq | `sidekiq_processed_total`, `sidekiq_failed_total`, `sidekiq_busy`, `sidekiq_processes`, `sidekiq_enqueued_jobs`, `sidekiq_scheduled_jobs`, `sidekiq_retry_jobs`, `sidekiq_dead_jobs`, `sidekiq_queue_size{queue}`, `sidekiq_queue_latency_seconds{queue}` |
 | Sidekiq servers | `sidekiq_server_concurrency`, `sidekiq_server_busy`, `sidekiq_server_start_time_seconds` (labels `hostname`, `pid`) |
-| Failures by type | `sidekiq_retry_jobs_by_class{job}`, `sidekiq_dead_jobs_by_class{job}`, `sidekiq_scheduled_jobs_by_class{job}` |
-| Job history | `job_executions_total{job}`, `job_failures_total{job}`, `job_last_run_timestamp_seconds{job}`, `job_duration_seconds` histogram (`_bucket{job,le}`, `_sum`, `_count`) |
+| Failures by type | `sidekiq_retry_jobs_by_class{job_class}`, `sidekiq_dead_jobs_by_class{job_class}`, `sidekiq_scheduled_jobs_by_class{job_class}` |
+| Job history | `job_executions_total{job_class}`, `job_failures_total{job_class}`, `job_last_run_timestamp_seconds{job_class}`, `job_duration_seconds` histogram (`_bucket{job_class,le}`, `_sum`, `_count`) |
 | Health | `collector_up{collector}` (`app`, `database`, `sidekiq`, `jobs`): `0` means that collector failed (e.g. Redis down); the rest of the scrape still succeeds |
 
 ### Job history
@@ -63,15 +63,17 @@ therefore cover all Sidekiq processes and survive restarts. Buckets are 0.1, 0.5
 30, 60 and 300 seconds. To reset history, `DEL event_manager:job_metrics` in Redis.
 Job counters only start accumulating after this version is deployed.
 
+The label is `job_class` rather than `job` because Prometheus reserves `job` for the scrape config's `job_name` and would otherwise rename it to `exported_job`.
+
 ### Example queries
 
 ```promql
 # Failure ratio per job over 1h
-sum by (job) (increase(event_manager_job_failures_total[1h]))
-  / sum by (job) (increase(event_manager_job_executions_total[1h]))
+sum by (job_class) (increase(event_manager_job_failures_total[1h]))
+  / sum by (job_class) (increase(event_manager_job_executions_total[1h]))
 
 # p95 duration per job
-histogram_quantile(0.95, sum by (job, le) (rate(event_manager_job_duration_seconds_bucket[1h])))
+histogram_quantile(0.95, sum by (job_class, le) (rate(event_manager_job_duration_seconds_bucket[1h])))
 
 # Jobs stuck in retry, by type
 event_manager_sidekiq_retry_jobs_by_class > 0

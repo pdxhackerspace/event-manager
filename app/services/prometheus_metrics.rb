@@ -33,7 +33,7 @@ class PrometheusMetrics
   end
 
   def collector_status
-    metric('event_manager_collector_up', 'gauge', '1 if the metrics collector succeeded, 0 if it failed.') do
+    metric('event_manager_collector_up', '1 if the metrics collector succeeded, 0 if it failed.', 'gauge') do
       @collector_status.each { |name, up| sample('event_manager_collector_up', up, collector: name) }
     end
   end
@@ -41,11 +41,11 @@ class PrometheusMetrics
   # --- collectors -----------------------------------------------------------
 
   def collect_app
-    metric('event_manager_build_info', 'gauge', 'Application version; always 1.') do
+    metric('event_manager_build_info', 'Application version; always 1.', 'gauge') do
       sample('event_manager_build_info', 1, version: ENV.fetch('APP_VERSION', Rails.root.join('VERSION').read.strip),
                                             rails: Rails.version, ruby: RUBY_VERSION, environment: Rails.env)
     end
-    metric('event_manager_process_start_time_seconds', 'gauge', 'Start time of this web process (unix time).') do
+    metric('event_manager_process_start_time_seconds', 'Start time of this web process (unix time).', 'gauge') do
       sample('event_manager_process_start_time_seconds', PROCESS_START)
     end
   end
@@ -156,11 +156,11 @@ class PrometheusMetrics
   # Retry and dead sets broken down by job class show which job types fail.
   def sidekiq_sets
     grouped('event_manager_sidekiq_retry_jobs_by_class', 'Jobs awaiting retry by job class.',
-            tally_set(Sidekiq::RetrySet.new), :job)
+            tally_set(Sidekiq::RetrySet.new), :job_class)
     grouped('event_manager_sidekiq_dead_jobs_by_class', 'Dead jobs by job class.',
-            tally_set(Sidekiq::DeadSet.new), :job)
+            tally_set(Sidekiq::DeadSet.new), :job_class)
     grouped('event_manager_sidekiq_scheduled_jobs_by_class', 'Scheduled jobs by job class.',
-            tally_set(Sidekiq::ScheduledSet.new), :job)
+            tally_set(Sidekiq::ScheduledSet.new), :job_class)
   end
 
   def tally_set(set)
@@ -172,14 +172,14 @@ class PrometheusMetrics
     counter_by_job('event_manager_job_executions_total', 'Job executions by class.', data, 'count')
     counter_by_job('event_manager_job_failures_total', 'Job executions that raised, by class.', data, 'failures')
     metric('event_manager_job_last_run_timestamp_seconds', 'Unix time a job class last ran.', 'gauge') do
-      data.each { |job, s| sample('event_manager_job_last_run_timestamp_seconds', s['last_run'].to_f, job: job) }
+      data.each { |job, s| sample('event_manager_job_last_run_timestamp_seconds', s['last_run'].to_f, job_class: job) }
     end
     job_histogram(data)
   end
 
   def counter_by_job(name, help, data, stat)
     metric(name, help, 'counter') do
-      data.each { |job, s| sample(name, s[stat].to_i, job: job) }
+      data.each { |job, s| sample(name, s[stat].to_i, job_class: job) }
     end
   end
 
@@ -187,10 +187,10 @@ class PrometheusMetrics
     name = 'event_manager_job_duration_seconds'
     metric(name, 'Job execution duration by class.', 'histogram') do
       data.each do |job, s|
-        JobMetrics::BUCKETS.each { |le| sample("#{name}_bucket", s["bucket:#{le}"].to_i, job: job, le: le) }
-        sample("#{name}_bucket", s['count'].to_i, job: job, le: '+Inf')
-        sample("#{name}_sum", s['duration_sum'].to_f, job: job)
-        sample("#{name}_count", s['count'].to_i, job: job)
+        JobMetrics::BUCKETS.each { |le| sample("#{name}_bucket", s["bucket:#{le}"].to_i, job_class: job, le: le) }
+        sample("#{name}_bucket", s['count'].to_i, job_class: job, le: '+Inf')
+        sample("#{name}_sum", s['duration_sum'].to_f, job_class: job)
+        sample("#{name}_count", s['count'].to_i, job_class: job)
       end
     end
   end

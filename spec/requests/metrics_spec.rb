@@ -72,13 +72,22 @@ RSpec.describe 'Metrics', type: :request do
       get '/metrics', headers: auth
       body = response.body
       expect(body).to include('event_manager_build_info{')
-      expect(body).to include('event_manager_sidekiq_retry_jobs_by_class{job="RsvpOfferJob"} 1')
+      expect(body).to include('event_manager_sidekiq_retry_jobs_by_class{job_class="RsvpOfferJob"} 1')
       expect(body).to include('event_manager_sidekiq_server_busy{hostname="worker-1",pid="42"} 1')
-      expect(body).to include('event_manager_job_executions_total{job="RsvpOfferJob"} 4')
-      expect(body).to include('event_manager_job_failures_total{job="RsvpOfferJob"} 1')
-      expect(body).to include('event_manager_job_duration_seconds_bucket{job="RsvpOfferJob",le="+Inf"} 4')
-      expect(body).to include('event_manager_job_duration_seconds_sum{job="RsvpOfferJob"} 2.5')
+      expect(body).to include('event_manager_job_executions_total{job_class="RsvpOfferJob"} 4')
+      expect(body).to include('event_manager_job_failures_total{job_class="RsvpOfferJob"} 1')
+      expect(body).to include('event_manager_job_duration_seconds_bucket{job_class="RsvpOfferJob",le="+Inf"} 4')
+      expect(body).to include('event_manager_job_duration_seconds_sum{job_class="RsvpOfferJob"} 2.5')
       expect(body).to include('event_manager_collector_up{collector="sidekiq"} 1')
+    end
+
+    it 'emits only valid TYPE declarations and a HELP line before each' do
+      get '/metrics', headers: auth
+      types = response.body.scan(/^# TYPE (\S+) (\S+)$/)
+      expect(types).not_to be_empty
+      expect(types.map(&:last).uniq - %w[gauge counter histogram]).to be_empty
+      expect(types.map(&:first)).to all(match(/\Aevent_manager_[a-z0-9_]+\z/))
+      expect(response.body).not_to match(/^# TYPE \S+ (?!gauge|counter|histogram)/)
     end
 
     it 'reports a failing collector instead of failing the scrape' do
