@@ -3,7 +3,7 @@ require 'rails_helper'
 RSpec.describe EventHostMailer, type: :mailer do
   let(:host) { create(:user, name: 'Ada Host', email: 'ada@example.com') }
   let(:actor) { create(:user, name: 'Casey Organizer') }
-  let(:event) { create(:event, :rsvp, user: host, title: 'Open Shop', start_time: Time.zone.parse('2026-11-12 19:00')) }
+  let(:event) { create(:event, :rsvp, user: host, title: 'Open Shop', start_time: 3.days.from_now.change(hour: 19)) }
   let(:occurrence) { event.occurrences.order(:occurs_at).first }
 
   before { SiteConfig.current.update!(organization_name: 'Test Org') }
@@ -32,7 +32,7 @@ RSpec.describe EventHostMailer, type: :mailer do
       body = described_class.cancelled(host, event, occurrence: occurrence, reason: 'Weather').text_part.body.decoded
 
       expect(body).to include('was cancelled: Weather')
-      expect(body).to include('November 12, 2026')
+      expect(body).to include(occurrence.occurs_at.strftime('%B %d, %Y'))
     end
   end
 

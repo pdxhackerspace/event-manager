@@ -53,7 +53,8 @@ module Rack
       '/assets',
       '/packs',
       '/rails/active_storage',
-      '/health'
+      '/health',
+      '/metrics'
     ].freeze
 
     def self.unthrottled_path?(path)

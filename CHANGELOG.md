@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- Prometheus `/metrics` endpoint, secured by a bearer token (`METRICS_TOKEN`; disabled when unset). Reports users, events, occurrences, RSVPs, favorites, Sidekiq queues, servers, retry/dead jobs by class, and per-job-class run counts, failures and durations. See docs/METRICS.md
+
 ## [v0.33.0] - 2026-11-11
 
 ### Fixed

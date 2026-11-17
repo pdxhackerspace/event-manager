@@ -11,6 +11,9 @@ Rails.application.routes.draw do
   get 'health/ready', to: 'health#ready'
   get 'health/readiness', to: 'health#ready' # Kubernetes-style alias
 
+  # Prometheus metrics (Bearer token via METRICS_TOKEN; 404 when unset)
+  get 'metrics', to: 'metrics#show'
+
   get 'calendar/index'
   get 'event_occurrences/show'
   get 'event_occurrences/edit'
