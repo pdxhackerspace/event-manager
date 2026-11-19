@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [v0.34.1] - 2026-11-19
+
+### Security
+- Ruby is 4.0.10, which closes the regular-expression and string case-conversion vulnerabilities
+
+### Changed
+- Gems and JavaScript packages are on their latest versions
+- Development, tests, and CI use PostgreSQL 18 and Redis 8. The production database image stays on PostgreSQL 14 until that data is dumped and restored
+
 ## [v0.34.0] - 2026-11-17
 
 ### Added

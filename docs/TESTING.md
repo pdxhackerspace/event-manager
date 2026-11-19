@@ -411,7 +411,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       postgres:
-        image: postgres:13
+        image: postgres:18
         env:
           POSTGRES_PASSWORD: postgres
         options: >-
@@ -420,11 +420,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v7
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.1.2
+          ruby-version: 4.0.10
       - name: Install dependencies
         run: bundle install
       - name: Setup database

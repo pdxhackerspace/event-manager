@@ -4,6 +4,7 @@
 
 services:
   db:
+    # Stays on 14: this volume is a pre-18 data directory. PostgreSQL 18 will not start on it.
     image: postgres:14-alpine
     restart: always
     volumes:
@@ -21,7 +22,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     restart: always
     volumes:
       - redis_data:/data

@@ -2,7 +2,7 @@
 # ========================================
 # Stage 1: Builder - Install dependencies and build assets
 # ========================================
-FROM ruby:4.0.9 AS builder
+FROM ruby:4.0.10 AS builder
 
 # Install build dependencies
 # ImageMagick: Debian metapackage; apt-get update picks up current security/main versions at build time
@@ -58,7 +58,7 @@ RUN rm -rf node_modules
 # ========================================
 # Stage 2: Runtime - Minimal production image
 # ========================================
-FROM ruby:4.0.9-slim AS runtime
+FROM ruby:4.0.10-slim AS runtime
 
 # Updated per deployment protocol: CI passes APP_VERSION; local builds default to dev
 ARG APP_VERSION=dev

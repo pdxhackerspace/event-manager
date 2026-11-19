@@ -653,7 +653,7 @@ config.unlock_in = 1.hour
 
 **Docker security:**
 - ✅ **Non-root user** in containers (runs as user 1000)
-- ✅ **Minimal base image** (ruby:4.0.6-slim)
+- ✅ **Minimal base image** (ruby:4.0.10-slim)
 - ✅ **No unnecessary packages** installed
 - ✅ **Secrets in .env**, not in image
 
@@ -673,11 +673,11 @@ curl -I https://yourdomain.com | grep -E '(X-Frame|X-Content|Strict-Transport)'
 ### 6. Vulnerable and Outdated Components 🔄
 
 **Current versions:**
-- Ruby: 3.2.2 ✅ (supported until 2026)
-- Rails: 7.1.6 ✅ (latest stable)
-- PostgreSQL: 14 ✅ (supported until 2026)
-- Redis: 7 ✅ (latest)
-- Node: 20.x LTS ✅ (supported until 2026)
+- Ruby: 4.0.10
+- Rails: 8.1.4.1
+- PostgreSQL: 18 in CI and local Docker. The production compose file is still PostgreSQL 14, which is outside upstream support and needs a dump and restore before the image can move
+- Redis: 8
+- Node: 26.x LTS
 
 **Monitoring for vulnerabilities:**
 

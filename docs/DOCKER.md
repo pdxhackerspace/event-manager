@@ -164,7 +164,7 @@ services:
 
 ### Database Service (`db`)
 
-- **Image**: postgres:14-alpine
+- **Image**: `postgres:18-alpine` in development and test (volume at `/var/lib/postgresql`). Production `docker-compose.yml` stays on `postgres:14-alpine` until that data directory is dumped and restored
 - **Ports**: 5432
 - **Volumes**: Persistent PostgreSQL data
 - **Healthcheck**: Ensures database is ready before starting web service

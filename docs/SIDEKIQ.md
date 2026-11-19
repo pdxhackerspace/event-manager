@@ -68,7 +68,7 @@ docker compose -f docker-compose.dev.yml logs web --follow | grep RegenerateEven
 ### Development
 
 The `docker-compose.dev.yml` includes:
-- **redis** service (Redis 7 Alpine)
+- **redis** service (Redis 8 Alpine)
 - **sidekiq** service (runs `sidekiq -C config/sidekiq.yml`)
 
 ```bash
