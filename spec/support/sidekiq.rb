@@ -1,9 +1,7 @@
-require 'sidekiq/testing'
-
 RSpec.configure do |config|
   config.before do
-    # Use fake mode by default - jobs are pushed to a fake queue
-    Sidekiq::Testing.fake!
+    # Jobs stay in a local queue. Sidekiq 8.1 enables this with Sidekiq.testing!.
+    Sidekiq.testing!(:fake)
   end
 
   config.after do

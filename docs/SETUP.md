@@ -45,7 +45,7 @@ See [DOCKER.md](DOCKER.md) for detailed Docker documentation.
 
 ### Prerequisites Checklist
 
-- [ ] Ruby 3.1.2 installed
+- [ ] Ruby 4.0.10 installed
 - [ ] PostgreSQL installed and running
 - [ ] Node.js and Yarn installed
 

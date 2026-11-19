@@ -3,7 +3,7 @@
 [![CI](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml)
 [![Lint](https://img.shields.io/github/actions/workflow/status/pdxhackerspace/event-manager/ci.yml?label=Lint)](https://github.com/pdxhackerspace/event-manager/actions/workflows/ci.yml)
 [![Docker Build](https://img.shields.io/github/actions/workflow/status/pdxhackerspace/event-manager/production.yml?label=Docker%20Build)](https://github.com/pdxhackerspace/event-manager/actions/workflows/production.yml)
-[![Ruby](https://img.shields.io/badge/Ruby-4.0.6-red?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
+[![Ruby](https://img.shields.io/badge/Ruby-4.0.10-red?logo=ruby&logoColor=white)](https://www.ruby-lang.org/)
 [![Rails](https://img.shields.io/badge/Rails-8.1-red?logo=rubyonrails&logoColor=white)](https://rubyonrails.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -49,9 +49,9 @@ Additional guides (Docker, deployment, security, testing, feature notes) live in
 - Docker Compose 2.0+
 
 ### Option 2: Native Installation
-- Ruby 4.0.6
-- PostgreSQL 12+
-- Node.js 24 (LTS) and Yarn 1.x
+- Ruby 4.0.10
+- PostgreSQL 18
+- Node.js 26 (LTS) and Yarn 1.x
 - (Optional) Authentik instance for SSO
 
 ## Installation
