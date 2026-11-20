@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- Sidekiq starts again. It was exiting on boot, so background jobs never ran
+
 ## [v0.34.1] - 2026-11-19
 
 ### Security
