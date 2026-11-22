@@ -86,6 +86,19 @@ RSpec.describe RsvpLifecycle, :mail do
       expect(occurrence.reload.checkin_finalized_at).to be_present
     end
 
+    it 'finalizes check-ins when the series has been soft-deleted' do
+      rsvp = occurrence.rsvps.confirmed.first
+      occurrence.update!(occurs_at: 2.days.ago)
+      rsvp.update!(attended: true)
+      other = service.create(user: create(:user), manual: true).rsvp
+      event.update!(deleted_at: Time.current)
+
+      described_class.finalize_checkins!
+
+      expect(other.reload.attended).to be false
+      expect(occurrence.reload.checkin_finalized_at).to be_present
+    end
+
     it 'anonymizes guest details after the retention period and keeps member RSVPs' do
       guest = service.create(name: 'Grace', email: 'grace@example.com', manual: true).rsvp
       occurrence.update!(occurs_at: 40.days.ago)
