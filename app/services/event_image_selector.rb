@@ -34,7 +34,16 @@ class EventImageSelector
   def select_cycle(pool, advance: true)
     index = event.image_cycle_index % pool.size
     selected = pool[index]
-    event.update!(image_cycle_index: event.image_cycle_index + 1) if advance
+    advance_cycle_index if advance
     selected
+  end
+
+  # update! from an occurrence's create callback autosaves that occurrence and
+  # inserts it a second time. The slug collision rolls back date generation.
+  def advance_cycle_index
+    return unless event.persisted?
+
+    # rubocop:disable-next Rails/SkipsModelValidations
+    event.update_column(:image_cycle_index, event.image_cycle_index + 1)
   end
 end

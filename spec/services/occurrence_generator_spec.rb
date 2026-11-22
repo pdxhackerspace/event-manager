@@ -271,6 +271,14 @@ RSpec.describe OccurrenceGenerator do
     let(:event) { create(:event, :weekly, max_occurrences: 3) }
     let(:generator) { described_class.new(event) }
 
+    it 'adds dates for a series that cycles banner images' do
+      image = create(:event_image, :with_image, event: event, position: 0, in_pool: true)
+      event.update!(image_selection_mode: 'cycle', fixed_event_image_id: image.id, image_cycle_index: 0)
+
+      expect { event.update!(max_occurrences: 5) }.not_to raise_error
+      expect(event.occurrences.active.count).to eq(5)
+    end
+
     context 'when schedule changes' do
       it 'preserves existing occurrences that are still valid' do
         existing_occ = event.occurrences.first

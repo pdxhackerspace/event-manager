@@ -27,6 +27,18 @@ RSpec.describe 'Occurrence image assignment', type: :model do
 
       expect(occurrence.event_image).to eq(second)
     end
+
+    it 'saves an occurrence built on the event while images cycle' do
+      first = attach_pool_image(position: 0)
+      attach_pool_image(position: 1)
+      event.update!(image_selection_mode: 'cycle', fixed_event_image_id: first.id, image_cycle_index: 0)
+
+      occurrence = event.occurrences.build(occurs_at: 3.weeks.from_now, status: 'active')
+
+      expect { occurrence.save! }.to change { EventOccurrence.where(event_id: event.id).count }.by(1)
+      expect(occurrence.reload.event_image).to eq(first)
+      expect(event.reload.image_cycle_index).to eq(1)
+    end
   end
 
   describe 'postpone!' do
