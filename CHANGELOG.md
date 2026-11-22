@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Fixed
+- A repeating event that cycles its banner images keeps generating upcoming dates. Saving the series no longer fails when you change how many dates to show
+
 ## [v0.34.3] - 2026-11-22
 
 ### Fixed
