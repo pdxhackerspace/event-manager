@@ -151,9 +151,10 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
     description_html.presence
   end
 
-  # Get the actual duration (override or inherited from event)
+  # Override for this date, otherwise the series length. A soft-deleted series
+  # is hidden by the default scope, so event is nil even though the row remains.
   def duration
-    duration_override || event.duration
+    duration_override || event_with_deleted&.duration
   end
 
   # Get the banner image (own or inherited from event)
@@ -368,7 +369,12 @@ class EventOccurrence < ApplicationRecord # rubocop:disable Metrics/ClassLength
   def previous_duration_for_notice
     return unless saved_change_to_duration_override
 
-    saved_change_to_duration_override.first || event.duration
+    saved_change_to_duration_override.first || event_with_deleted&.duration
+  end
+
+  # belongs_to follows the default scope, which hides a soft-deleted series.
+  def event_with_deleted
+    event || Event.with_deleted.find_by(id: event_id)
   end
 
   def normalize_custom_description_fields

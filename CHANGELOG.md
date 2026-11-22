@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [v0.34.3] - 2026-11-22
+
+### Fixed
+- Deleting an event series no longer stops the daily RSVP cleanup. No-shows are still recorded, and guest details are still removed on schedule
+- Background analysis of an uploaded file that is no longer stored stops after a few tries
+
+## [v0.34.2] - 2026-11-20
+
 ### Fixed
 - Sidekiq starts again. It was exiting on boot, so background jobs never ran
 

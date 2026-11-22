@@ -168,6 +168,15 @@ RSpec.describe EventOccurrence, type: :model do
       it 'returns the event duration' do
         expect(occurrence.duration).to eq(event.duration)
       end
+
+      it 'returns the event duration after the series is soft-deleted' do
+        event.update!(deleted_at: Time.current)
+        reloaded = described_class.find(occurrence.id)
+
+        expect(reloaded.event).to be_nil
+        expect(reloaded.duration).to eq(120)
+        expect(reloaded.ends_at).to eq(reloaded.occurs_at + 120.minutes)
+      end
     end
   end
 
